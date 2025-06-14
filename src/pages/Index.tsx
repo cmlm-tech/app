@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { Clock, Shield, Settings, Database, ArrowRight, Users, Link, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link as RouterLink } from "react-router-dom";
 
 const Index = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -35,12 +35,19 @@ const Index = () => {
             </div>
             <span className="text-xl font-montserrat font-bold text-gov-blue-800">cmlm.tech</span>
           </div>
-          <Button 
-            className="bg-gov-blue-800 hover:bg-gov-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-            onClick={() => scrollToSection('login')}
-          >
-            Acesso ao Sistema
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button
+              className="bg-gov-blue-800 hover:bg-gov-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+              onClick={() => scrollToSection('login')}
+            >
+              Acesso ao Sistema
+            </Button>
+            <RouterLink to="/login">
+              <Button variant="outline" className="border-gov-blue-800 text-gov-blue-800 hover:bg-gov-blue-800 hover:text-white">
+                <LogIn className="mr-2 h-4 w-4" /> Login
+              </Button>
+            </RouterLink>
+          </div>
         </div>
       </header>
 

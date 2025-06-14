@@ -177,16 +177,14 @@ const Index = () => {
           </div>
           
           <div className="max-w-5xl mx-auto">
-            <div className="relative">
-              <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-gov-blue-800 transform md:-translate-x-px"></div>
-              
-              <div className="space-y-16">
-                {/* Fase 1 - Esquerda */}
-                <div className="relative flex items-start">
-                  <div className="flex-shrink-0 w-16 h-16 bg-gov-blue-800 rounded-full flex items-center justify-center z-10 ml-0 md:ml-auto md:mr-8">
-                    <span className="text-white font-bold text-lg">1</span>
+            <div className="space-y-16">
+              {/* Fase 1 */}
+              <div className="relative">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 w-20 h-20 bg-gov-blue-800 rounded-full flex items-center justify-center z-20 relative">
+                    <span className="text-white font-bold text-xl">1</span>
                   </div>
-                  <div className="ml-8 md:ml-0 md:w-1/2 md:pr-12 md:text-right">
+                  <div className="ml-8 md:ml-12">
                     <h4 className="text-xl font-montserrat font-bold text-gray-800 mb-3">
                       Lançamento e Acesso Interno
                     </h4>
@@ -195,13 +193,17 @@ const Index = () => {
                     </p>
                   </div>
                 </div>
-                
-                {/* Fase 2 - Direita */}
-                <div className="relative flex items-start md:flex-row-reverse">
-                  <div className="flex-shrink-0 w-16 h-16 bg-gov-blue-800 rounded-full flex items-center justify-center z-10 ml-0 md:ml-8">
-                    <span className="text-white font-bold text-lg">2</span>
+                {/* Line connector to phase 2 */}
+                <div className="absolute left-10 top-20 w-0.5 h-16 bg-gov-blue-800"></div>
+              </div>
+              
+              {/* Fase 2 */}
+              <div className="relative">
+                <div className="flex items-start md:flex-row-reverse">
+                  <div className="flex-shrink-0 w-20 h-20 bg-gov-blue-800 rounded-full flex items-center justify-center z-20 relative md:ml-0">
+                    <span className="text-white font-bold text-xl">2</span>
                   </div>
-                  <div className="ml-8 md:ml-0 md:w-1/2 md:pl-12 md:text-left">
+                  <div className="ml-8 md:ml-0 md:mr-12 md:text-right">
                     <h4 className="text-xl font-montserrat font-bold text-gray-800 mb-3">
                       Módulo Legislativo e Vereadores
                     </h4>
@@ -210,13 +212,17 @@ const Index = () => {
                     </p>
                   </div>
                 </div>
-                
-                {/* Fase 3 - Esquerda */}
-                <div className="relative flex items-start">
-                  <div className="flex-shrink-0 w-16 h-16 bg-gov-blue-800 rounded-full flex items-center justify-center z-10 ml-0 md:ml-auto md:mr-8">
-                    <span className="text-white font-bold text-lg">3</span>
+                {/* Line connector to phase 3 - positioned for desktop layout */}
+                <div className="absolute left-10 md:right-10 md:left-auto top-20 w-0.5 h-16 bg-gov-blue-800"></div>
+              </div>
+              
+              {/* Fase 3 */}
+              <div className="relative">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 w-20 h-20 bg-gov-blue-800 rounded-full flex items-center justify-center z-20 relative">
+                    <span className="text-white font-bold text-xl">3</span>
                   </div>
-                  <div className="ml-8 md:ml-0 md:w-1/2 md:pr-12 md:text-right">
+                  <div className="ml-8 md:ml-12">
                     <h4 className="text-xl font-montserrat font-bold text-gray-800 mb-3">
                       Portal da Transparência Integrado
                     </h4>

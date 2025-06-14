@@ -1,7 +1,7 @@
 
+// Corrigindo as importações, removendo linhas de diff
 import { useState, useEffect } from 'react';
--import { Clock, Shield, Settings, Database, ArrowRight, Users, Link, Archive } from 'lucide-react';
-+import { Clock, Shield, Settings, Database, ArrowRight, Users, Link, Archive, LogIn } from 'lucide-react';
+import { Clock, Shield, Settings, Database, ArrowRight, Users, Link, Archive, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link as RouterLink } from "react-router-dom";
 

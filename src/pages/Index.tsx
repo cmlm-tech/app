@@ -38,17 +38,14 @@ const Index = () => {
             <span className="text-xl font-montserrat font-bold text-gov-blue-800">cmlm.tech</span>
           </div>
           <div className="flex items-center gap-4">
-            <Button
-              className="bg-gov-blue-800 hover:bg-gov-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-              onClick={() => scrollToSection('login')}
-            >
-              Acesso ao Sistema
-            </Button>
             <RouterLink to="/login">
-              <Button variant="outline" className="border-gov-blue-800 text-gov-blue-800 hover:bg-gov-blue-800 hover:text-white">
-                <LogIn className="mr-2 h-4 w-4" /> Login
+              <Button
+                className="bg-gov-blue-800 hover:bg-gov-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                Acesso ao Sistema
               </Button>
             </RouterLink>
+            {/* Removido o botão "Login" extra */}
           </div>
         </div>
       </header>
@@ -272,13 +269,15 @@ const Index = () => {
             
             <div>
               <h5 className="font-montserrat font-bold mb-4">Acesso Rápido</h5>
-              <Button 
-                variant="outline" 
-                className="w-full bg-transparent border-white text-white hover:bg-white hover:text-gov-blue-800 transition-colors"
-              >
-                <Users className="mr-2 h-4 w-4" />
-                Portal do Colaborador
-              </Button>
+              <RouterLink to="/login">
+                <Button 
+                  variant="outline" 
+                  className="w-full bg-transparent border-white text-white hover:bg-white hover:text-gov-blue-800 transition-colors"
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Portal do Colaborador
+                </Button>
+              </RouterLink>
             </div>
           </div>
           
@@ -294,3 +293,4 @@ const Index = () => {
 };
 
 export default Index;
+

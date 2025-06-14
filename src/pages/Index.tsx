@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Clock, Shield, Settings, Database, ArrowRight, Users, Link, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -175,48 +176,51 @@ const Index = () => {
             </p>
           </div>
           
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <div className="relative">
-              <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-gov-blue-800 transform md:-translate-x-px"></div>
+              <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-gov-blue-800 transform md:-translate-x-px"></div>
               
-              <div className="space-y-12">
-                <div className="relative flex items-center">
-                  <div className="flex-shrink-0 w-8 h-8 bg-gov-blue-800 rounded-full flex items-center justify-center z-10">
-                    <span className="text-white font-bold text-sm">1</span>
+              <div className="space-y-16">
+                {/* Fase 1 - Esquerda */}
+                <div className="relative flex items-start">
+                  <div className="flex-shrink-0 w-16 h-16 bg-gov-blue-800 rounded-full flex items-center justify-center z-10 ml-0 md:ml-auto md:mr-8">
+                    <span className="text-white font-bold text-lg">1</span>
                   </div>
-                  <div className="ml-8 md:ml-0 md:w-1/2 md:pr-8 md:text-right">
-                    <h4 className="text-xl font-montserrat font-bold text-gray-800 mb-2">
+                  <div className="ml-8 md:ml-0 md:w-1/2 md:pr-12 md:text-right">
+                    <h4 className="text-xl font-montserrat font-bold text-gray-800 mb-3">
                       Lançamento e Acesso Interno
                     </h4>
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 leading-relaxed">
                       Implantação da plataforma e liberação do acesso para os colaboradores da Câmara para testes e feedback.
                     </p>
                   </div>
                 </div>
                 
-                <div className="relative flex items-center md:flex-row-reverse">
-                  <div className="flex-shrink-0 w-8 h-8 bg-gov-blue-800 rounded-full flex items-center justify-center z-10 md:ml-auto">
-                    <span className="text-white font-bold text-sm">2</span>
+                {/* Fase 2 - Direita */}
+                <div className="relative flex items-start md:flex-row-reverse">
+                  <div className="flex-shrink-0 w-16 h-16 bg-gov-blue-800 rounded-full flex items-center justify-center z-10 ml-0 md:ml-8">
+                    <span className="text-white font-bold text-lg">2</span>
                   </div>
-                  <div className="ml-8 md:ml-0 md:w-1/2 md:pl-8">
-                    <h4 className="text-xl font-montserrat font-bold text-gray-800 mb-2">
+                  <div className="ml-8 md:ml-0 md:w-1/2 md:pl-12 md:text-left">
+                    <h4 className="text-xl font-montserrat font-bold text-gray-800 mb-3">
                       Módulo Legislativo e Vereadores
                     </h4>
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 leading-relaxed">
                       Integração das ferramentas do processo legislativo e liberação de acesso para os gabinetes dos vereadores.
                     </p>
                   </div>
                 </div>
                 
-                <div className="relative flex items-center">
-                  <div className="flex-shrink-0 w-8 h-8 bg-gov-blue-800 rounded-full flex items-center justify-center z-10">
-                    <span className="text-white font-bold text-sm">3</span>
+                {/* Fase 3 - Esquerda */}
+                <div className="relative flex items-start">
+                  <div className="flex-shrink-0 w-16 h-16 bg-gov-blue-800 rounded-full flex items-center justify-center z-10 ml-0 md:ml-auto md:mr-8">
+                    <span className="text-white font-bold text-lg">3</span>
                   </div>
-                  <div className="ml-8 md:ml-0 md:w-1/2 md:pr-8 md:text-right">
-                    <h4 className="text-xl font-montserrat font-bold text-gray-800 mb-2">
+                  <div className="ml-8 md:ml-0 md:w-1/2 md:pr-12 md:text-right">
+                    <h4 className="text-xl font-montserrat font-bold text-gray-800 mb-3">
                       Portal da Transparência Integrado
                     </h4>
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 leading-relaxed">
                       Lançamento do novo Portal da Transparência, totalmente integrado ao sistema, para acesso público.
                     </p>
                   </div>

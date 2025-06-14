@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Clock, Shield, Gear, Database, ArrowRight, Users, Link, Archive } from 'lucide-react';
+import { Clock, Shield, Settings, Database, ArrowRight, Users, Link, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {

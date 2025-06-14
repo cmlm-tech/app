@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Clock, Shield, Settings, Database, ArrowRight, Users, Link, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -143,7 +142,7 @@ const Index = () => {
             
             <div className="text-center p-6 rounded-lg hover:shadow-lg transition-shadow animate-fade-in">
               <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Gear className="h-8 w-8 text-white" />
+                <Settings className="h-8 w-8 text-white" />
               </div>
               <h4 className="text-xl font-montserrat font-bold text-gray-800 mb-3">Integração</h4>
               <p className="text-gray-600">

@@ -97,10 +97,10 @@ const Index = () => {
                 <Link className="h-8 w-8 text-gov-blue-800" />
               </div>
               <h3 className="text-2xl font-montserrat font-bold text-gray-800 mb-4">
-                A Nossa Solução: CMLM.TECH
+                A Nossa Solução: cmlm.tech
               </h3>
               <p className="text-gray-600 text-lg leading-relaxed">
-                A plataforma CMLM.TECH nasce para unificar todas as ferramentas legislativas e administrativas 
+                A plataforma cmlm.tech nasce para unificar todas as ferramentas legislativas e administrativas 
                 em um só lugar. Um portal seguro, intuitivo e centralizado para otimizar o trabalho e servir melhor o cidadão.
               </p>
             </div>
@@ -246,7 +246,7 @@ const Index = () => {
                 <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
                   <span className="text-gov-blue-800 font-bold text-sm">C</span>
                 </div>
-                <span className="text-xl font-montserrat font-bold">CMLM.TECH</span>
+                <span className="text-xl font-montserrat font-bold">cmlm.tech</span>
               </div>
               <p className="text-gray-300 mb-4">
                 Modernizando o Poder Legislativo de Lavras da Mangabeira
@@ -275,7 +275,7 @@ const Index = () => {
           
           <div className="border-t border-gov-blue-700 pt-8 text-center">
             <p className="text-gray-300">
-              © 2025 Câmara Municipal de Lavras da Mangabeira. Todos os direitos reservados. Projeto CMLM.TECH.
+              © 2025 Câmara Municipal de Lavras da Mangabeira. Todos os direitos reservados. Projeto cmlm.tech.
             </p>
           </div>
         </div>

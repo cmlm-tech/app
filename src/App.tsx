@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +12,7 @@ import Comissoes from "./pages/Comissoes";
 import MesaDiretora from "./pages/MesaDiretora";
 import Sessoes from "./pages/Sessoes";
 import Configuracoes from "./pages/Configuracoes";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +27,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           {/* Layout app protegida */}
           <Route path="/" element={<Index />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/documentos" element={<Documentos />} />
           <Route path="/vereadores" element={<Vereadores />} />
           <Route path="/comissoes" element={<Comissoes />} />

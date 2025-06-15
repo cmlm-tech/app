@@ -1,4 +1,5 @@
 
+
 import {
   Home,
   FileText,
@@ -18,7 +19,7 @@ const sidebarMenu = [
   {
     label: "Painel de Controle",
     icon: Home,
-    to: "/dashboard",
+    to: "/painel",
     type: "link",
   },
   {
@@ -192,3 +193,4 @@ export const AppSidebar = () => {
     </nav>
   );
 };
+

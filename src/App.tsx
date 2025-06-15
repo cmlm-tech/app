@@ -31,7 +31,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           {/* Layout app protegida */}
           <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/painel" element={<Dashboard />} />
           <Route path="/documentos" element={<Documentos />} />
           <Route path="/documentos/materias" element={<Materias />} />
           <Route path="/documentos/atas" element={<Atas />} />

@@ -1,4 +1,3 @@
-
 import { Menu, Bell, User, Cog } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -57,9 +56,10 @@ export const AppHeader = () => {
                   </Link>
                 </li>
                 <li>
-                  <a
-                    href="/login"
+                  <Link
+                    to="/entrar"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+                    onClick={() => setDropdownOpen(false)}
                   >
                     <span>
                       <svg viewBox="0 0 24 24" className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2">
@@ -69,7 +69,7 @@ export const AppHeader = () => {
                       </svg>
                     </span>
                     Sair
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

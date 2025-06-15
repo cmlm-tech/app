@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const Login = () => {
+const Entrar = () => {
   const [userIdentifier, setUserIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -99,5 +99,4 @@ const Login = () => {
   );
 };
 
-export default Login;
-
+export default Entrar;

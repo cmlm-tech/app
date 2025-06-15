@@ -14,7 +14,7 @@ import Materias from "./pages/documentos/Materias";
 import Atas from "./pages/documentos/Atas";
 import VereadoresPlenario from "./pages/plenario/Vereadores";
 import MesaDiretoraPlenario from "./pages/plenario/MesaDiretora";
-// import ComissoesPlenario from "./pages/plenario/Comissoes"; // Rota removida
+import ComissoesPlenario from "./pages/plenario/Comissoes";
 import SessoesLeg from "./pages/atividade-legislativa/Sessoes";
 import Pautas from "./pages/atividade-legislativa/Pautas";
 import Legislaturas from "./pages/atividade-legislativa/Legislaturas";
@@ -42,7 +42,7 @@ const App = () => (
           <Route path="/documentos/atas" element={<Atas />} />
           <Route path="/plenario/vereadores" element={<VereadoresPlenario />} />
           <Route path="/plenario/mesa-diretora" element={<MesaDiretoraPlenario />} />
-          {/* <Route path="/plenario/comissoes" element={<ComissoesPlenario />} /> */}
+          <Route path="/plenario/comissoes" element={<ComissoesPlenario />} />
           <Route path="/plenario/comissoes/:id" element={<DetalheComissao />} />
           <Route path="/atividade-legislativa/sessoes" element={<SessoesLeg />} />
           <Route path="/atividade-legislativa/pautas" element={<Pautas />} />

@@ -47,6 +47,10 @@ const sidebarMenu = [
       {
         label: "Mesa Diretora",
         to: "/plenario/mesa-diretora"
+      },
+      {
+        label: "Comissões",
+        to: "/plenario/comissoes"
       }
     ],
   },

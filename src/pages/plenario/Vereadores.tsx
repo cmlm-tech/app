@@ -25,7 +25,7 @@ const VEREADORES_MOCK: Vereador[] = [
     partido: "Republicanos",
     partidoLogo: "/partidos/republicanos.png",
     cargoMesa: "",
-    foto: "https://static.wikia.nocookie.net/simpsons/images/a/aa/Bart_Simpson_200px.png", // Bart
+    foto: "https://upload.wikimedia.org/wikipedia/en/e/e0/Bart_Simpson.png", // Bart - Wikimedia link funcionando
     email: "carlos@cmlm.tech",
     telefone: "(61) 8765-4321",
     biografia: "Empresário e líder comunitário.",

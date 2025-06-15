@@ -6,16 +6,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { useForm } from "react-hook-form";
 import { Vereador } from "../vereadores/types";
 import React from "react";
-
-// Usar o tipo estrito de ComposicaoMesa igual ao da tela principal!
-type ComposicaoMesa = {
-  presidente: string;
-  vicePresidente: string;
-  primeiroSecretario: string;
-  segundoSecretario: string;
-  primeiroTesoureiro: string;
-  segundoTesoureiro: string;
-};
+import { ComposicaoMesa } from "./types";
 
 const CARGOS = [
   { key: "presidente", label: "Presidente" },

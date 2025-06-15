@@ -7,6 +7,16 @@ import { useForm } from "react-hook-form";
 import { Vereador } from "../vereadores/types";
 import React from "react";
 
+// Usar o tipo estrito de ComposicaoMesa igual ao da tela principal!
+type ComposicaoMesa = {
+  presidente: string;
+  vicePresidente: string;
+  primeiroSecretario: string;
+  segundoSecretario: string;
+  primeiroTesoureiro: string;
+  segundoTesoureiro: string;
+};
+
 const CARGOS = [
   { key: "presidente", label: "Presidente" },
   { key: "vicePresidente", label: "Vice-Presidente" },
@@ -15,8 +25,6 @@ const CARGOS = [
   { key: "primeiroTesoureiro", label: "1º Tesoureiro" },
   { key: "segundoTesoureiro", label: "2º Tesoureiro" },
 ];
-
-type ComposicaoMesa = Record<string, string>;
 
 type Props = {
   open: boolean;
@@ -56,7 +64,7 @@ export default function ModalEditarMesa({ open, onOpenChange, vereadores, compos
               <FormField
                 key={cargo.key}
                 control={form.control}
-                name={cargo.key}
+                name={cargo.key as keyof ComposicaoMesa}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{cargo.label}</FormLabel>

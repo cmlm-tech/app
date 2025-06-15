@@ -17,6 +17,7 @@ import ComissoesPlenario from "./pages/plenario/Comissoes";
 import SessoesLeg from "./pages/atividade-legislativa/Sessoes";
 import Pautas from "./pages/atividade-legislativa/Pautas";
 import Legislaturas from "./pages/atividade-legislativa/Legislaturas";
+import Painel from "./pages/Painel";
 
 const queryClient = new QueryClient();
 
@@ -31,7 +32,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           {/* Layout app protegida */}
           <Route path="/" element={<Index />} />
-          <Route path="/painel" element={<Dashboard />} />
+          <Route path="/painel" element={<Painel />} />
           <Route path="/documentos" element={<Documentos />} />
           <Route path="/documentos/materias" element={<Materias />} />
           <Route path="/documentos/atas" element={<Atas />} />

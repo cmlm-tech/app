@@ -1,4 +1,3 @@
-
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -169,44 +168,8 @@ export default function Painel() {
 
       {/* Linha inferior: Atalhos Rápidos + Atividade Recente */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        {/* Atalhos rápidos */}
-        <Card className="shadow-lg animate-fade-in">
-          <CardHeader>
-            <CardTitle className="text-lg">Atalhos Rápidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Atalhos com botões */}
-              <Button asChild variant="secondary" className="flex flex-col items-center justify-center gap-2 py-6 text-lg">
-                <Link to="/documentos/materias">
-                  <span className="text-xl font-extrabold">+</span>
-                  Protocolar Matéria
-                </Link>
-              </Button>
-              <Button asChild variant="secondary" className="flex flex-col items-center justify-center gap-2 py-6 text-lg">
-                <Link to="/atividade-legislativa/sessoes">
-                  <span className="text-xl font-extrabold">+</span>
-                  Agendar Sessão
-                </Link>
-              </Button>
-              <Button asChild variant="secondary" className="flex flex-col items-center justify-center gap-2 py-6 text-lg">
-                <Link to="/plenario/vereadores">
-                  <span className="text-xl font-extrabold">🔍</span>
-                  Consultar Vereador
-                </Link>
-              </Button>
-              <Button asChild variant="secondary" className="flex flex-col items-center justify-center gap-2 py-6 text-lg">
-                <Link to="/plenario/comissoes">
-                  <span className="text-xl font-extrabold">👥</span>
-                  Gerenciar Comissões
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Atividade Recente */}
-        <Card className="lg:col-span-2 shadow-lg animate-fade-in">
+        <Card className="lg:col-span-3 shadow-lg animate-fade-in">
           <CardHeader>
             <CardTitle className="text-lg">Atividade Recente no Sistema</CardTitle>
           </CardHeader>

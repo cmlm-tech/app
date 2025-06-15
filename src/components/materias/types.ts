@@ -1,5 +1,6 @@
 
 export type StatusMateria =
+  | "Todos"
   | "Protocolado"
   | "Em análise"
   | "Aguardando votação"

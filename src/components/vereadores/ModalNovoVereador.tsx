@@ -1,8 +1,8 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectValue, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { PARTIDOS, CARGOS_MESA, COMISSOES } from "./types";
 import { useState } from "react";
 
@@ -46,62 +46,84 @@ export default function ModalNovoVereador({ open, onOpenChange }: Props) {
           <DialogTitle>Cadastrar Novo Vereador</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Nome Completo"
-            placeholder="Nome do vereador"
-            value={nome}
-            onChange={e => setNome(e.target.value)}
-            required
-          />
-          <Select value={partido} onValueChange={setPartido}>
-            <SelectTrigger><SelectValue placeholder="Partido Político" /></SelectTrigger>
-            <SelectContent>
-              {PARTIDOS.filter(p => p.nome !== "Todos").map(p => (
-                <SelectItem key={p.nome} value={p.nome}>{p.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            label="Legislatura"
-            placeholder="Ex: 2025-2028"
-            value={legislatura}
-            onChange={e => setLegislatura(e.target.value)}
-            required
-          />
           <div>
-            <label className="block text-sm font-medium mb-1">Foto de Perfil</label>
-            <Input type="file" accept="image/*" onChange={handleFotoChange} />
+            <Label htmlFor="nome">Nome Completo</Label>
+            <Input
+              id="nome"
+              placeholder="Nome do vereador"
+              value={nome}
+              onChange={e => setNome(e.target.value)}
+              required
+            />
           </div>
-          <Input
-            label="E-mail Institucional"
-            type="email"
-            placeholder="email@cmlm.tech"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-          />
-          <Input
-            label="Telefone do Gabinete"
-            placeholder="(xx) xxxx-xxxx"
-            value={telefone}
-            onChange={e => setTelefone(e.target.value)}
-          />
-          <Textarea
-            placeholder="Biografia"
-            value={biografia}
-            onChange={e => setBiografia(e.target.value)}
-            rows={3}
-          />
-          <Select value={cargoMesa} onValueChange={setCargoMesa}>
-            <SelectTrigger><SelectValue placeholder="Atribuição na Mesa Diretora" /></SelectTrigger>
-            <SelectContent>
-              {CARGOS_MESA.map(c => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <div>
-            <label className="block text-sm font-medium mb-1 mb-2">Participação em Comissões</label>
-            <div className="flex flex-wrap gap-3">
+            <Label htmlFor="partido">Partido Político</Label>
+            <Select value={partido} onValueChange={setPartido}>
+              <SelectTrigger id="partido"><SelectValue placeholder="Partido Político" /></SelectTrigger>
+              <SelectContent>
+                {PARTIDOS.filter(p => p.nome !== "Todos").map(p => (
+                  <SelectItem key={p.nome} value={p.nome}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="legislatura">Legislatura</Label>
+            <Input
+              id="legislatura"
+              placeholder="Ex: 2025-2028"
+              value={legislatura}
+              onChange={e => setLegislatura(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="foto">Foto de Perfil</Label>
+            <Input id="foto" type="file" accept="image/*" onChange={handleFotoChange} />
+          </div>
+          <div>
+            <Label htmlFor="email">E-mail Institucional</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="email@cmlm.tech"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="telefone">Telefone do Gabinete</Label>
+            <Input
+              id="telefone"
+              placeholder="(xx) xxxx-xxxx"
+              value={telefone}
+              onChange={e => setTelefone(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="biografia">Biografia</Label>
+            <Textarea
+              id="biografia"
+              placeholder="Biografia"
+              value={biografia}
+              onChange={e => setBiografia(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <div>
+            <Label htmlFor="cargoMesa">Atribuição na Mesa Diretora</Label>
+            <Select value={cargoMesa} onValueChange={setCargoMesa}>
+              <SelectTrigger id="cargoMesa"><SelectValue placeholder="Atribuição na Mesa Diretora" /></SelectTrigger>
+              <SelectContent>
+                {CARGOS_MESA.map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Participação em Comissões</Label>
+            <div className="flex flex-wrap gap-3 mt-1">
               {COMISSOES.filter(c => c !== "Todos").map(c => (
                 <label key={c} className="flex items-center gap-1 text-sm">
                   <input

@@ -40,7 +40,7 @@ export function PeriodoCard({ periodo, presidente, onGerenciar }: Props) {
                     <div className="text-gray-500 text-sm">Não definido</div>
                 )}
             </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row gap-2">
+            <CardFooter className="flex flex-col gap-2">
                 <Button variant="outline" className="w-full" asChild>
                     <Link to={`/plenario/mesa-diretora?periodo=${periodo.ano}`}>Mesa Diretora</Link>
                 </Button>
@@ -52,4 +52,3 @@ export function PeriodoCard({ periodo, presidente, onGerenciar }: Props) {
         </Card>
     )
 }
-

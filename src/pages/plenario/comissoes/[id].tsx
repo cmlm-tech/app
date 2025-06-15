@@ -6,6 +6,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Button } from "@/components/ui/button";
 import { ModalGerenciarMembros } from "@/components/comissoes/ModalGerenciarMembros";
 import { CardMembroComissao } from "@/components/comissoes/CardMembroComissao";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Mocks compartilhados (em projeto real, centralizar estes dados)
 const vereadoresMock = [
@@ -77,6 +79,7 @@ export default function DetalheComissao() {
 
   // Estado da composição atual para edição
   const [composicao, setComposicao] = React.useState(comissao.membros);
+  const [anoSelecionado, setAnoSelecionado] = React.useState("2025");
 
   // Modal
   const [modalMembrosOpen, setModalMembrosOpen] = React.useState(false);
@@ -137,13 +140,26 @@ export default function DetalheComissao() {
       </section>
       {/* Composição Atual */}
       <section className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xl font-semibold text-gov-blue-700">Composição da Comissão</h2>
-          {IS_ADMIN && (
-            <Button onClick={() => setModalMembrosOpen(true)} variant="secondary">
-              Gerenciar Membros
-            </Button>
-          )}
+        <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gov-blue-700">Composição</h2>
+            {IS_ADMIN && (
+              <Button onClick={() => setModalMembrosOpen(true)} variant="secondary">
+                Gerenciar Membros para {anoSelecionado}
+              </Button>
+            )}
+        </div>
+        <div className="mb-4">
+            <Label htmlFor="ano-select" className="text-sm text-gray-600">Exibindo composição para o período de:</Label>
+            <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
+            <SelectTrigger id="ano-select" className="w-[180px] mt-1">
+                <SelectValue placeholder="Selecione o ano" />
+            </SelectTrigger>
+            <SelectContent>
+                {["2025", "2026", "2027", "2028"].map(ano => (
+                <SelectItem key={ano} value={ano}>{ano}</SelectItem>
+                ))}
+            </SelectContent>
+            </Select>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {/* Presidente */}
@@ -171,6 +187,7 @@ export default function DetalheComissao() {
           todosVereadores={vereadoresMock}
           onSubmit={handleSalvarComposicao}
           nomeComissao={comissao.nome}
+          ano={anoSelecionado}
         />
       )}
     </AppLayout>

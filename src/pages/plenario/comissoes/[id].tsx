@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
@@ -112,13 +111,8 @@ export default function DetalheComissao() {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <a onClick={() => navigate("/plenario")}>Plenário</a>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <a onClick={() => navigate("/plenario/comissoes")}>Comissões</a>
+              {/* O link de "Plenário" agora aponta para "vereadores" como página principal do módulo */}
+              <a onClick={() => navigate("/plenario/vereadores")}>Plenário</a>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />

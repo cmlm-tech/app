@@ -1,5 +1,3 @@
-
-
 import {
   Home,
   FileText,
@@ -49,10 +47,6 @@ const sidebarMenu = [
       {
         label: "Mesa Diretora",
         to: "/plenario/mesa-diretora"
-      },
-      {
-        label: "Comissões",
-        to: "/plenario/comissoes"
       }
     ],
   },
@@ -193,4 +187,3 @@ export const AppSidebar = () => {
     </nav>
   );
 };
-

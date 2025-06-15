@@ -1,6 +1,7 @@
 
-import { Menu, Bell, User } from "lucide-react";
+import { Menu, Bell, User, Cog } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export const AppHeader = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -35,15 +36,25 @@ export const AppHeader = () => {
             </span>
           </button>
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-100 z-50 animate-fade-in">
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50 animate-fade-in">
               <ul className="py-1">
                 <li>
-                  <a
-                    href="#"
+                  <Link
+                    to="#"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+                    onClick={(e) => { e.preventDefault(); setDropdownOpen(false); }}
                   >
                     <User className="w-4 h-4 mr-2" /> Meu Perfil
-                  </a>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/configuracoes"
+                    className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors text-sm"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    <Cog className="w-4 h-4 mr-2" /> Configurações
+                  </Link>
                 </li>
                 <li>
                   <a

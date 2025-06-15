@@ -5,7 +5,6 @@ import { AbaGeral } from "@/components/configuracoes/Gerais";
 import { AbaUsuarios } from "@/components/configuracoes/Usuarios";
 import { AbaDadosCamara } from "@/components/configuracoes/DadosCamara";
 import { AbaTiposMateria } from "@/components/configuracoes/TiposMateria";
-import { AbaMeuPerfil } from "@/components/configuracoes/MeuPerfil";
 
 const Configuracoes = () => {
   return (
@@ -27,9 +26,6 @@ const Configuracoes = () => {
           <TabsTrigger value="tipos-materia" className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-gov-blue-800 data-[state=active]:shadow-sm">
             Tipos de Matéria
           </TabsTrigger>
-          <TabsTrigger value="meu-perfil" className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-gov-blue-800 data-[state=active]:shadow-sm">
-            Meu Perfil
-          </TabsTrigger>
         </TabsList>
         <div className="flex-grow">
           <TabsContent value="geral" className="mt-0">
@@ -43,9 +39,6 @@ const Configuracoes = () => {
           </TabsContent>
           <TabsContent value="tipos-materia" className="mt-0">
             <AbaTiposMateria />
-          </TabsContent>
-          <TabsContent value="meu-perfil" className="mt-0">
-            <AbaMeuPerfil />
           </TabsContent>
         </div>
       </Tabs>

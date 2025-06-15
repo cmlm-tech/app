@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import ModalEditarMesa from "./ModalEditarMesa";
 import { Vereador } from "../vereadores/types";
@@ -231,7 +230,7 @@ export default function MesaDiretoraContent() {
         onOpenChange={setModalOpen}
         vereadores={VEREADORES}
         composicaoMesa={composicaoMesa}
-        onSave={setComposicaoMesa}
+        onSave={(comp) => setComposicaoMesa(comp)}
       />
     </div>
   );

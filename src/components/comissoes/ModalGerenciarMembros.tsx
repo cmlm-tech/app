@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogFooter,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ type Props = {
   todosVereadores: Vereador[];
   onSubmit: (data: { presidente: string; relator: string; membros: string[] }) => void;
   nomeComissao: string;
+  ano: string;
 };
 
 export function ModalGerenciarMembros({
@@ -30,6 +32,7 @@ export function ModalGerenciarMembros({
   todosVereadores,
   onSubmit,
   nomeComissao,
+  ano,
 }: Props) {
   // Estado local dos campos
   const presidenteAtual = membros.find(m => m.papel === "presidente")?.id || "";
@@ -72,7 +75,10 @@ export function ModalGerenciarMembros({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Gerenciar Membros da: <span className="text-gov-blue-800">{nomeComissao}</span></DialogTitle>
+          <DialogTitle>Gerenciar Membros para a <span className="text-gov-blue-800">{nomeComissao}</span> em {ano}</DialogTitle>
+          <DialogDescription>
+            Selecione o presidente, relator e membros para esta comissão no período de {ano}.
+          </DialogDescription>
         </DialogHeader>
         <form className="space-y-5 pt-2" onSubmit={handleSubmit}>
           <div>
@@ -146,7 +152,7 @@ export function ModalGerenciarMembros({
             >
               Cancelar
             </Button>
-            <Button type="submit" variant="default">Salvar Composição</Button>
+            <Button type="submit" variant="default">Salvar Composição para {ano}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

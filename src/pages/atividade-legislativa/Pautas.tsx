@@ -1,4 +1,3 @@
-
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +23,7 @@ type Pauta = {
   dataPublicacao?: string;
 };
 
-const PAUTAS_MOCK: Pauta[] = [
+export const PAUTAS_MOCK: Pauta[] = [
   {
     id: "pauta1",
     sessao: {

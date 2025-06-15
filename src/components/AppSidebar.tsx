@@ -11,7 +11,7 @@ import { NavLink, useLocation } from "react-router-dom";
 
 const navLinks = [
   {
-    to: "/",
+    to: "/dashboard",
     label: "Dashboard",
     icon: Home,
   },

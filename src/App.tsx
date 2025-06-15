@@ -7,10 +7,6 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Documentos from "./pages/Documentos";
-import Vereadores from "./pages/Vereadores";
-import Comissoes from "./pages/Comissoes";
-import MesaDiretora from "./pages/MesaDiretora";
-import Sessoes from "./pages/Sessoes";
 import Configuracoes from "./pages/Configuracoes";
 import Dashboard from "./pages/Dashboard";
 import Materias from "./pages/documentos/Materias";
@@ -45,10 +41,6 @@ const App = () => (
           <Route path="/atividade-legislativa/sessoes" element={<SessoesLeg />} />
           <Route path="/atividade-legislativa/pautas" element={<Pautas />} />
           <Route path="/atividade-legislativa/legislaturas" element={<Legislaturas />} />
-          <Route path="/vereadores" element={<Vereadores />} />
-          <Route path="/comissoes" element={<Comissoes />} />
-          <Route path="/mesa-diretora" element={<MesaDiretora />} />
-          <Route path="/sessoes" element={<Sessoes />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           {/* 404 */}
           <Route path="*" element={<NotFound />} />

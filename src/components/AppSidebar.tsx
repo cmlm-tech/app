@@ -1,11 +1,12 @@
 
 import {
-  Dashboard,
-  Document,
+  Home,
+  FileText,
   Users,
+  Gavel,
   Calendar,
   Gear,
-  LogOut,
+  LogOut
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 
@@ -13,12 +14,12 @@ const navLinks = [
   {
     to: "/",
     label: "Dashboard",
-    icon: Dashboard,
+    icon: Home,
   },
   {
     to: "/documentos",
     label: "Documentos",
-    icon: Document,
+    icon: FileText,
   },
   {
     to: "/vereadores",
@@ -33,7 +34,7 @@ const navLinks = [
   {
     to: "/mesa-diretora",
     label: "Mesa Diretora",
-    icon: Users,
+    icon: Gavel,
   },
   {
     to: "/sessoes",

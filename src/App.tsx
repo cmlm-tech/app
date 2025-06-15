@@ -22,6 +22,7 @@ import GerenciarPauta from "./pages/atividade-legislativa/pautas/GerenciarPauta"
 import DetalheLegislatura from "./pages/atividade-legislativa/DetalheLegislatura";
 import DetalheComissao from "./pages/plenario/comissoes/[id]";
 import Painel from "./pages/Painel";
+import MeuPerfil from "./pages/MeuPerfil";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/atividade-legislativa/legislaturas" element={<Legislaturas />} />
           <Route path="/atividade-legislativa/legislaturas/:legislaturaId" element={<DetalheLegislatura />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
+          <Route path="/perfil" element={<MeuPerfil />} />
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>

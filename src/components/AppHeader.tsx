@@ -40,9 +40,9 @@ export const AppHeader = () => {
               <ul className="py-1">
                 <li>
                   <Link
-                    to="#"
+                    to="/perfil"
                     className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors text-sm"
-                    onClick={(e) => { e.preventDefault(); setDropdownOpen(false); }}
+                    onClick={() => setDropdownOpen(false)}
                   >
                     <User className="w-4 h-4 mr-2" /> Meu Perfil
                   </Link>

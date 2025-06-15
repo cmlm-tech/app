@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +18,7 @@ import ComissoesPlenario from "./pages/plenario/Comissoes";
 import SessoesLeg from "./pages/atividade-legislativa/Sessoes";
 import Pautas from "./pages/atividade-legislativa/Pautas";
 import Legislaturas from "./pages/atividade-legislativa/Legislaturas";
+import GerenciarPauta from "./pages/atividade-legislativa/pautas/GerenciarPauta";
 import Painel from "./pages/Painel";
 
 const queryClient = new QueryClient();
@@ -41,6 +43,7 @@ const App = () => (
           <Route path="/plenario/comissoes" element={<ComissoesPlenario />} />
           <Route path="/atividade-legislativa/sessoes" element={<SessoesLeg />} />
           <Route path="/atividade-legislativa/pautas" element={<Pautas />} />
+          <Route path="/atividade-legislativa/pautas/:pautaId" element={<GerenciarPauta />} />
           <Route path="/atividade-legislativa/legislaturas" element={<Legislaturas />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           {/* 404 */}

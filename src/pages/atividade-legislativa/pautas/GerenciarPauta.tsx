@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -10,9 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Printer, Save, FileUp, Search } from 'lucide-react';
+import { ArrowLeft, Printer, Save, FileUp, Search } from 'lucide-react';
 import { SortableMateriaItem } from '@/components/pautas/gerenciar/SortableMateriaItem';
-import { Materia, TipoMateria, StatusMateria } from '@/components/materias/types';
+import { Materia } from '@/components/materias/types';
 import { PAUTAS_MOCK } from '@/pages/atividade-legislativa/Pautas'; // Importando mock
 
 const MOCK_MATERIAS_DISPONIVEIS: Materia[] = [

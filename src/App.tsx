@@ -13,6 +13,14 @@ import MesaDiretora from "./pages/MesaDiretora";
 import Sessoes from "./pages/Sessoes";
 import Configuracoes from "./pages/Configuracoes";
 import Dashboard from "./pages/Dashboard";
+import Materias from "./pages/documentos/Materias";
+import Atas from "./pages/documentos/Atas";
+import VereadoresPlenario from "./pages/plenario/Vereadores";
+import MesaDiretoraPlenario from "./pages/plenario/MesaDiretora";
+import ComissoesPlenario from "./pages/plenario/Comissoes";
+import SessoesLeg from "./pages/atividade-legislativa/Sessoes";
+import Pautas from "./pages/atividade-legislativa/Pautas";
+import Legislaturas from "./pages/atividade-legislativa/Legislaturas";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +37,14 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/documentos" element={<Documentos />} />
+          <Route path="/documentos/materias" element={<Materias />} />
+          <Route path="/documentos/atas" element={<Atas />} />
+          <Route path="/plenario/vereadores" element={<VereadoresPlenario />} />
+          <Route path="/plenario/mesa-diretora" element={<MesaDiretoraPlenario />} />
+          <Route path="/plenario/comissoes" element={<ComissoesPlenario />} />
+          <Route path="/atividade-legislativa/sessoes" element={<SessoesLeg />} />
+          <Route path="/atividade-legislativa/pautas" element={<Pautas />} />
+          <Route path="/atividade-legislativa/legislaturas" element={<Legislaturas />} />
           <Route path="/vereadores" element={<Vereadores />} />
           <Route path="/comissoes" element={<Comissoes />} />
           <Route path="/mesa-diretora" element={<MesaDiretora />} />

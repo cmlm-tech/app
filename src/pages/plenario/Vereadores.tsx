@@ -1,4 +1,3 @@
-
 import { AppLayout } from "@/components/AppLayout";
 import { useState } from "react";
 import FiltroVereadores from "@/components/vereadores/FiltroVereadores";
@@ -13,7 +12,7 @@ const VEREADORES_MOCK: Vereador[] = [
     partido: "Democratas",
     partidoLogo: "/partidos/democratas.png",
     cargoMesa: "Presidente",
-    foto: "https://upload.wikimedia.org/wikipedia/en/0/02/Marge_Simpson.png",
+    foto: "https://static.wikia.nocookie.net/simpsons/images/0/0b/Marge_Simpson.png", // Marge
     email: "anapaula@cmlm.tech",
     telefone: "(61) 1234-5678",
     biografia: "Advogada, atuante na defesa dos direitos humanos.",
@@ -26,21 +25,20 @@ const VEREADORES_MOCK: Vereador[] = [
     partido: "Republicanos",
     partidoLogo: "/partidos/republicanos.png",
     cargoMesa: "",
-    foto: "https://upload.wikimedia.org/wikipedia/en/e/ec/Bart_Simpson_200px.png",
+    foto: "https://static.wikia.nocookie.net/simpsons/images/a/aa/Bart_Simpson_200px.png", // Bart
     email: "carlos@cmlm.tech",
     telefone: "(61) 8765-4321",
     biografia: "Empresário e líder comunitário.",
     legislatura: "2025-2028",
     comissoes: ["Finanças"],
   },
-  // Adicione quantos mock forem necessários, exemplo abaixo:
   {
     id: "3",
     nome: "Lívia Rocha",
     partido: "Progressistas",
     partidoLogo: "/partidos/progressistas.png",
     cargoMesa: "Vice-presidente",
-    foto: "https://upload.wikimedia.org/wikipedia/en/8/8d/Lisa_Simpson.png",
+    foto: "https://static.wikia.nocookie.net/simpsons/images/e/ec/Lisa_Simpson.png", // Lisa
     email: "livia@cmlm.tech",
     telefone: "(61) 2233-4455",
     biografia: "Professora e defensora do ensino público.",
@@ -53,7 +51,7 @@ const VEREADORES_MOCK: Vereador[] = [
     partido: "Democratas",
     partidoLogo: "/partidos/democratas.png",
     cargoMesa: "",
-    foto: "https://upload.wikimedia.org/wikipedia/en/6/65/Homer_Simpson_2006.png",
+    foto: "https://static.wikia.nocookie.net/simpsons/images/0/02/Homer_Simpson_2006.png", // Homer
     email: "roberto@cmlm.tech",
     telefone: "(61) 9988-7766",
     biografia: "Servidor público e líder sindical.",

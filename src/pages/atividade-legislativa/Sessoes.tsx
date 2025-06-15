@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import SessaoPopover from "@/components/sessoes/SessaoPopover";
 import TagStatusSessao from "@/components/sessoes/TagStatusSessao";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, isSameDay, isSameMonth, parseISO } from "date-fns";
-import ptBR from "date-fns/locale/pt-BR";
+import { ptBR } from "date-fns/locale/pt-BR";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export type SessaoTipo = "Ordinária" | "Extraordinária" | "Solene";

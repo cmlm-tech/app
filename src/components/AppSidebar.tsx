@@ -1,11 +1,10 @@
-
 import {
   Home,
   FileText,
   Users,
   Gavel,
   Calendar,
-  Gear,
+  Cog,
   LogOut
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
@@ -86,7 +85,7 @@ export const AppSidebar = () => {
             ].join(" ")
           }
         >
-          <Gear className="w-5 h-5" />
+          <Cog className="w-5 h-5" />
           Configurações
         </NavLink>
         <a

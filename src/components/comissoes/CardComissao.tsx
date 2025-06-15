@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Eye, Pencil, Trash } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type Membro = { id: string; nome: string; foto: string };
 type Comissao = {
@@ -13,12 +14,19 @@ type Comissao = {
 type Props = {
   comissao: Comissao;
   admin: boolean;
-  onVer: () => void;
+  onVer?: () => void;
   onEditar: () => void;
   onExcluir: () => void;
 };
 
 export function CardComissao({ comissao, admin, onVer, onEditar, onExcluir }: Props) {
+  const navigate = useNavigate();
+  // Aciona onVer ou navega para detalhes
+  function handleVer() {
+    if (onVer) return onVer();
+    navigate(`/plenario/comissoes/${comissao.id}`);
+  }
+
   return (
     <div className="bg-white rounded-xl shadow p-5 flex flex-col gap-2 border w-full max-w-[330px] min-h-[235px]">
       <div>
@@ -44,7 +52,7 @@ export function CardComissao({ comissao, admin, onVer, onEditar, onExcluir }: Pr
       {admin && (
         <div className="flex justify-end gap-2 pt-2 border-t border-gray-200 mt-4">
           <button
-            onClick={onVer}
+            onClick={handleVer}
             className="p-2 rounded hover:bg-gray-100 transition text-gov-blue-800"
             title="Ver Detalhes"
           >
@@ -69,7 +77,7 @@ export function CardComissao({ comissao, admin, onVer, onEditar, onExcluir }: Pr
       {!admin && (
         <div className="flex justify-end pt-2 mt-4">
           <button
-            onClick={onVer}
+            onClick={handleVer}
             className="p-2 rounded hover:bg-gray-100 transition text-gov-blue-800"
             title="Ver Detalhes"
           >

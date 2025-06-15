@@ -1,8 +1,17 @@
+
 import React, { useState } from "react";
 import ModalEditarMesa from "./ModalEditarMesa";
 import { Vereador } from "../vereadores/types";
-import { useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 type ComposicaoMesa = {
   presidente: string;
@@ -69,16 +78,35 @@ const VEREADORES: Vereador[] = [
   },
 ];
 
-const LEGISLATURA_ATUAL = "2025-2028";
-// Mapeamento dos cargos para ids dos vereadores
-const COMPOSICAO_MESA_DEFAULT: ComposicaoMesa = {
-  presidente: "1",
-  vicePresidente: "3",
-  primeiroSecretario: "2",
-  segundoSecretario: "4",
-  primeiroTesoureiro: "2",
-  segundoTesoureiro: "4",
+// MOCK de composições por ano
+const COMPOSICOES_MESA_INICIAL: Record<string, ComposicaoMesa> = {
+  "2025": {
+    presidente: "1",
+    vicePresidente: "3",
+    primeiroSecretario: "2",
+    segundoSecretario: "4",
+    primeiroTesoureiro: "2",
+    segundoTesoureiro: "4",
+  },
+  "2024": {
+    presidente: "4",
+    vicePresidente: "2",
+    primeiroSecretario: "1",
+    segundoSecretario: "3",
+    primeiroTesoureiro: "1",
+    segundoTesoureiro: "3",
+  },
+  "2023": {
+    presidente: "2",
+    vicePresidente: "1",
+    primeiroSecretario: "3",
+    segundoSecretario: "4",
+    primeiroTesoureiro: "3",
+    segundoTesoureiro: "4",
+  },
 };
+
+const ANOS_DISPONIVEIS = Object.keys(COMPOSICOES_MESA_INICIAL).sort((a, b) => Number(b) - Number(a));
 
 // Simulação de permissão admin
 const isAdmin = true;
@@ -89,33 +117,77 @@ function getVereadorById(id: string) {
 
 export default function MesaDiretoraContent() {
   const [modalOpen, setModalOpen] = useState(false);
-  const [composicaoMesa, setComposicaoMesa] = useState(COMPOSICAO_MESA_DEFAULT);
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  const [selectedYear, setSelectedYear] = useState(
+    () => searchParams.get("periodo") || ANOS_DISPONIVEIS[0]
+  );
+  
+  const [composicoesPorAno, setComposicoesPorAno] = useState(COMPOSICOES_MESA_INICIAL);
+
+  const handleYearChange = (year: string) => {
+    if (year) {
+      setSelectedYear(year);
+      setSearchParams({ periodo: year });
+    }
+  };
+
+  const handleSaveComposition = (novaComposicao: ComposicaoMesa) => {
+    setComposicoesPorAno((prev) => ({
+      ...prev,
+      [selectedYear]: novaComposicao,
+    }));
+    setModalOpen(false);
+  };
+  
+  const composicaoMesaAtual = composicoesPorAno[selectedYear] || {
+    presidente: "",
+    vicePresidente: "",
+    primeiroSecretario: "",
+    segundoSecretario: "",
+    primeiroTesoureiro: "",
+    segundoTesoureiro: "",
+  };
 
   const membros = {
-    presidente: getVereadorById(composicaoMesa.presidente),
-    vicePresidente: getVereadorById(composicaoMesa.vicePresidente),
-    primeiroSecretario: getVereadorById(composicaoMesa.primeiroSecretario),
-    segundoSecretario: getVereadorById(composicaoMesa.segundoSecretario),
-    primeiroTesoureiro: getVereadorById(composicaoMesa.primeiroTesoureiro),
-    segundoTesoureiro: getVereadorById(composicaoMesa.segundoTesoureiro),
+    presidente: getVereadorById(composicaoMesaAtual.presidente),
+    vicePresidente: getVereadorById(composicaoMesaAtual.vicePresidente),
+    primeiroSecretario: getVereadorById(composicaoMesaAtual.primeiroSecretario),
+    segundoSecretario: getVereadorById(composicaoMesaAtual.segundoSecretario),
+    primeiroTesoureiro: getVereadorById(composicaoMesaAtual.primeiroTesoureiro),
+    segundoTesoureiro: getVereadorById(composicaoMesaAtual.segundoTesoureiro),
   };
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Header da página e botão */}
-      <div className="flex items-start justify-between gap-2 mb-8">
+      {/* Header da página, seletor e botão */}
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold font-montserrat text-gov-blue-800 leading-tight mb-1">
+          <h1 className="text-3xl font-bold font-montserrat text-gov-blue-800 leading-tight mb-2">
             Mesa Diretora
           </h1>
-          <div className="text-gray-600 text-lg">
-            Composição para a Legislatura {LEGISLATURA_ATUAL}
+           <div className="flex items-center gap-2">
+            <Label htmlFor="periodo-select" className="text-gray-600 text-lg whitespace-nowrap">
+              Exibindo composição para o período de:
+            </Label>
+            <Select onValueChange={handleYearChange} value={selectedYear}>
+              <SelectTrigger id="periodo-select" className="w-[120px]">
+                <SelectValue placeholder="Ano" />
+              </SelectTrigger>
+              <SelectContent>
+                {ANOS_DISPONIVEIS.map((ano) => (
+                  <SelectItem key={ano} value={ano}>
+                    {ano}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         {isAdmin && (
           <Button variant="default" onClick={() => setModalOpen(true)}>
-            Editar Composição
+            Editar Composição para {selectedYear}
           </Button>
         )}
       </div>
@@ -124,7 +196,7 @@ export default function MesaDiretoraContent() {
       <section className="flex flex-col items-center mb-6">
         <span className="uppercase text-gov-gold-700 font-bold mb-1 text-sm tracking-wider">Presidente</span>
         <div className="bg-white rounded-xl shadow-lg border w-full max-w-md flex flex-col items-center p-7 mb-4 relative">
-          {membros.presidente && (
+          {membros.presidente ? (
             <>
               <img
                 src={membros.presidente.foto}
@@ -143,12 +215,12 @@ export default function MesaDiretoraContent() {
               <Button
                 variant="secondary"
                 className="mt-2"
-                onClick={() => navigate(`/plenario/vereadores/${membros.presidente.id}`)}
+                onClick={() => navigate(`/plenario/vereadores/${membros.presidente!.id}`)}
               >
                 Ver Perfil
               </Button>
             </>
-          )}
+          ) : <div className="text-gray-500 p-8">Não definido para {selectedYear}</div>}
         </div>
       </section>
       
@@ -156,7 +228,7 @@ export default function MesaDiretoraContent() {
       <section className="flex flex-col items-center mb-7">
         <span className="uppercase text-gov-gold-700 font-bold mb-1 text-xs tracking-wider">Vice-presidente</span>
         <div className="bg-white rounded-xl shadow-md border w-full max-w-sm flex flex-col items-center p-6 relative">
-          {membros.vicePresidente && (
+          {membros.vicePresidente ? (
             <>
               <img
                 src={membros.vicePresidente.foto}
@@ -174,12 +246,12 @@ export default function MesaDiretoraContent() {
                 variant="secondary"
                 className="mt-1"
                 size="sm"
-                onClick={() => navigate(`/plenario/vereadores/${membros.vicePresidente.id}`)}
+                onClick={() => navigate(`/plenario/vereadores/${membros.vicePresidente!.id}`)}
               >
                 Ver Perfil
               </Button>
             </>
-          )}
+          ) : <div className="text-gray-500 p-6">Não definido para {selectedYear}</div>}
         </div>
       </section>
 
@@ -193,16 +265,16 @@ export default function MesaDiretoraContent() {
         ].map((cargo) => {
           const membro = membros[cargo.k as keyof typeof membros];
           return (
-            <div key={cargo.k} className="bg-white rounded-lg shadow border flex flex-col items-center p-5">
+            <div key={cargo.k} className="bg-white rounded-lg shadow border flex flex-col items-center p-5 min-h-[230px] justify-center">
               <span className="uppercase text-gov-gold-700 font-bold mb-1 text-xs tracking-wide">{cargo.label}</span>
-              {membro && (
+              {membro ? (
                 <>
                   <img
                     src={membro.foto}
                     alt={membro.nome}
                     className="w-16 h-16 rounded-full object-cover border-4 border-gov-blue-100 mb-2 shadow"
                   />
-                  <div className="text-base font-semibold text-gov-blue-900 mb-0.5">
+                  <div className="text-base font-semibold text-gov-blue-900 mb-0.5 text-center">
                     {membro.nome}
                   </div>
                   <div className="flex items-center gap-1 mb-1">
@@ -218,7 +290,7 @@ export default function MesaDiretoraContent() {
                     Ver Perfil
                   </Button>
                 </>
-              )}
+              ) : <div className="text-gray-500 text-sm">Não definido</div>}
             </div>
           );
         })}
@@ -229,8 +301,9 @@ export default function MesaDiretoraContent() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         vereadores={VEREADORES}
-        composicaoMesa={composicaoMesa}
-        onSave={(comp) => setComposicaoMesa(comp)}
+        composicaoMesa={composicaoMesaAtual}
+        onSave={handleSaveComposition}
+        ano={selectedYear}
       />
     </div>
   );

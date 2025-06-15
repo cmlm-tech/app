@@ -32,16 +32,17 @@ type Props = {
   vereadores: Vereador[];
   composicaoMesa: ComposicaoMesa;
   onSave: (comp: ComposicaoMesa) => void;
+  ano: string;
 };
 
-export default function ModalEditarMesa({ open, onOpenChange, vereadores, composicaoMesa, onSave }: Props) {
+export default function ModalEditarMesa({ open, onOpenChange, vereadores, composicaoMesa, onSave, ano }: Props) {
   const form = useForm<ComposicaoMesa>({
     defaultValues: composicaoMesa,
   });
 
   React.useEffect(() => {
-    // Atualizar valores iniciais ao abrir o modal
-    if (open) form.reset(composicaoMesa);
+    // Atualizar valores iniciais ao abrir o modal ou mudar a composição
+    form.reset(composicaoMesa);
   }, [open, composicaoMesa, form]);
 
   function handleSubmit(data: ComposicaoMesa) {
@@ -53,7 +54,7 @@ export default function ModalEditarMesa({ open, onOpenChange, vereadores, compos
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Definir Composição da Mesa Diretora</DialogTitle>
+          <DialogTitle>Definir Composição da Mesa Diretora para {ano}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -95,7 +96,7 @@ export default function ModalEditarMesa({ open, onOpenChange, vereadores, compos
                 Cancelar
               </Button>
               <Button type="submit" variant="default">
-                Salvar Alterações
+                Salvar Alterações para {ano}
               </Button>
             </DialogFooter>
           </form>

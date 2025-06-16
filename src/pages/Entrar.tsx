@@ -4,6 +4,7 @@ import { LogIn, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Link as RouterLink } from "react-router-dom";
 
 const Entrar = () => {
   const [userIdentifier, setUserIdentifier] = useState("");
@@ -78,12 +79,12 @@ const Entrar = () => {
           </div>
           
           <div className="flex justify-end">
-            <a
-              href="#"
+            <RouterLink
+              to="/recuperar-senha"
               className="text-xs text-gov-blue-700 hover:text-gov-blue-800 font-medium transition-colors"
             >
               Esqueceu sua senha?
-            </a>
+            </RouterLink>
           </div>
 
           <Button

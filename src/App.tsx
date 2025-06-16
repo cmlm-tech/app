@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Entrar from "./pages/Entrar";
+import RecuperarSenha from "./pages/RecuperarSenha";
 import Documentos from "./pages/Documentos";
 import Configuracoes from "./pages/Configuracoes";
 import Dashboard from "./pages/Dashboard";
@@ -35,6 +35,7 @@ const App = () => (
         <Routes>
           {/* Tela pública */}
           <Route path="/entrar" element={<Entrar />} />
+          <Route path="/recuperar-senha" element={<RecuperarSenha />} />
           {/* Layout app protegida */}
           <Route path="/" element={<Index />} />
           <Route path="/painel" element={<Painel />} />

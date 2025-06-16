@@ -1,4 +1,3 @@
-
 // Corrigindo as importações, removendo linhas de diff
 import { useState, useEffect } from 'react';
 import { Clock, Shield, Settings, Database, ArrowRight, Users, Link, Archive, LogIn } from 'lucide-react';
@@ -38,14 +37,13 @@ const Index = () => {
             <span className="text-xl font-montserrat font-bold text-gov-blue-800">cmlm.tech</span>
           </div>
           <div className="flex items-center gap-4">
-            <RouterLink to="/login">
+            <RouterLink to="/entrar">
               <Button
                 className="bg-gov-blue-800 hover:bg-gov-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
               >
                 Acesso ao Sistema
               </Button>
             </RouterLink>
-            {/* Removido o botão "Login" extra */}
           </div>
         </div>
       </header>
@@ -269,7 +267,7 @@ const Index = () => {
             
             <div>
               <h5 className="font-montserrat font-bold mb-4">Acesso Rápido</h5>
-              <RouterLink to="/login">
+              <RouterLink to="/entrar">
                 <Button 
                   variant="outline" 
                   className="w-full bg-transparent border-white text-white hover:bg-white hover:text-gov-blue-800 transition-colors"
@@ -293,4 +291,3 @@ const Index = () => {
 };
 
 export default Index;
-

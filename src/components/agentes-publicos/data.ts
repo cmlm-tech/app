@@ -39,7 +39,7 @@ export const AGENTES_MOCK: AgentePublico[] = [
     nomeCompleto: 'Ana Paula Mendes',
     cpf: '55566677788',
     foto: '/placeholder.svg',
-    tipo: '	',
+    tipo: 'Funcionário',
     statusUsuario: 'Ativo',
     cargo: 'Assessora Parlamentar',
     tipoVinculo: 'Comissionado',

@@ -41,8 +41,8 @@ const sidebarMenu = [
     type: "menu",
     children: [
       {
-        label: "Agentes Públicos",
-        to: "/plenario/agentes-publicos"
+        label: "Vereadores",
+        to: "/plenario/vereadores"
       },
       {
         label: "Mesa Diretora",

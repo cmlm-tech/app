@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,7 +13,7 @@ import Configuracoes from "./pages/Configuracoes";
 import Dashboard from "./pages/Dashboard";
 import Materias from "./pages/documentos/Materias";
 import Atas from "./pages/documentos/Atas";
-import AgentesPublicos from "./pages/plenario/AgentesPublicos";
+import VereadoresPlenario from "./pages/plenario/Vereadores";
 import MesaDiretoraPlenario from "./pages/plenario/MesaDiretora";
 import ComissoesPlenario from "./pages/plenario/Comissoes";
 import SessoesLeg from "./pages/atividade-legislativa/Sessoes";
@@ -45,7 +44,7 @@ const App = () => (
           <Route path="/documentos" element={<Documentos />} />
           <Route path="/documentos/materias" element={<Materias />} />
           <Route path="/documentos/atas" element={<Atas />} />
-          <Route path="/plenario/agentes-publicos" element={<AgentesPublicos />} />
+          <Route path="/plenario/vereadores" element={<VereadoresPlenario />} />
           <Route path="/plenario/mesa-diretora" element={<MesaDiretoraPlenario />} />
           <Route path="/plenario/comissoes" element={<ComissoesPlenario />} />
           <Route path="/plenario/comissoes/:id" element={<DetalheComissao />} />

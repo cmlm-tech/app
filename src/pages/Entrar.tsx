@@ -1,24 +1,46 @@
 
 import { useState } from "react";
-import { LogIn, Eye, EyeOff } from "lucide-react";
+import { LogIn, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const Entrar = () => {
   const [userIdentifier, setUserIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  // No cadastro, só login no sistema!
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Aqui, futuramente, irá a autenticação real
-    // Exemplo: autenticar usuário e navegar para home
-    // navigate("/");
-    // Por enquanto, só um log:
-    console.log("Login attempt:", userIdentifier, password);
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Assumindo que userIdentifier é sempre email neste caso
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: userIdentifier,
+        password: password,
+      });
+
+      if (signInError) {
+        setError("E-mail ou senha inválidos. Por favor, verifique seus dados e tente novamente.");
+        return;
+      }
+
+      if (data.user) {
+        // Redirecionar para o painel em caso de sucesso
+        navigate("/painel");
+      }
+    } catch (err) {
+      setError("E-mail ou senha inválidos. Por favor, verifique seus dados e tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -43,6 +65,7 @@ const Entrar = () => {
               value={userIdentifier}
               onChange={(e) => setUserIdentifier(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
 
@@ -61,6 +84,7 @@ const Entrar = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
               <button
                 type="button"
@@ -68,6 +92,7 @@ const Entrar = () => {
                 className="absolute top-2 right-3 text-gray-400 hover:text-gray-700 z-10 p-1"
                 onClick={() => setShowPassword((prev) => !prev)}
                 aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                disabled={isLoading}
               >
                 {showPassword ? (
                   <EyeOff className="h-5 w-5" />
@@ -87,12 +112,31 @@ const Entrar = () => {
             </RouterLink>
           </div>
 
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+              <span className="text-red-600 text-lg">⚠️</span>
+              <p className="text-red-800 text-sm font-medium">
+                {error}
+              </p>
+            </div>
+          )}
+
           <Button
             type="submit"
-            className="w-full bg-gov-blue-800 hover:bg-gov-blue-700 text-white text-base font-semibold py-3 mt-2 rounded-lg transition-colors"
+            disabled={isLoading}
+            className="w-full bg-gov-blue-800 hover:bg-gov-blue-700 text-white text-base font-semibold py-3 mt-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <LogIn className="mr-2 h-5 w-5" />
-            Entrar
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Entrando...
+              </>
+            ) : (
+              <>
+                <LogIn className="mr-2 h-5 w-5" />
+                Entrar
+              </>
+            )}
           </Button>
         </form>
       </div>

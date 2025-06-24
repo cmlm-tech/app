@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Key, Eye, EyeOff, Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,20 +5,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { usePasswordValidation } from "@/hooks/usePasswordValidation";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 
 const RedefinirSenha = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formError, setFormError] = useState("");
   
   // Estados de controle da página
   const [isVerifyingToken, setIsVerifyingToken] = useState(true);
   const [isTokenValid, setIsTokenValid] = useState(false);
   const [error, setError] = useState('');
 
+  // Hook de validação de senha
+  const { validationStatus, isPasswordValid } = usePasswordValidation(newPassword, confirmPassword);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
+
+    // Validar senha antes de continuar
+    if (!isPasswordValid) {
+      setFormError("Por favor, atenda todos os requisitos de senha antes de continuar.");
+      return;
+    }
+
     // Aqui futuramente será implementada a lógica de redefinição
     console.log("Password reset attempt:", { newPassword, confirmPassword });
   };
@@ -135,6 +148,7 @@ const RedefinirSenha = () => {
                 )}
               </button>
             </div>
+            <PasswordRequirements validationStatus={validationStatus} />
           </div>
 
           <div>
@@ -169,9 +183,16 @@ const RedefinirSenha = () => {
             </div>
           </div>
 
+          {formError && (
+            <div className="text-red-600 text-sm mt-2 text-center">
+              {formError}
+            </div>
+          )}
+
           <Button
             type="submit"
             className="w-full bg-gov-blue-800 hover:bg-gov-blue-700 text-white text-base font-semibold py-3 mt-2 rounded-lg transition-colors"
+            disabled={!isPasswordValid}
           >
             <Check className="mr-2 h-5 w-5" />
             Salvar Nova Senha

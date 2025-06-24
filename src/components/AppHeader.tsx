@@ -1,9 +1,27 @@
+
 import { Menu, Bell, User, Cog } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export const AppHeader = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate("/entrar");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
+  };
+
+  // Extrair nome do usuário do email (parte antes do @)
+  const userName = user?.email?.split('@')[0] || 'Usuário';
+  const userInitial = userName.charAt(0).toUpperCase();
 
   return (
     <header className="fixed top-0 left-0 right-0 h-14 bg-white shadow z-30 flex items-center px-6 justify-between">
@@ -11,7 +29,6 @@ export const AppHeader = () => {
         <button
           className="p-2 rounded hover:bg-gray-100 transition-colors"
           aria-label="Abrir menu lateral"
-          // no futuro: abrir sidebar colapsável
         >
           <Menu className="text-gov-blue-800 w-6 h-6" />
         </button>
@@ -29,9 +46,9 @@ export const AppHeader = () => {
             onClick={() => setDropdownOpen((v) => !v)}
             aria-label="Abrir menu do usuário"
           >
-            <span className="text-gray-700 font-medium hidden sm:block">Ana Silva</span>
+            <span className="text-gray-700 font-medium hidden sm:block">{userName}</span>
             <span className="bg-gov-blue-800 text-white w-8 h-8 rounded-full flex items-center justify-center font-montserrat font-bold text-base">
-              A
+              {userInitial}
             </span>
           </button>
           {dropdownOpen && (
@@ -56,10 +73,12 @@ export const AppHeader = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to="/entrar"
-                    className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors text-sm"
-                    onClick={() => setDropdownOpen(false)}
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors text-sm"
                   >
                     <span>
                       <svg viewBox="0 0 24 24" className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2">
@@ -69,7 +88,7 @@ export const AppHeader = () => {
                       </svg>
                     </span>
                     Sair
-                  </Link>
+                  </button>
                 </li>
               </ul>
             </div>

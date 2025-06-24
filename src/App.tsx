@@ -4,6 +4,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import RotaProtegida from "@/components/RotaProtegida";
+
+// Importação das páginas
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Entrar from "./pages/Entrar";
@@ -34,31 +38,35 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          {/* Tela pública */}
-          <Route path="/entrar" element={<Entrar />} />
-          <Route path="/recuperar-senha" element={<RecuperarSenha />} />
-          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
-          {/* Layout app protegida */}
-          <Route path="/" element={<Index />} />
-          <Route path="/painel" element={<Painel />} />
-          <Route path="/documentos" element={<Documentos />} />
-          <Route path="/documentos/materias" element={<Materias />} />
-          <Route path="/documentos/atas" element={<Atas />} />
-          <Route path="/plenario/agentes-publicos" element={<AgentesPublicos />} />
-          <Route path="/plenario/mesa-diretora" element={<MesaDiretoraPlenario />} />
-          <Route path="/plenario/comissoes" element={<ComissoesPlenario />} />
-          <Route path="/plenario/comissoes/:id" element={<DetalheComissao />} />
-          <Route path="/atividade-legislativa/sessoes" element={<SessoesLeg />} />
-          <Route path="/atividade-legislativa/pautas" element={<Pautas />} />
-          <Route path="/atividade-legislativa/pautas/:pautaId" element={<GerenciarPauta />} />
-          <Route path="/atividade-legislativa/legislaturas" element={<Legislaturas />} />
-          <Route path="/atividade-legislativa/legislaturas/:legislaturaId" element={<DetalheLegislatura />} />
-          <Route path="/configuracoes" element={<Configuracoes />} />
-          <Route path="/perfil" element={<MeuPerfil />} />
-          {/* 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            {/* --- ROTAS PÚBLICAS --- */}
+            <Route path="/entrar" element={<Entrar />} />
+            <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+            <Route path="/" element={<Index />} />
+
+            {/* --- ROTAS PROTEGIDAS --- */}
+            <Route path="/painel" element={<RotaProtegida><Painel /></RotaProtegida>} />
+            <Route path="/documentos" element={<RotaProtegida><Documentos /></RotaProtegida>} />
+            <Route path="/documentos/materias" element={<RotaProtegida><Materias /></RotaProtegida>} />
+            <Route path="/documentos/atas" element={<RotaProtegida><Atas /></RotaProtegida>} />
+            <Route path="/plenario/agentes-publicos" element={<RotaProtegida><AgentesPublicos /></RotaProtegida>} />
+            <Route path="/plenario/mesa-diretora" element={<RotaProtegida><MesaDiretoraPlenario /></RotaProtegida>} />
+            <Route path="/plenario/comissoes" element={<RotaProtegida><ComissoesPlenario /></RotaProtegida>} />
+            <Route path="/plenario/comissoes/:id" element={<RotaProtegida><DetalheComissao /></RotaProtegida>} />
+            <Route path="/atividade-legislativa/sessoes" element={<RotaProtegida><SessoesLeg /></RotaProtegida>} />
+            <Route path="/atividade-legislativa/pautas" element={<RotaProtegida><Pautas /></RotaProtegida>} />
+            <Route path="/atividade-legislativa/pautas/:pautaId" element={<RotaProtegida><GerenciarPauta /></RotaProtegida>} />
+            <Route path="/atividade-legislativa/legislaturas" element={<RotaProtegida><Legislaturas /></RotaProtegida>} />
+            <Route path="/atividade-legislativa/legislaturas/:legislaturaId" element={<RotaProtegida><DetalheLegislatura /></RotaProtegida>} />
+            <Route path="/configuracoes" element={<RotaProtegida><Configuracoes /></RotaProtegida>} />
+            <Route path="/perfil" element={<RotaProtegida><MeuPerfil /></RotaProtegida>} />
+
+            {/* --- 404 --- */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

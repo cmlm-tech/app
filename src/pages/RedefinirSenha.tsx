@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePasswordValidation } from "@/hooks/usePasswordValidation";
 import { PasswordRequirements } from "@/components/PasswordRequirements";
+import { useToast } from "@/hooks/use-toast";
 
 const RedefinirSenha = () => {
   // --- Estados do formulário ---
@@ -23,6 +24,7 @@ const RedefinirSenha = () => {
   const { user, loading: authLoading } = useAuth();
   
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { validationStatus, isPasswordValid } = usePasswordValidation(newPassword, confirmPassword);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,11 +46,28 @@ const RedefinirSenha = () => {
       if (error) {
         setFormError(error.message);
       } else {
-        navigate('/entrar', { 
-          state: { 
-            message: 'Senha redefinida com sucesso! Faça login com sua nova senha.' 
-          }
+        // Mostrar mensagem de sucesso
+        toast({
+          title: "Senha redefinida com sucesso!",
+          description: "Você será redirecionado para fazer login com sua nova senha.",
         });
+
+        // Aguardar um momento para o toast aparecer
+        setTimeout(async () => {
+          try {
+            // Deslogar o usuário
+            await supabase.auth.signOut();
+          } catch (signOutError) {
+            console.log("Erro ao fazer logout:", signOutError);
+          }
+          
+          // Redirecionar para a página de login
+          navigate('/entrar', { 
+            state: { 
+              message: 'Senha redefinida com sucesso! Faça login com sua nova senha.' 
+            }
+          });
+        }, 1500);
       }
     } catch (err) {
       setFormError("Ocorreu um erro inesperado. Tente novamente.");

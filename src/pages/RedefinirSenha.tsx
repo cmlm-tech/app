@@ -136,7 +136,7 @@ const RedefinirSenha = () => {
             </div>
             <PasswordRequirements validationStatus={validationStatus} />
           </div>
-
+          
           <div>
             <Label htmlFor="confirmPassword" className="mb-1 block text-gray-700">
               Confirme a Nova Senha

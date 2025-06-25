@@ -64,8 +64,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(session?.user ?? null);
       
       // Só finaliza o loading se não estivermos na rota de recuperação
-      // OU se não há sessão (usuário não logado em rota normal)
-      if (!isPasswordRecoveryRoute || !session) {
+      // E se não há sessão (usuário não logado em rota normal)
+      if (!isPasswordRecoveryRoute && !session) {
         setLoading(false);
       }
     });

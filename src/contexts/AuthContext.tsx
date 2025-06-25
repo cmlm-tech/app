@@ -40,13 +40,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
+    // Detectar se estamos na rota de redefinição de senha
+    const isPasswordRecoveryRoute = window.location.pathname === '/redefinir-senha';
+
     // Configurar listener para mudanças de estado de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+        
+        // Só finaliza o loading se não estivermos na rota de recuperação
+        // OU se uma sessão válida foi recebida (após PASSWORD_RECOVERY)
+        if (!isPasswordRecoveryRoute || session) {
+          setLoading(false);
+        }
       }
     );
 
@@ -54,7 +62,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      
+      // Só finaliza o loading se não estivermos na rota de recuperação
+      // OU se não há sessão (usuário não logado em rota normal)
+      if (!isPasswordRecoveryRoute || !session) {
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();

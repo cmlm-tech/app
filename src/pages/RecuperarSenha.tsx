@@ -1,18 +1,40 @@
 
 import { useState } from "react";
-import { LogIn, Send } from "lucide-react";
+import { LogIn, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link as RouterLink } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const RecuperarSenha = () => {
   const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Aqui futuramente será implementada a lógica de recuperação
-    console.log("Recovery attempt for:", email);
+    setError("");
+    setMessage("");
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://preview--cmlm-tech.lovable.app/redefinir-senha'
+      });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setMessage("Se este e-mail estiver cadastrado, um link de recuperação foi enviado para sua caixa de entrada.");
+      }
+    } catch (err) {
+      setError("Ocorreu um erro inesperado. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -25,6 +47,19 @@ const RecuperarSenha = () => {
         <p className="text-gray-600 text-center mb-8 leading-relaxed">
           Digite seu e-mail de cadastro. Se ele for encontrado em nosso sistema, enviaremos um link para você criar uma nova senha.
         </p>
+
+        {error && (
+          <Alert variant="destructive" className="mb-4 w-full">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {message && (
+          <Alert className="mb-4 w-full border-green-200 bg-green-50">
+            <AlertDescription className="text-green-800">{message}</AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="w-full space-y-5">
           <div>
             <Label htmlFor="email" className="mb-1 block text-gray-700">
@@ -40,15 +75,26 @@ const RecuperarSenha = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
 
           <Button
             type="submit"
             className="w-full bg-gov-blue-800 hover:bg-gov-blue-700 text-white text-base font-semibold py-3 mt-2 rounded-lg transition-colors"
+            disabled={isLoading}
           >
-            <Send className="mr-2 h-5 w-5" />
-            Enviar Link de Recuperação
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Enviando...
+              </>
+            ) : (
+              <>
+                <Send className="mr-2 h-5 w-5" />
+                Enviar Link de Recuperação
+              </>
+            )}
           </Button>
         </form>
         

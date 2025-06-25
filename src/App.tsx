@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import RotaProtegida from "@/components/RotaProtegida";
+import RotaPublica from "@/components/RotaPublica";
 
 // Importação das páginas
 import Index from "./pages/Index";
@@ -40,11 +41,13 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* --- ROTAS PÚBLICAS --- */}
-            <Route path="/entrar" element={<Entrar />} />
-            <Route path="/recuperar-senha" element={<RecuperarSenha />} />
-            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+            {/* --- ROTAS PÚBLICAS (Apenas para NÃO LOGADOS) --- */}
+            <Route path="/entrar" element={<RotaPublica><Entrar /></RotaPublica>} />
+            <Route path="/recuperar-senha" element={<RotaPublica><RecuperarSenha /></RotaPublica>} />
+
+            {/* --- ROTAS PÚBLICAS GERAIS (Acessíveis por todos) --- */}
             <Route path="/" element={<Index />} />
+            <Route path="/redefinir-senha" element={<RedefinirSenha />} />
 
             {/* --- ROTAS PROTEGIDAS --- */}
             <Route path="/painel" element={<RotaProtegida><Painel /></RotaProtegida>} />

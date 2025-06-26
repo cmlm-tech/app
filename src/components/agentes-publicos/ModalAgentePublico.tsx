@@ -119,7 +119,7 @@ export const ModalAgentePublico = ({
             foto_url: formData.foto,
             tipo: formData.tipo
           })
-          .eq('id', agente.id);
+          .eq('id', Number(agente.id));
 
         if (updateError) throw updateError;
 
@@ -134,7 +134,7 @@ export const ModalAgentePublico = ({
             });
           
           if (vereadorError) throw vereadorError;
-        } else if (formData.tipo === 'Funcionário') {
+        } else if (formData.tipo === 'Funcionario') {
           const { error: funcionarioError } = await supabase
             .from('funcionarios')
             .upsert({
@@ -178,7 +178,7 @@ export const ModalAgentePublico = ({
             });
           
           if (vereadorError) throw vereadorError;
-        } else if (formData.tipo === 'Funcionário') {
+        } else if (formData.tipo === 'Funcionario') {
           const { error: funcionarioError } = await supabase
             .from('funcionarios')
             .insert({
@@ -254,7 +254,7 @@ export const ModalAgentePublico = ({
                 <SelectContent>
                   {TIPOS_AGENTE.map((tipo) => (
                     <SelectItem key={tipo} value={tipo}>
-                      {tipo}
+                      {tipo === 'Funcionario' ? 'Funcionário' : tipo}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -323,7 +323,7 @@ export const ModalAgentePublico = ({
           )}
 
           {/* Campos Condicionais para Funcionário */}
-          {formData.tipo === 'Funcionário' && (
+          {formData.tipo === 'Funcionario' && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">

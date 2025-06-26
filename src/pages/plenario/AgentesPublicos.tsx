@@ -1,4 +1,3 @@
-
 import { AppLayout } from "@/components/AppLayout";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -51,7 +50,7 @@ export default function AgentesPublicos() {
         nomeCompleto: agente.nome_completo,
         cpf: formatarCpf(agente.cpf || ''),
         foto: agente.foto_url || '/placeholder.svg',
-        tipo: agente.tipo,
+        tipo: agente.tipo as 'Vereador' | 'Funcionario', // Cast correto para o tipo esperado
         statusUsuario: 'Sem Acesso' as const, // Default por enquanto
         // Campos de vereador
         nomeParlamantar: agente.vereadores?.[0]?.nome_parlamentar,

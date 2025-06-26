@@ -1,3 +1,4 @@
+
 import { AppLayout } from "@/components/AppLayout";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -87,7 +88,7 @@ export default function AgentesPublicos() {
       .slice(0, 11)
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace /(\d{3})(\d{1,2})/, '$1-$2');
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2');
   };
 
   // Filtrar agentes

@@ -7,6 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { AgentePublico, TipoAgente, TIPOS_AGENTE, TIPOS_VINCULO } from "./types";
+import { useCpfValidation } from "@/hooks/useCpfValidation";
+import { ImageUpload } from "@/components/ImageUpload";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 type ModalAgentePublicoProps = {
   isOpen: boolean;
@@ -23,6 +27,9 @@ export const ModalAgentePublico = ({
   agente,
   isEditing
 }: ModalAgentePublicoProps) => {
+  const { toast } = useToast();
+  const { cpfError, isValidCpf, handleCpfBlur, formatCpf } = useCpfValidation();
+  
   const [formData, setFormData] = useState<Partial<AgentePublico>>({
     nomeCompleto: '',
     cpf: '',
@@ -36,6 +43,8 @@ export const ModalAgentePublico = ({
     dataAdmissao: '',
     dataExoneracao: ''
   });
+
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (agente && isEditing) {
@@ -57,15 +66,169 @@ export const ModalAgentePublico = ({
     }
   }, [agente, isEditing, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-    onClose();
+    
+    // Validações
+    if (!formData.nomeCompleto?.trim()) {
+      toast({
+        title: "Erro de validação",
+        description: "Nome completo é obrigatório.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.cpf?.trim()) {
+      toast({
+        title: "Erro de validação", 
+        description: "CPF é obrigatório.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!isValidCpf) {
+      toast({
+        title: "Erro de validação",
+        description: "CPF inválido.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.tipo) {
+      toast({
+        title: "Erro de validação",
+        description: "Tipo de agente é obrigatório.", 
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      if (isEditing && agente) {
+        // Atualizar agente existente
+        const { error: updateError } = await supabase
+          .from('agentespublicos')
+          .update({
+            nome_completo: formData.nomeCompleto,
+            cpf: formData.cpf?.replace(/\D/g, ''), // Salvar CPF apenas com números
+            foto_url: formData.foto,
+            tipo: formData.tipo
+          })
+          .eq('id', agente.id);
+
+        if (updateError) throw updateError;
+
+        // Atualizar tabelas específicas
+        if (formData.tipo === 'Vereador') {
+          const { error: vereadorError } = await supabase
+            .from('vereadores')
+            .upsert({
+              agente_publico_id: Number(agente.id),
+              nome_parlamentar: formData.nomeParlamantar,
+              perfil: formData.perfil
+            });
+          
+          if (vereadorError) throw vereadorError;
+        } else if (formData.tipo === 'Funcionário') {
+          const { error: funcionarioError } = await supabase
+            .from('funcionarios')
+            .upsert({
+              agente_publico_id: Number(agente.id),
+              cargo: formData.cargo,
+              tipo_vinculo: formData.tipoVinculo,
+              data_admissao: formData.dataAdmissao || null,
+              data_exoneracao: formData.dataExoneracao || null
+            });
+          
+          if (funcionarioError) throw funcionarioError;
+        }
+
+        toast({
+          title: "Sucesso!",
+          description: "Agente atualizado com sucesso!"
+        });
+      } else {
+        // Criar novo agente
+        const { data: novoAgente, error: insertError } = await supabase
+          .from('agentespublicos')
+          .insert({
+            nome_completo: formData.nomeCompleto,
+            cpf: formData.cpf?.replace(/\D/g, ''), // Salvar CPF apenas com números
+            foto_url: formData.foto,
+            tipo: formData.tipo
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        // Inserir nas tabelas específicas
+        if (formData.tipo === 'Vereador') {
+          const { error: vereadorError } = await supabase
+            .from('vereadores')
+            .insert({
+              agente_publico_id: novoAgente.id,
+              nome_parlamentar: formData.nomeParlamantar,
+              perfil: formData.perfil
+            });
+          
+          if (vereadorError) throw vereadorError;
+        } else if (formData.tipo === 'Funcionário') {
+          const { error: funcionarioError } = await supabase
+            .from('funcionarios')
+            .insert({
+              agente_publico_id: novoAgente.id,
+              cargo: formData.cargo,
+              tipo_vinculo: formData.tipoVinculo,
+              data_admissao: formData.dataAdmissao || null,
+              data_exoneracao: formData.dataExoneracao || null
+            });
+          
+          if (funcionarioError) throw funcionarioError;
+        }
+
+        toast({
+          title: "Sucesso!",
+          description: "Agente cadastrado com sucesso!"
+        });
+      }
+
+      onSave(formData);
+      onClose();
+    } catch (error) {
+      console.error('Erro ao salvar agente:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar agente. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleInputChange = (field: keyof AgentePublico, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  const handleCpfChange = (value: string) => {
+    const formattedCpf = formatCpf(value);
+    handleInputChange('cpf', formattedCpf);
+  };
+
+  const handleCpfBlurEvent = (e: React.FocusEvent<HTMLInputElement>) => {
+    handleCpfBlur(e.target.value);
+  };
+
+  const isFormValid = formData.nomeCompleto?.trim() && 
+                     formData.cpf?.trim() && 
+                     isValidCpf && 
+                     formData.tipo;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -116,22 +279,24 @@ export const ModalAgentePublico = ({
               <Input
                 id="cpf"
                 value={formData.cpf}
-                onChange={(e) => handleInputChange('cpf', e.target.value)}
+                onChange={(e) => handleCpfChange(e.target.value)}
+                onBlur={handleCpfBlurEvent}
                 placeholder="000.000.000-00"
+                maxLength={14}
                 required
               />
+              {cpfError && (
+                <p className="text-sm text-red-600">{cpfError}</p>
+              )}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="foto">URL da Foto</Label>
-            <Input
-              id="foto"
-              value={formData.foto}
-              onChange={(e) => handleInputChange('foto', e.target.value)}
-              placeholder="https://exemplo.com/foto.jpg"
-            />
-          </div>
+          {/* Upload de Imagem */}
+          <ImageUpload
+            onImageUploaded={(url) => handleInputChange('foto', url)}
+            currentImageUrl={formData.foto}
+            disabled={isSaving}
+          />
 
           {/* Campos Condicionais para Vereador */}
           {formData.tipo === 'Vereador' && (
@@ -216,11 +381,21 @@ export const ModalAgentePublico = ({
 
           {/* Botões */}
           <div className="flex gap-4 pt-6">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              className="flex-1"
+              disabled={isSaving}
+            >
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1">
-              Salvar Agente Público
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={!isFormValid || isSaving}
+            >
+              {isSaving ? 'Salvando...' : 'Salvar Agente Público'}
             </Button>
           </div>
         </form>

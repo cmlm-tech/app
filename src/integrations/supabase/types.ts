@@ -1147,6 +1147,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      is_staff: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       cargo_comissao: "Presidente" | "Membro" | "Relator"

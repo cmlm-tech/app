@@ -1,24 +1,94 @@
-
 import { AppLayout } from "@/components/AppLayout";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiltroAgentesPublicos } from "@/components/agentes-publicos/FiltroAgentesPublicos";
 import { TabelaAgentesPublicos } from "@/components/agentes-publicos/TabelaAgentesPublicos";
 import { ModalAgentePublico } from "@/components/agentes-publicos/ModalAgentePublico";
-import { AGENTES_MOCK } from "@/components/agentes-publicos/data";
 import { AgentePublico } from "@/components/agentes-publicos/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AgentesPublicos() {
-  const [agentes, setAgentes] = useState<AgentePublico[]>(AGENTES_MOCK);
+  const { toast } = useToast();
+  const [agentes, setAgentes] = useState<AgentePublico[]>([]);
+  const [loading, setLoading] = useState(true);
+  
   const [busca, setBusca] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('Todos');
   const [statusFiltro, setStatusFiltro] = useState('Todos');
   const [modalAberto, setModalAberto] = useState(false);
   const [agenteEditando, setAgenteEditando] = useState<AgentePublico | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Carregar agentes do Supabase
+  const carregarAgentes = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('agentespublicos')
+        .select(`
+          *,
+          vereadores (
+            nome_parlamentar,
+            perfil
+          ),
+          funcionarios (
+            cargo,
+            tipo_vinculo,
+            data_admissao,
+            data_exoneracao
+          )
+        `);
+
+      if (error) throw error;
+
+      const agentesFormatados: AgentePublico[] = data.map(agente => ({
+        id: agente.id.toString(),
+        nomeCompleto: agente.nome_completo,
+        cpf: formatarCpf(agente.cpf || ''),
+        foto: agente.foto_url || '/placeholder.svg',
+        tipo: agente.tipo,
+        statusUsuario: 'Sem Acesso' as const, // Default por enquanto
+        // Campos de vereador
+        nomeParlamantar: agente.vereadores?.[0]?.nome_parlamentar,
+        perfil: agente.vereadores?.[0]?.perfil,
+        // Campos de funcionário  
+        cargo: agente.funcionarios?.[0]?.cargo,
+        tipoVinculo: agente.funcionarios?.[0]?.tipo_vinculo,
+        dataAdmissao: agente.funcionarios?.[0]?.data_admissao,
+        dataExoneracao: agente.funcionarios?.[0]?.data_exoneracao
+      }));
+
+      setAgentes(agentesFormatados);
+    } catch (error) {
+      console.error('Erro ao carregar agentes:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar lista de agentes.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarAgentes();
+  }, []);
+
+  // Função para formatar CPF
+  const formatarCpf = (cpf: string): string => {
+    if (!cpf) return '';
+    const numbers = cpf.replace(/\D/g, '');
+    return numbers
+      .slice(0, 11)
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace /(\d{3})(\d{1,2})/, '$1-$2');
+  };
 
   // Filtrar agentes
   const agentesFiltrados = agentes.filter(agente => {
@@ -42,30 +112,9 @@ export default function AgentesPublicos() {
     setModalAberto(true);
   };
 
-  const handleSalvarAgente = (dadosAgente: Partial<AgentePublico>) => {
-    if (isEditing && agenteEditando) {
-      // Editar agente existente
-      setAgentes(prev => prev.map(a => 
-        a.id === agenteEditando.id ? { ...a, ...dadosAgente } : a
-      ));
-    } else {
-      // Criar novo agente
-      const novoAgente: AgentePublico = {
-        id: Date.now().toString(),
-        nomeCompleto: dadosAgente.nomeCompleto || '',
-        cpf: dadosAgente.cpf || '',
-        foto: dadosAgente.foto || '/placeholder.svg',
-        tipo: dadosAgente.tipo || 'Funcionário',
-        statusUsuario: dadosAgente.statusUsuario || 'Sem Acesso',
-        nomeParlamantar: dadosAgente.nomeParlamantar,
-        perfil: dadosAgente.perfil,
-        cargo: dadosAgente.cargo,
-        tipoVinculo: dadosAgente.tipoVinculo,
-        dataAdmissao: dadosAgente.dataAdmissao,
-        dataExoneracao: dadosAgente.dataExoneracao
-      };
-      setAgentes(prev => [...prev, novoAgente]);
-    }
+  const handleSalvarAgente = async () => {
+    // Recarregar a lista após salvar
+    await carregarAgentes();
   };
 
   const handleDesativarAgente = (agente: AgentePublico) => {
@@ -73,6 +122,16 @@ export default function AgentesPublicos() {
       a.id === agente.id ? { ...a, statusUsuario: 'Inativo' as const } : a
     ));
   };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gov-blue-800"></div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -91,17 +150,15 @@ export default function AgentesPublicos() {
       </Breadcrumb>
 
       <div className="space-y-6">
-        {/* Cabeçalho da Página */}
         <div className="space-y-2">
           <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800">
             Gerenciamento de Agentes Públicos
           </h1>
           <p className="text-gray-600">
-            Cadastre e gerencie todos os vereadores e funcionários da Câmara.
+            Cadastre gerencie todos os vereadores e funcionários da Câmara.
           </p>
         </div>
 
-        {/* Barra de Ações */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <Button onClick={handleNovoAgente} className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
@@ -113,7 +170,6 @@ export default function AgentesPublicos() {
           </div>
         </div>
 
-        {/* Filtros */}
         <FiltroAgentesPublicos
           busca={busca}
           setBusca={setBusca}
@@ -123,14 +179,12 @@ export default function AgentesPublicos() {
           setStatusFiltro={setStatusFiltro}
         />
 
-        {/* Tabela */}
         <TabelaAgentesPublicos
           agentes={agentesFiltrados}
           onEditar={handleEditarAgente}
           onDesativar={handleDesativarAgente}
         />
 
-        {/* Modal */}
         <ModalAgentePublico
           isOpen={modalAberto}
           onClose={() => setModalAberto(false)}

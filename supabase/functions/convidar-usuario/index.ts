@@ -1,136 +1,86 @@
+// supabase/functions/convidar-usuario/index.ts (VERSÃO FINAL E CORRIGIDA)
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
+// Headers CORS para permitir que a função seja chamada pelo navegador
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-interface ConviteRequest {
-  agente_publico_id: string;
-  email: string;
-  permissao: 'Vereador' | 'Assessoria' | 'Secretaria' | 'Admin';
 }
 
-const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
+serve(async (req) => {
+  // Lida com a requisição CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Criar cliente admin do Supabase
+    // 1. Cria um cliente admin seguro do Supabase.
+    // As chaves são lidas das variáveis de ambiente, nunca expostas no frontend.
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    const { agente_publico_id, email, permissao }: ConviteRequest = await req.json();
+    // 2. Extrai os dados enviados pelo frontend.
+    const { agente_publico_id, email, permissao } = await req.json()
 
-    console.log('Recebendo convite para:', { agente_publico_id, email, permissao });
-
-    // Validar se o agente já possui usuário associado
-    const { data: usuarioExistente, error: erroVerificacao } = await supabaseAdmin
-      .from('usuarios')
+    // 3. Validação para garantir que um mesmo agente não seja convidado duas vezes.
+    const { data: usuarioExistente } = await supabaseAdmin
+      .from('Usuarios')
       .select('id')
       .eq('agente_publico_id', agente_publico_id)
-      .single();
-
-    if (erroVerificacao && erroVerificacao.code !== 'PGRST116') {
-      throw new Error(`Erro ao verificar usuário existente: ${erroVerificacao.message}`);
-    }
+      .single()
 
     if (usuarioExistente) {
-      throw new Error('Este agente público já possui um usuário associado.');
+      throw new Error('Este agente público já possui um usuário associado.')
     }
 
-    // Verificar se o email já está sendo usado
-    const { data: emailExistente, error: erroEmail } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-    
-    if (emailExistente?.user && !erroEmail) {
-      throw new Error('Este email já está sendo usado por outro usuário.');
-    }
+    // 4. Constrói a URL de redirecionamento de forma segura e recomendada.
+    // Usa a variável de ambiente SITE_URL.
+    const siteUrl = Deno.env.get('SITE_URL') ?? 'http://localhost:5173' // Fallback para desenvolvimento local
+    const redirectTo = `${siteUrl}/definir-senha`
 
-    // Criar convite usando o cliente admin
-    const redirectTo = `${Deno.env.get('SUPABASE_URL')?.replace('//', '//').split('/')[0]}//${Deno.env.get('SUPABASE_URL')?.split('//')[1]?.split('.')[0]}.lovable.app/definir-senha`;
-    
-    console.log('URL de redirecionamento:', redirectTo);
-
+    // 5. Convida o novo usuário. A função 'inviteUserByEmail' já trata internamente
+    // o caso em que o e-mail já existe, retornando um erro.
     const { data: novoUsuario, error: erroConvite } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       redirectTo: redirectTo,
-      data: {
-        agente_publico_id: agente_publico_id,
-        permissao: permissao
-      }
-    });
+    })
 
-    if (erroConvite || !novoUsuario.user) {
-      console.error('Erro ao criar convite:', erroConvite);
-      throw new Error(`Erro ao enviar convite: ${erroConvite?.message}`);
+    if (erroConvite) {
+      // Se o convite falhar (ex: e-mail já existe), lança o erro.
+      throw erroConvite
     }
 
-    console.log('Usuário criado com sucesso:', novoUsuario.user.id);
-
-    // Criar registro na tabela usuarios
+    // 6. Cria o registro na sua tabela 'Usuarios' para ligar o perfil ao login.
     const { error: erroCriacaoUsuario } = await supabaseAdmin
-      .from('usuarios')
+      .from('Usuarios')
       .insert({
         id: novoUsuario.user.id,
         email: email,
         agente_publico_id: parseInt(agente_publico_id),
-        permissao: permissao
-      });
+        permissao: permissao,
+      })
 
     if (erroCriacaoUsuario) {
-      console.error('Erro ao criar perfil do usuário:', erroCriacaoUsuario);
-      
-      // Se falhar, deletar o usuário criado para não deixar órfão
-      await supabaseAdmin.auth.admin.deleteUser(novoUsuario.user.id);
-      
-      throw new Error(`Erro ao criar perfil do usuário: ${erroCriacaoUsuario.message}`);
+      // Se a criação do perfil falhar, deleta o usuário da autenticação para não deixar órfãos.
+      await supabaseAdmin.auth.admin.deleteUser(novoUsuario.user.id)
+      throw new Error(`Erro ao criar perfil do usuário: ${erroCriacaoUsuario.message}`)
     }
 
-    console.log('Convite enviado com sucesso');
+    // 7. Retorna uma resposta de sucesso.
+    return new Response(JSON.stringify({ success: true, message: 'Convite enviado com sucesso' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Convite enviado com sucesso',
-        user_id: novoUsuario.user.id
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
-      }
-    );
-
-  } catch (error: any) {
-    console.error('Erro na função convidar-usuario:', error);
-    
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || 'Erro interno do servidor' 
-      }),
-      {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
-      }
-    );
+  } catch (error) {
+    // Captura qualquer erro do processo e retorna uma mensagem clara.
+    console.error('Erro na função convidar-usuario:', error)
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
   }
-};
-
-serve(handler);
+})

@@ -2,19 +2,21 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, UserX } from "lucide-react";
+import { Eye, Edit, UserX, Mail } from "lucide-react";
 import { AgentePublico } from "./types";
 
 type TabelaAgentesPublicosProps = {
   agentes: AgentePublico[];
   onEditar: (agente: AgentePublico) => void;
   onDesativar: (agente: AgentePublico) => void;
+  onConvidar: (agente: AgentePublico) => void;
 };
 
 export const TabelaAgentesPublicos = ({
   agentes,
   onEditar,
-  onDesativar
+  onDesativar,
+  onConvidar
 }: TabelaAgentesPublicosProps) => {
   const formatarCPF = (cpf: string) => {
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.$3-**");
@@ -27,7 +29,9 @@ export const TabelaAgentesPublicos = ({
       case 'Inativo':
         return 'bg-gray-100 text-gray-800';
       case 'Sem Acesso':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 cursor-pointer hover:bg-yellow-200';
+      case 'Convite Pendente':
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -76,9 +80,19 @@ export const TabelaAgentesPublicos = ({
                 {formatarCPF(agente.cpf)}
               </TableCell>
               <TableCell>
-                <Badge className={getStatusColor(agente.statusUsuario)}>
-                  {agente.statusUsuario}
-                </Badge>
+                {agente.statusUsuario === 'Sem Acesso' ? (
+                  <Badge 
+                    className={getStatusColor(agente.statusUsuario)}
+                    onClick={() => onConvidar(agente)}
+                    title="Clique para convidar este agente"
+                  >
+                    {agente.statusUsuario}
+                  </Badge>
+                ) : (
+                  <Badge className={getStatusColor(agente.statusUsuario)}>
+                    {agente.statusUsuario}
+                  </Badge>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex gap-2 justify-end">
@@ -92,6 +106,16 @@ export const TabelaAgentesPublicos = ({
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
+                  {agente.statusUsuario === 'Sem Acesso' && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => onConvidar(agente)}
+                      title="Convidar usuário"
+                    >
+                      <Mail className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button 
                     variant="ghost" 
                     size="sm"

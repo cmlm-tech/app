@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import Entrar from "./pages/Entrar";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
+import DefinirSenha from "./pages/DefinirSenha";
 import Documentos from "./pages/Documentos";
 import Configuracoes from "./pages/Configuracoes";
 import Dashboard from "./pages/Dashboard";
@@ -48,6 +49,7 @@ const App = () => (
             {/* --- ROTAS PÚBLICAS GERAIS (Acessíveis por todos) --- */}
             <Route path="/" element={<Index />} />
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+            <Route path="/definir-senha" element={<DefinirSenha />} />
 
             {/* --- ROTAS PROTEGIDAS --- */}
             <Route path="/painel" element={<RotaProtegida><Painel /></RotaProtegida>} />

@@ -1,3 +1,4 @@
+
 import { AppLayout } from "@/components/AppLayout";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { useState, useEffect } from "react";
 import { FiltroAgentesPublicos } from "@/components/agentes-publicos/FiltroAgentesPublicos";
 import { TabelaAgentesPublicos } from "@/components/agentes-publicos/TabelaAgentesPublicos";
 import { ModalAgentePublico } from "@/components/agentes-publicos/ModalAgentePublico";
+import { ModalConviteUsuario } from "@/components/agentes-publicos/ModalConviteUsuario";
 import { AgentePublico } from "@/components/agentes-publicos/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +22,9 @@ export default function AgentesPublicos() {
   const [tipoFiltro, setTipoFiltro] = useState('Todos');
   const [statusFiltro, setStatusFiltro] = useState('Todos');
   const [modalAberto, setModalAberto] = useState(false);
+  const [modalConviteAberto, setModalConviteAberto] = useState(false);
   const [agenteEditando, setAgenteEditando] = useState<AgentePublico | null>(null);
+  const [agenteConvidando, setAgenteConvidando] = useState<AgentePublico | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   // Carregar agentes do Supabase
@@ -40,27 +44,40 @@ export default function AgentesPublicos() {
             tipo_vinculo,
             data_admissao,
             data_exoneracao
+          ),
+          usuarios (
+            id,
+            email,
+            permissao
           )
         `);
 
       if (error) throw error;
 
-      const agentesFormatados: AgentePublico[] = data.map(agente => ({
-        id: agente.id.toString(),
-        nomeCompleto: agente.nome_completo,
-        cpf: formatarCpf(agente.cpf || ''),
-        foto: agente.foto_url || '/placeholder.svg',
-        tipo: agente.tipo as 'Vereador' | 'Funcionario', // Cast correto para o tipo esperado
-        statusUsuario: 'Sem Acesso' as const, // Default por enquanto
-        // Campos de vereador
-        nomeParlamantar: agente.vereadores?.[0]?.nome_parlamentar,
-        perfil: agente.vereadores?.[0]?.perfil,
-        // Campos de funcionário  
-        cargo: agente.funcionarios?.[0]?.cargo,
-        tipoVinculo: agente.funcionarios?.[0]?.tipo_vinculo,
-        dataAdmissao: agente.funcionarios?.[0]?.data_admissao,
-        dataExoneracao: agente.funcionarios?.[0]?.data_exoneracao
-      }));
+      const agentesFormatados: AgentePublico[] = data.map(agente => {
+        // Determinar status do usuário baseado na existência do registro em usuarios
+        let statusUsuario: AgentePublico['statusUsuario'] = 'Sem Acesso';
+        if (agente.usuarios && agente.usuarios.length > 0) {
+          statusUsuario = 'Ativo'; // Se tem registro em usuarios, está ativo
+        }
+
+        return {
+          id: agente.id.toString(),
+          nomeCompleto: agente.nome_completo,
+          cpf: formatarCpf(agente.cpf || ''),
+          foto: agente.foto_url || '/placeholder.svg',
+          tipo: agente.tipo as 'Vereador' | 'Funcionario',
+          statusUsuario,
+          // Campos de vereador
+          nomeParlamantar: agente.vereadores?.[0]?.nome_parlamentar,
+          perfil: agente.vereadores?.[0]?.perfil,
+          // Campos de funcionário  
+          cargo: agente.funcionarios?.[0]?.cargo,
+          tipoVinculo: agente.funcionarios?.[0]?.tipo_vinculo,
+          dataAdmissao: agente.funcionarios?.[0]?.data_admissao,
+          dataExoneracao: agente.funcionarios?.[0]?.data_exoneracao
+        };
+      });
 
       setAgentes(agentesFormatados);
     } catch (error) {
@@ -112,8 +129,26 @@ export default function AgentesPublicos() {
     setModalAberto(true);
   };
 
+  const handleConvidarAgente = (agente: AgentePublico) => {
+    setAgenteConvidando(agente);
+    setModalConviteAberto(true);
+  };
+
   const handleSalvarAgente = async () => {
     // Recarregar a lista após salvar
+    await carregarAgentes();
+  };
+
+  const handleConviteEnviado = async () => {
+    // Atualizar o status do agente para "Convite Pendente"
+    if (agenteConvidando) {
+      setAgentes(prev => prev.map(a => 
+        a.id === agenteConvidando.id 
+          ? { ...a, statusUsuario: 'Convite Pendente' as const } 
+          : a
+      ));
+    }
+    // Recarregar a lista para garantir consistência
     await carregarAgentes();
   };
 
@@ -183,6 +218,7 @@ export default function AgentesPublicos() {
           agentes={agentesFiltrados}
           onEditar={handleEditarAgente}
           onDesativar={handleDesativarAgente}
+          onConvidar={handleConvidarAgente}
         />
 
         <ModalAgentePublico
@@ -191,6 +227,13 @@ export default function AgentesPublicos() {
           onSave={handleSalvarAgente}
           agente={agenteEditando}
           isEditing={isEditing}
+        />
+
+        <ModalConviteUsuario
+          isOpen={modalConviteAberto}
+          onClose={() => setModalConviteAberto(false)}
+          onConviteEnviado={handleConviteEnviado}
+          agente={agenteConvidando}
         />
       </div>
     </AppLayout>

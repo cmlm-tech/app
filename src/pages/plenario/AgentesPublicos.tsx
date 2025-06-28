@@ -1,4 +1,3 @@
-
 import { AppLayout } from "@/components/AppLayout";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
@@ -27,57 +26,30 @@ export default function AgentesPublicos() {
   const [agenteConvidando, setAgenteConvidando] = useState<AgentePublico | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Carregar agentes do Supabase
+  // Carregar agentes usando a nova função do banco
   const carregarAgentes = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('agentespublicos')
-        .select(`
-          *,
-          vereadores (
-            nome_parlamentar,
-            perfil
-          ),
-          funcionarios (
-            cargo,
-            tipo_vinculo,
-            data_admissao,
-            data_exoneracao
-          ),
-          usuarios (
-            id,
-            email,
-            permissao
-          )
-        `);
+      const { data, error } = await supabase.rpc('get_agentes_publicos_com_status');
 
       if (error) throw error;
 
-      const agentesFormatados: AgentePublico[] = data.map(agente => {
-        // Determinar status do usuário baseado na existência do registro em usuarios
-        let statusUsuario: AgentePublico['statusUsuario'] = 'Sem Acesso';
-        if (agente.usuarios && agente.usuarios.length > 0) {
-          statusUsuario = 'Ativo'; // Se tem registro em usuarios, está ativo
-        }
-
-        return {
-          id: agente.id.toString(),
-          nomeCompleto: agente.nome_completo,
-          cpf: formatarCpf(agente.cpf || ''),
-          foto: agente.foto_url || '/placeholder.svg',
-          tipo: agente.tipo as 'Vereador' | 'Funcionario',
-          statusUsuario,
-          // Campos de vereador
-          nomeParlamantar: agente.vereadores?.[0]?.nome_parlamentar,
-          perfil: agente.vereadores?.[0]?.perfil,
-          // Campos de funcionário  
-          cargo: agente.funcionarios?.[0]?.cargo,
-          tipoVinculo: agente.funcionarios?.[0]?.tipo_vinculo,
-          dataAdmissao: agente.funcionarios?.[0]?.data_admissao,
-          dataExoneracao: agente.funcionarios?.[0]?.data_exoneracao
-        };
-      });
+      const agentesFormatados: AgentePublico[] = data.map(agente => ({
+        id: agente.id.toString(),
+        nomeCompleto: agente.nome_completo,
+        cpf: formatarCpf(agente.cpf || ''),
+        foto: agente.foto_url || '/placeholder.svg',
+        tipo: agente.tipo as 'Vereador' | 'Funcionario',
+        statusUsuario: agente.status_usuario as AgentePublico['statusUsuario'],
+        // Campos de vereador
+        nomeParlamantar: agente.nome_parlamentar,
+        perfil: agente.perfil,
+        // Campos de funcionário  
+        cargo: agente.cargo,
+        tipoVinculo: agente.tipo_vinculo as AgentePublico['tipoVinculo'],
+        dataAdmissao: agente.data_admissao,
+        dataExoneracao: agente.data_exoneracao
+      }));
 
       setAgentes(agentesFormatados);
     } catch (error) {

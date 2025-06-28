@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Edit, UserX, Mail } from "lucide-react";
 import { AgentePublico } from "./types";
+import { StatusUsuarioBadge } from "./StatusUsuarioBadge";
 
 type TabelaAgentesPublicosProps = {
   agentes: AgentePublico[];
@@ -20,21 +21,6 @@ export const TabelaAgentesPublicos = ({
 }: TabelaAgentesPublicosProps) => {
   const formatarCPF = (cpf: string) => {
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.$3-**");
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Ativo':
-        return 'bg-green-100 text-green-800';
-      case 'Inativo':
-        return 'bg-gray-100 text-gray-800';
-      case 'Sem Acesso':
-        return 'bg-yellow-100 text-yellow-800 cursor-pointer hover:bg-yellow-200';
-      case 'Convite Pendente':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
   };
 
   const getTipoColor = (tipo: string) => {
@@ -80,19 +66,11 @@ export const TabelaAgentesPublicos = ({
                 {formatarCPF(agente.cpf)}
               </TableCell>
               <TableCell>
-                {agente.statusUsuario === 'Sem Acesso' ? (
-                  <Badge 
-                    className={getStatusColor(agente.statusUsuario)}
-                    onClick={() => onConvidar(agente)}
-                    title="Clique para convidar este agente"
-                  >
-                    {agente.statusUsuario}
-                  </Badge>
-                ) : (
-                  <Badge className={getStatusColor(agente.statusUsuario)}>
-                    {agente.statusUsuario}
-                  </Badge>
-                )}
+                <StatusUsuarioBadge
+                  status={agente.statusUsuario}
+                  agente={agente}
+                  onConvidar={onConvidar}
+                />
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex gap-2 justify-end">

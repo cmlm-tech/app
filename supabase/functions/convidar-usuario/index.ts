@@ -40,7 +40,8 @@ serve(async (req) => {
     // 4. Constrói a URL de redirecionamento de forma segura e recomendada.
     // Usa a variável de ambiente SITE_URL.
     const siteUrl = Deno.env.get('SITE_URL') ?? 'http://localhost:5173' // Fallback para desenvolvimento local
-    const redirectTo = `${siteUrl}/definir-senha`
+    const redirectTo = `${siteUrl}/redefinir-senha`; 
+
 
     // 5. Convida o novo usuário. A função 'inviteUserByEmail' já trata internamente
     // o caso em que o e-mail já existe, retornando um erro.

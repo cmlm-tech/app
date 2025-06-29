@@ -1146,12 +1146,12 @@ export type Database = {
           nome_completo: string
           cpf: string
           foto_url: string
-          tipo: string
+          tipo: Database["public"]["Enums"]["tipo_agente_publico"]
           status_usuario: string
           nome_parlamentar: string
           perfil: string
           cargo: string
-          tipo_vinculo: string
+          tipo_vinculo: Database["public"]["Enums"]["tipo_vinculo_funcionario"]
           data_admissao: string
           data_exoneracao: string
         }[]
@@ -1203,7 +1203,6 @@ export type Database = {
         | "Sancionado"
         | "Promulgado"
         | "Arquivado"
-      tipo_agente: "Vereador" | "Funcionario"
       tipo_agente_publico: "Vereador" | "Funcionario"
       tipo_autor_externo:
         | "Executivo Municipal"
@@ -1222,7 +1221,6 @@ export type Database = {
         | "Protesto"
         | "Repúdio"
       tipo_sessao: "Ordinária" | "Extraordinária" | "Solene"
-      tipo_vinculo: "Efetivo" | "Comissionado" | "Terceirizado"
       tipo_vinculo_funcionario: "Efetivo" | "Comissionado" | "Terceirizado"
       voto_vereador: "Sim" | "Não" | "Abstenção" | "Ausente"
     }
@@ -1376,7 +1374,6 @@ export const Constants = {
         "Promulgado",
         "Arquivado",
       ],
-      tipo_agente: ["Vereador", "Funcionario"],
       tipo_agente_publico: ["Vereador", "Funcionario"],
       tipo_autor_externo: [
         "Executivo Municipal",
@@ -1392,7 +1389,6 @@ export const Constants = {
       ],
       tipo_mocao: ["Aplausos", "Solidariedade", "Pesar", "Protesto", "Repúdio"],
       tipo_sessao: ["Ordinária", "Extraordinária", "Solene"],
-      tipo_vinculo: ["Efetivo", "Comissionado", "Terceirizado"],
       tipo_vinculo_funcionario: ["Efetivo", "Comissionado", "Terceirizado"],
       voto_vereador: ["Sim", "Não", "Abstenção", "Ausente"],
     },

@@ -1,25 +1,20 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Edit, UserX, Mail } from "lucide-react";
-import { AgentePublico } from "./types";
 import { StatusUsuarioBadge } from "./StatusUsuarioBadge";
+import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos"; // Importa o tipo unificado
 
 type TabelaAgentesPublicosProps = {
-  agentes: AgentePublico[];
-  onEditar: (agente: AgentePublico) => void;
-  onDesativar: (agente: AgentePublico) => void;
-  onConvidar: (agente: AgentePublico) => void;
+  agentes: AgenteComStatus[];
+  onEditar: (agente: AgenteComStatus) => void;
+  onDesativar: (agente: AgenteComStatus) => void;
+  onConvidar: (agente: AgenteComStatus) => void;
 };
 
-export const TabelaAgentesPublicos = ({
-  agentes,
-  onEditar,
-  onDesativar,
-  onConvidar
-}: TabelaAgentesPublicosProps) => {
-  const formatarCPF = (cpf: string) => {
+export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvidar }: TabelaAgentesPublicosProps) => {
+  const formatarCPF = (cpf: string | null) => {
+    if (!cpf) return 'N/A';
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.$3-**");
   };
 
@@ -48,59 +43,40 @@ export const TabelaAgentesPublicos = ({
             <TableRow key={agente.id}>
               <TableCell>
                 <img
-                  src={agente.foto || "/placeholder.svg"}
-                  alt={agente.nomeCompleto}
+                  src={agente.foto_url || "/placeholder.svg"}
+                  alt={agente.nome_completo}
                   className="w-10 h-10 rounded-full object-cover"
                 />
               </TableCell>
-              <TableCell className="font-medium">{agente.nomeCompleto}</TableCell>
+              <TableCell className="font-medium">{agente.nome_completo}</TableCell>
               <TableCell>
                 <Badge className={getTipoColor(agente.tipo)}>
                   {agente.tipo}
                 </Badge>
               </TableCell>
               <TableCell>
-                {agente.tipo === 'Vereador' ? agente.nomeParlamantar : agente.cargo}
+                {agente.tipo === 'Vereador' ? agente.nome_parlamentar : agente.cargo}
               </TableCell>
               <TableCell className="font-mono text-sm">
                 {formatarCPF(agente.cpf)}
               </TableCell>
               <TableCell>
                 <StatusUsuarioBadge
-                  status={agente.statusUsuario}
+                  status={agente.status_usuario}
                   agente={agente}
                   onConvidar={onConvidar}
                 />
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex gap-2 justify-end">
-                  <Button variant="ghost" size="sm">
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => onEditar(agente)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  {agente.statusUsuario === 'Sem Acesso' && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => onConvidar(agente)}
-                      title="Convidar usuário"
-                    >
+                  <Button variant="ghost" size="sm"><Eye className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => onEditar(agente)}><Edit className="w-4 h-4" /></Button>
+                  {agente.status_usuario === 'Sem Acesso' && (
+                    <Button variant="ghost" size="sm" onClick={() => onConvidar(agente)} title="Convidar usuário">
                       <Mail className="w-4 h-4" />
                     </Button>
                   )}
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => onDesativar(agente)}
-                  >
-                    <UserX className="w-4 h-4" />
-                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => onDesativar(agente)}><UserX className="w-4 h-4" /></Button>
                 </div>
               </TableCell>
             </TableRow>

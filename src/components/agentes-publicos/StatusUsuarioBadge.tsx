@@ -18,6 +18,8 @@ export const StatusUsuarioBadge = ({ status, agente, onConvidar }: StatusUsuario
             return { className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer', text: 'Sem Acesso', clickable: true, tooltip: 'Clique para convidar este agente' };
           case 'Convite Pendente':
             return { className: 'bg-blue-100 text-blue-800', text: 'Convite Pendente', clickable: false, tooltip: 'Aguardando o usuário aceitar o convite' };
+          case 'Inativo':
+            return { className: 'bg-red-100 text-red-800', text: 'Inativo', clickable: false, tooltip: 'Este agente não possui mais vínculo ativo' };
           default:
             return { className: 'bg-gray-100 text-gray-800', text: 'Indefinido', clickable: false, tooltip: 'Status não definido' };
         }

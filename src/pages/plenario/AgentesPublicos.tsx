@@ -11,6 +11,16 @@ import { ModalConviteUsuario } from "@/components/agentes-publicos/ModalConviteU
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types"; // Caminho corrigido
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Define um tipo local robusto usando os tipos gerados do Supabase. Esta é a nossa "fonte da verdade" para o tipo do agente.
 export type AgenteComStatus = Database['public']['Functions']['get_agentes_publicos_com_status']['Returns'][number];

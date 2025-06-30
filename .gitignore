@@ -23,5 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
+.cursor/*
+
 # Arquivo de variáveis de ambiente com segredos
 .env

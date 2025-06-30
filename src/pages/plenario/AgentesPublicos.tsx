@@ -80,8 +80,9 @@ export default function AgentesPublicos() {
     if (!agenteParaInativar) return;
 
     try {
+      // CORREÇÃO: Usa o nome da tabela correto 'agentespublicos' (sem underscore)
       const { error } = await supabase
-        .from('agentes_publicos')
+        .from('agentespublicos')
         .update({ status_agente: 'Inativo' })
         .eq('id', agenteParaInativar.id);
 

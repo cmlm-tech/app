@@ -8,13 +8,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { AgentePublico } from './types'
+// CORREÇÃO: Importa o tipo correto da página principal
+import { AgenteComStatus } from '@/pages/plenario/AgentesPublicos';
 
 interface ModalConfirmacaoInativarProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: () => void
-  agente: AgentePublico | null
+  // CORREÇÃO: Usa o tipo correto 'AgenteComStatus'
+  agente: AgenteComStatus | null
 }
 
 export function ModalConfirmacaoInativar({
@@ -34,13 +36,16 @@ export function ModalConfirmacaoInativar({
           <AlertDialogTitle>Confirmar Inativação</AlertDialogTitle>
           <AlertDialogDescription>
             Tem a certeza que deseja inativar o agente{' '}
-            <strong>{agente.nome}</strong>? Esta ação irá bloquear o seu acesso
-            ao sistema.
+            {/* CORREÇÃO: Usa a propriedade correta 'nome_completo' */}
+            <strong className="text-gray-900">{agente.nome_completo}</strong>? Esta ação irá bloquear o seu acesso
+            ao sistema, caso exista.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onClose}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Inativar</AlertDialogAction>
+          <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700">
+            Sim, inativar
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

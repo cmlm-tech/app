@@ -15,6 +15,7 @@ export type Database = {
           foto_url: string | null
           id: number
           nome_completo: string
+          status_agente: string
           tipo: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Insert: {
@@ -22,6 +23,7 @@ export type Database = {
           foto_url?: string | null
           id?: number
           nome_completo: string
+          status_agente?: string
           tipo: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Update: {
@@ -29,6 +31,7 @@ export type Database = {
           foto_url?: string | null
           id?: number
           nome_completo?: string
+          status_agente?: string
           tipo?: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Relationships: []

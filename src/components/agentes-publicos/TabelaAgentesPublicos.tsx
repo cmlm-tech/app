@@ -71,15 +71,15 @@ export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvid
                 <div className="flex gap-2 justify-end">
                   <Button variant="ghost" size="sm"><Eye className="w-4 h-4" /></Button>
                   {agente.status_usuario !== 'Inativo' && (
-                    <>
-                      <Button variant="ghost" size="sm" onClick={() => onEditar(agente)}><Edit className="w-4 h-4" /></Button>
-                      {agente.status_usuario === 'Sem Acesso' && (
-                        <Button variant="ghost" size="sm" onClick={() => onConvidar(agente)} title="Convidar usuário">
-                          <Mail className="w-4 h-4" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" onClick={() => onDesativar(agente)}><UserX className="w-4 h-4" /></Button>
-                    </>
+                    <Button variant="ghost" size="sm" onClick={() => onEditar(agente)}><Edit className="w-4 h-4" /></Button>
+                  )}
+                  {agente.status_usuario === 'Sem Acesso' && (
+                    <Button variant="ghost" size="sm" onClick={() => onConvidar(agente)} title="Convidar usuário">
+                      <Mail className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {(agente.status_usuario === 'Ativo' || agente.status_usuario === 'Convite Pendente') && (
+                    <Button variant="ghost" size="sm" onClick={() => onDesativar(agente)}><UserX className="w-4 h-4" /></Button>
                   )}
                 </div>
               </TableCell>

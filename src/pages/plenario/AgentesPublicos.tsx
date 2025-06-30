@@ -1,28 +1,16 @@
 import { AppLayout } from "@/components/AppLayout";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import { FiltroAgentesPublicos } from "@/components/agentes-publicos/FiltroAgentesPublicos";
 import { TabelaAgentesPublicos } from "@/components/agentes-publicos/TabelaAgentesPublicos";
 import { ModalAgentePublico } from "@/components/agentes-publicos/ModalAgentePublico";
 import { ModalConviteUsuario } from "@/components/agentes-publicos/ModalConviteUsuario";
+import { ModalConfirmacaoInativar } from "@/components/agentes-publicos/ModalConfirmacaoInativar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Database } from "@/integrations/supabase/types"; // Caminho corrigido
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Database } from "@/integrations/supabase/types";
 
-// Define um tipo local robusto usando os tipos gerados do Supabase. Esta é a nossa "fonte da verdade" para o tipo do agente.
 export type AgenteComStatus = Database['public']['Functions']['get_agentes_publicos_com_status']['Returns'][number];
 
 export default function AgentesPublicos() {
@@ -37,19 +25,15 @@ export default function AgentesPublicos() {
   const [modalConviteAberto, setModalConviteAberto] = useState(false);
   const [agenteEditando, setAgenteEditando] = useState<AgenteComStatus | null>(null);
   const [agenteConvidando, setAgenteConvidando] = useState<AgenteComStatus | null>(null);
+  const [agenteParaInativar, setAgenteParaInativar] = useState<AgenteComStatus | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const carregarAgentes = useCallback(async () => {
     try {
       setLoading(true);
-      // A chamada RPC está correta. Ela chama a nossa função do banco.
       const { data, error } = await supabase.rpc('get_agentes_publicos_com_status');
       if (error) throw error;
-      
-      // CORREÇÃO: Não é mais necessário mapear ou formatar os dados aqui.
-      // O tipo 'AgenteComStatus' já corresponde exatamente ao retorno da função.
       setAgentes(data || []);
-
     } catch (error: any) {
       console.error('Erro ao carregar agentes:', error);
       toast({ title: "Erro", description: error.message || "Erro ao carregar lista de agentes.", variant: "destructive" });
@@ -62,7 +46,6 @@ export default function AgentesPublicos() {
     carregarAgentes();
   }, [carregarAgentes]);
 
-  // CORREÇÃO: Lógica de filtragem agora usa os nomes de coluna corretos do tipo 'AgenteComStatus'
   const agentesFiltrados = agentes.filter(agente => {
     const buscaMatch = agente.nome_completo.toLowerCase().includes(busca.toLowerCase()) ||
                       (agente.cpf || '').includes(busca.replace(/\D/g, ''));
@@ -90,11 +73,30 @@ export default function AgentesPublicos() {
   };
   
   const handleDesativarAgente = (agente: AgenteComStatus) => {
-    console.log("Desativar:", agente.id);
+    setAgenteParaInativar(agente);
+  };
+
+  const handleConfirmarInativacao = async () => {
+    if (!agenteParaInativar) return;
+
+    try {
+      const { error } = await supabase
+        .from('agentes_publicos')
+        .update({ status_agente: 'Inativo' })
+        .eq('id', agenteParaInativar.id);
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: `O agente ${agenteParaInativar.nome_completo} foi inativado.` });
+      setAgenteParaInativar(null);
+      await carregarAgentes();
+    } catch (error: any) {
+      console.error('Erro ao inativar agente:', error);
+      toast({ title: "Erro", description: error.message || "Falha ao inativar o agente.", variant: "destructive" });
+    }
   };
   
   const handleAcaoConcluida = useCallback(async () => {
-      // Recarrega a lista para garantir que os dados estejam sempre atualizados.
       await carregarAgentes();
   }, [carregarAgentes]);
   
@@ -110,7 +112,6 @@ export default function AgentesPublicos() {
 
   return (
     <AppLayout>
-       {/* O seu JSX de cabeçalho e filtros continua aqui... */}
        <div className="space-y-6">
         <div className="space-y-2">
           <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800">
@@ -155,6 +156,12 @@ export default function AgentesPublicos() {
           onClose={() => setModalConviteAberto(false)}
           onConviteEnviado={handleAcaoConcluida}
           agente={agenteConvidando}
+        />
+        <ModalConfirmacaoInativar
+          isOpen={!!agenteParaInativar}
+          onClose={() => setAgenteParaInativar(null)}
+          onConfirm={handleConfirmarInativacao}
+          agente={agenteParaInativar}
         />
       </div>
     </AppLayout>

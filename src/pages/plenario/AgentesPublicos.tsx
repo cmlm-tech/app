@@ -10,6 +10,16 @@ import { ModalConfirmacaoInativar } from "@/components/agentes-publicos/ModalCon
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export type AgenteComStatus = Database['public']['Functions']['get_agentes_publicos_com_status']['Returns'][number];
 
@@ -26,6 +36,7 @@ export default function AgentesPublicos() {
   const [agenteEditando, setAgenteEditando] = useState<AgenteComStatus | null>(null);
   const [agenteConvidando, setAgenteConvidando] = useState<AgenteComStatus | null>(null);
   const [agenteParaInativar, setAgenteParaInativar] = useState<AgenteComStatus | null>(null);
+  const [agenteParaReenviar, setAgenteParaReenviar] = useState<AgenteComStatus | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const carregarAgentes = useCallback(async () => {
@@ -34,9 +45,10 @@ export default function AgentesPublicos() {
       const { data, error } = await supabase.rpc('get_agentes_publicos_com_status');
       if (error) throw error;
       setAgentes(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao carregar agentes:', error);
-      toast({ title: "Erro", description: error.message || "Erro ao carregar lista de agentes.", variant: "destructive" });
+      const errorMessage = error instanceof Error ? error.message : "Erro ao carregar lista de agentes.";
+      toast({ title: "Erro", description: errorMessage, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -76,11 +88,33 @@ export default function AgentesPublicos() {
     setAgenteParaInativar(agente);
   };
 
+  const handleReenviarConvite = (agente: AgenteComStatus) => {
+    setAgenteParaReenviar(agente);
+  };
+
+  const handleConfirmarReenvio = async () => {
+    if (!agenteParaReenviar) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('reenviar-convite-usuario', {
+        body: { agente_publico_id: agenteParaReenviar.id },
+      });
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: `Convite reenviado para ${agenteParaReenviar.nome_completo}.` });
+      setAgenteParaReenviar(null);
+    } catch (error: unknown) {
+      console.error('Erro ao reenviar convite:', error);
+      const errorMessage = error instanceof Error ? error.message : "Falha ao reenviar o convite.";
+      toast({ title: "Erro", description: errorMessage, variant: "destructive" });
+    }
+  };
+
   const handleConfirmarInativacao = async () => {
     if (!agenteParaInativar) return;
 
     try {
-      // CORREÇÃO: Usa o nome da tabela correto 'agentespublicos' (sem underscore)
       const { error } = await supabase
         .from('agentespublicos')
         .update({ status_agente: 'Inativo' })
@@ -91,9 +125,10 @@ export default function AgentesPublicos() {
       toast({ title: "Sucesso", description: `O agente ${agenteParaInativar.nome_completo} foi inativado.` });
       setAgenteParaInativar(null);
       await carregarAgentes();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao inativar agente:', error);
-      toast({ title: "Erro", description: error.message || "Falha ao inativar o agente.", variant: "destructive" });
+      const errorMessage = error instanceof Error ? error.message : "Falha ao inativar o agente.";
+      toast({ title: "Erro", description: errorMessage, variant: "destructive" });
     }
   };
   
@@ -144,6 +179,7 @@ export default function AgentesPublicos() {
           onEditar={handleEditarAgente}
           onDesativar={handleDesativarAgente}
           onConvidar={handleConvidarAgente}
+          onReenviarConvite={handleReenviarConvite}
         />
          <ModalAgentePublico
           isOpen={modalAberto}
@@ -164,6 +200,20 @@ export default function AgentesPublicos() {
           onConfirm={handleConfirmarInativacao}
           agente={agenteParaInativar}
         />
+        <AlertDialog open={!!agenteParaReenviar} onOpenChange={(open) => !open && setAgenteParaReenviar(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reenviar Convite</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem a certeza que deseja reenviar o convite para {agenteParaReenviar?.nome_completo}? O link anterior será invalidado.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmarReenvio}>Reenviar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );

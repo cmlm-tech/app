@@ -3,29 +3,38 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos"; // CORREÇÃO: Importa o tipo correto
 
 type StatusUsuarioBadgeProps = {
-  status: string | null; // Pode ser nulo se o agente ainda não tiver status
+  status: string | null;
   agente: AgenteComStatus;
   onConvidar: (agente: AgenteComStatus) => void;
+  onReenviarConvite: (agente: AgenteComStatus) => void;
 };
 
-// O resto do seu componente continua exatamente igual.
-export const StatusUsuarioBadge = ({ status, agente, onConvidar }: StatusUsuarioBadgeProps) => {
+export const StatusUsuarioBadge = ({ status, agente, onConvidar, onReenviarConvite }: StatusUsuarioBadgeProps) => {
     const getStatusConfig = (status: string | null) => {
         switch (status) {
           case 'Ativo':
             return { className: 'bg-green-100 text-green-800 hover:bg-green-200', text: 'Ativo', clickable: false, tooltip: 'Usuário ativo no sistema' };
           case 'Sem Acesso':
-            return { className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer', text: 'Sem Acesso', clickable: true, tooltip: 'Clique para convidar este agente' };
+            return { className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer', text: 'Sem Acesso', clickable: true, action: 'convidar', tooltip: 'Clique para convidar este agente' };
           case 'Convite Pendente':
-            return { className: 'bg-blue-100 text-blue-800', text: 'Convite Pendente', clickable: false, tooltip: 'Aguardando o usuário aceitar o convite' };
+            return { className: 'bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer', text: 'Convite Pendente', clickable: true, action: 'reenviar', tooltip: 'O convite está pendente. Clique para reenviar.' };
           case 'Inativo':
             return { className: 'bg-red-100 text-red-800', text: 'Inativo', clickable: false, tooltip: 'Este agente não possui mais vínculo ativo' };
           default:
             return { className: 'bg-gray-100 text-gray-800', text: 'Indefinido', clickable: false, tooltip: 'Status não definido' };
         }
     };
+
     const config = getStatusConfig(status);
-    const handleClick = () => { if (config.clickable) { onConvidar(agente); } };
+
+    const handleClick = () => {
+        if (!config.clickable) return;
+        if (config.action === 'convidar') {
+            onConvidar(agente);
+        } else if (config.action === 'reenviar') {
+            onReenviarConvite(agente);
+        }
+    };
     return (
         <TooltipProvider>
             <Tooltip>

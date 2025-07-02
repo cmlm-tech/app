@@ -1,246 +1,216 @@
+// Caminho: src/components/agentes-publicos/ModalAgentePublico.tsx (VERSÃO CORRIGIDA)
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { AgentePublico } from './types'
-import { useEffect } from 'react'
-import { supabase } from '@/lib/supabaseClient'
-import { useToast } from '@/components/ui/use-toast'
-import { ImageUpload } from '../ImageUpload'
-import { useCpfValidation } from '@/hooks/useCpfValidation'
-import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { AgenteComStatus } from '@/pages/plenario/AgentesPublicos'
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+import { Database, Enums } from "@/integrations/supabase/types";
 
-export function ModalAgentePublico({
-  agente,
-  isOpen,
-  onClose,
-  onSave,
-}: ModalAgentePublicoProps) {
-  const { isCpfValid } = useCpfValidation()
+// Tipos para as props do modal
+type ModalAgentePublicoProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  agente: AgenteComStatus | null;
+  isEditing: boolean;
+};
 
-  const agentePublicoSchema = z.object({
-    nome_completo: z
-      .string()
-      .min(3, 'O nome deve ter pelo menos 3 caracteres.')
-      .refine((name) => name.trim().split(' ').length >= 2, {
-        message: 'Por favor, insira o nome completo.',
-      }),
-    cpf: z.string().refine(isCpfValid, {
-      message: 'CPF inválido.',
-    }),
-    data_admissao: z
-      .string()
-      .refine((date) => !isNaN(new Date(date).getTime()), {
-        message: 'Data inválida.',
-      })
-      .refine((date) => new Date(date) <= new Date(), {
-        message: 'A data de admissão não pode ser no futuro.',
-      })
-      .refine(
-        (date) =>
-          new Date().getFullYear() - new Date(date).getFullYear() <= 200,
-        {
-          message: 'A data de admissão não pode ser há mais de 200 anos.',
-        },
-      ),
-    email: z.string().email('Email inválido.'),
-    telefone: z.string().optional(),
-    cargo: z.string().optional(),
-    partido: z.string().optional(),
-    foto_url: z.string().optional(),
-  })
+// Tipo para o estado do formulário
+type FormData = {
+  nome_completo: string;
+  cpf: string;
+  foto_url: string;
+  tipo: Enums<'tipo_agente_publico'>;
+  cargo: string;
+  tipo_vinculo: Enums<'tipo_vinculo_funcionario'>;
+  data_admissao: string;
+  nome_parlamentar: string;
+  perfil: string;
+};
 
-  type AgentePublicoFormData = z.infer<typeof agentePublicoSchema>
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors, isValid },
-  } = useForm<AgentePublicoFormData>({
-    resolver: zodResolver(agentePublicoSchema),
-    mode: 'onChange',
-  })
-  const { toast } = useToast()
-  const fotoUrl = watch('foto_url')
+export const ModalAgentePublico = ({ isOpen, onClose, onSave, agente, isEditing }: ModalAgentePublicoProps) => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  
+  const initialState: FormData = {
+    nome_completo: '',
+    cpf: '',
+    foto_url: '',
+    tipo: 'Funcionario',
+    cargo: '',
+    tipo_vinculo: 'Efetivo',
+    data_admissao: '',
+    nome_parlamentar: '',
+    perfil: ''
+  };
+  
+  const [formData, setFormData] = useState<FormData>(initialState);
+  const [errors, setErrors] = useState<{ nome_completo?: string }>({});
 
+  // Efeito para popular o formulário quando o modo de edição é ativado
   useEffect(() => {
-    if (agente) {
-      reset({
+    if (isEditing && agente) {
+      setFormData({
         nome_completo: agente.nome_completo || '',
         cpf: agente.cpf || '',
-        email: agente.email || '',
-        telefone: agente.telefone || '',
-        data_admissao: agente.data_admissao
-          ? agente.data_admissao.split('T')[0]
-          : '',
-        cargo: agente.cargo || '',
-        partido: agente.partido || '',
         foto_url: agente.foto_url || '',
-      })
+        tipo: agente.tipo || 'Funcionario',
+        cargo: agente.cargo || '',
+        tipo_vinculo: agente.tipo_vinculo || 'Efetivo',
+        data_admissao: agente.data_admissao ? new Date(agente.data_admissao).toISOString().split('T')[0] : '',
+        nome_parlamentar: agente.nome_parlamentar || '',
+        perfil: agente.perfil || ''
+      });
+      // Limpa os erros ao carregar novos dados
+      setErrors({});
     } else {
-      reset({
-        nome_completo: '',
-        cpf: '',
-        email: '',
-        telefone: '',
-        data_admissao: '',
-        cargo: '',
-        partido: '',
-        foto_url: '',
-      })
+      setFormData(initialState);
     }
-  }, [agente, reset])
+  }, [agente, isEditing, isOpen]);
 
-  const onSubmit = async (data: AgentePublicoFormData) => {
-    let p_foto_url = data.foto_url
-    if (!p_foto_url) {
-      const nomeCompleto = data.nome_completo.trim().replace(/ /g, '+')
-      p_foto_url = `https://ui-avatars.com/api/?name=${nomeCompleto}&background=random`
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const validateForm = useCallback(() => {
+    const newErrors: { nome_completo?: string } = {};
+    if (!formData.nome_completo.trim()) {
+      newErrors.nome_completo = "O nome completo é obrigatório.";
     }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData.nome_completo]);
 
-    const { error } = await supabase.rpc('upsert_agente_publico', {
-      p_id: agente ? agente.id : undefined,
-      p_nome_completo: data.nome_completo,
-      p_cpf: data.cpf,
-      p_email: data.email,
-      p_telefone: data.telefone,
-      p_data_admissao: data.data_admissao,
-      p_cargo: data.cargo,
-      p_partido: data.partido,
-      p_foto_url,
-    })
 
-    if (error) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.rpc('upsert_agente_publico', {
+        p_id: isEditing ? agente?.id : null,
+        p_nome_completo: formData.nome_completo,
+        p_cpf: formData.cpf || null,
+        p_foto_url: formData.foto_url || null,
+        p_tipo: formData.tipo,
+        p_cargo: formData.tipo === 'Funcionario' ? formData.cargo : null,
+        p_tipo_vinculo: formData.tipo === 'Funcionario' ? formData.tipo_vinculo : null,
+        p_data_admissao: formData.tipo === 'Funcionario' && formData.data_admissao ? formData.data_admissao : null,
+        p_nome_parlamentar: formData.tipo === 'Vereador' ? formData.nome_parlamentar : null,
+        p_perfil: formData.tipo === 'Vereador' ? formData.perfil : null
+      });
+
+      if (error) throw error;
+
       toast({
-        title: 'Erro ao salvar agente público',
-        description: error.message,
-        variant: 'destructive',
-      })
-    } else {
+        title: "Sucesso!",
+        description: `Agente ${isEditing ? 'atualizado' : 'criado'} com sucesso.`,
+      });
+      onSave();
+      onClose();
+
+    } catch (error: any) {
+      console.error("Erro ao salvar agente:", error);
       toast({
-        title: 'Sucesso',
-        description: `Agente Público ${
-          agente ? 'atualizado' : 'criado'
-        } com sucesso.`,
-      })
-      onSave()
-      onClose()
+        title: "Erro ao salvar",
+        description: error.message || "Não foi possível salvar os dados do agente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  }
+  };
+
+  // O botão de salvar é desativado se estiver a carregar ou se o nome estiver vazio.
+  const isSaveDisabled = loading || !formData.nome_completo.trim();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
-            {agente ? 'Editar Agente Público' : 'Novo Agente Público'}
-          </DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Agente Público' : 'Cadastrar Novo Agente Público'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
-          <ImageUpload
-            onImageSelect={(url) => setValue('foto_url', url, { shouldValidate: true })}
-            currentImage={fotoUrl}
-            placeholder="Selecione a foto"
-          />
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="nome_completo" className="text-right">
-              Nome Completo
-            </Label>
-            <div className="col-span-3">
-              <Input id="nome_completo" {...register('nome_completo')} />
-              {errors.nome_completo && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.nome_completo.message}
-                </p>
-              )}
+        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="nome_completo">Nome Completo *</Label>
+              <Input id="nome_completo" name="nome_completo" value={formData.nome_completo} onChange={handleInputChange} />
+               {errors.nome_completo && <p className="text-sm text-red-500 mt-1">{errors.nome_completo}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cpf">CPF</Label>
+              <Input id="cpf" name="cpf" value={formData.cpf} onChange={handleInputChange} />
             </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="cpf" className="text-right">
-              CPF
-            </Label>
-            <div className="col-span-3">
-              <Input id="cpf" {...register('cpf')} />
-              {errors.cpf && (
-                <p className="text-red-500 text-sm mt-1">{errors.cpf.message}</p>
-              )}
-            </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="tipo">Tipo de Agente</Label>
+            <Select value={formData.tipo} onValueChange={(v) => handleSelectChange('tipo', v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Funcionario">Funcionário</SelectItem>
+                <SelectItem value="Vereador">Vereador</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
-              Email
-            </Label>
-            <div className="col-span-3">
-              <Input id="email" type="email" {...register('email')} />
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.email.message}
-                </p>
-              )}
+
+          {formData.tipo === 'Funcionario' ? (
+            <div className="p-4 border rounded-md space-y-4 bg-gray-50">
+              <h3 className="font-semibold text-gray-800">Dados do Funcionário</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cargo">Cargo</Label>
+                  <Input id="cargo" name="cargo" value={formData.cargo} onChange={handleInputChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tipo_vinculo">Tipo de Vínculo</Label>
+                   <Select value={formData.tipo_vinculo} onValueChange={(v) => handleSelectChange('tipo_vinculo', v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Efetivo">Efetivo</SelectItem>
+                      <SelectItem value="Comissionado">Comissionado</SelectItem>
+                      <SelectItem value="Terceirizado">Terceirizado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="data_admissao">Data de Admissão</Label>
+                  <Input id="data_admissao" name="data_admissao" type="date" value={formData.data_admissao} onChange={handleInputChange} />
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="telefone" className="text-right">
-              Telefone
-            </Label>
-            <div className="col-span-3">
-              <Input id="telefone" {...register('telefone')} />
+          ) : (
+            <div className="p-4 border rounded-md space-y-4 bg-gray-50">
+              <h3 className="font-semibold text-gray-800">Dados do Vereador</h3>
+              <div className="space-y-2">
+                  <Label htmlFor="nome_parlamentar">Nome Parlamentar</Label>
+                  <Input id="nome_parlamentar" name="nome_parlamentar" value={formData.nome_parlamentar} onChange={handleInputChange} />
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="data_admissao" className="text-right">
-              Data de Admissão
-            </Label>
-            <div className="col-span-3">
-              <Input
-                id="data_admissao"
-                type="date"
-                {...register('data_admissao')}
-              />
-              {errors.data_admissao && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.data_admissao.message}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="cargo" className="text-right">
-              Cargo
-            </Label>
-            <div className="col-span-3">
-              <Input id="cargo" {...register('cargo')} />
-            </div>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="partido" className="text-right">
-              Partido
-            </Label>
-            <div className="col-span-3">
-              <Input id="partido" {...register('partido')} />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
-            </DialogClose>
-            <Button type="submit" disabled={!isValid}>
-              {agente ? 'Salvar Alterações' : 'Salvar Agente Público'}
+          )}
+
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancelar</Button>
+            <Button type="submit" disabled={isSaveDisabled}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEditing ? 'Salvar Alterações' : 'Criar Agente'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};

@@ -50,6 +50,7 @@ export function ModalGerenciarMembros({
       setRelator(relatorAtual);
       setMembrosSelecionados(membrosAtuais);
     }
+    // eslint-disable-next-line
   }, [open, presidenteAtual, relatorAtual, membrosAtuais]);
 
   function handleChangeMembro(id: string, checked: boolean) {

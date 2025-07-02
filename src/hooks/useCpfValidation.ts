@@ -21,7 +21,7 @@ export const useCpfValidation = () => {
       sum += parseInt(cleanCpf.charAt(i)) * (10 - i);
     }
     let remainder = 11 - (sum % 11);
-    const digit1 = remainder >= 10 ? 0 : remainder;
+    let digit1 = remainder >= 10 ? 0 : remainder;
     
     if (digit1 !== parseInt(cleanCpf.charAt(9))) return false;
     
@@ -31,7 +31,7 @@ export const useCpfValidation = () => {
       sum += parseInt(cleanCpf.charAt(i)) * (11 - i);
     }
     remainder = 11 - (sum % 11);
-    const digit2 = remainder >= 10 ? 0 : remainder;
+    let digit2 = remainder >= 10 ? 0 : remainder;
     
     return digit2 === parseInt(cleanCpf.charAt(10));
   }, []);

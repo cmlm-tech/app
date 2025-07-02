@@ -10,10 +10,10 @@ type TabelaAgentesPublicosProps = {
   onEditar: (agente: AgenteComStatus) => void;
   onDesativar: (agente: AgenteComStatus) => void;
   onConvidar: (agente: AgenteComStatus) => void;
-  onReenviarConvite: (agente: AgenteComStatus) => void;
+  onGerenciarConvitePendente: (agente: AgenteComStatus) => void;
 };
 
-export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvidar, onReenviarConvite }: TabelaAgentesPublicosProps) => {
+export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvidar, onGerenciarConvitePendente }: TabelaAgentesPublicosProps) => {
   const formatarCPF = (cpf: string | null) => {
     if (!cpf) return 'N/A';
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.$3-**");
@@ -66,7 +66,7 @@ export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvid
                   status={agente.status_usuario}
                   agente={agente}
                   onConvidar={onConvidar}
-                  onReenviarConvite={onReenviarConvite}
+                  onGerenciarConvitePendente={onGerenciarConvitePendente}
                 />
               </TableCell>
               <TableCell className="text-right">

@@ -12,8 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -36,7 +34,7 @@ export default function AgentesPublicos() {
   const [agenteEditando, setAgenteEditando] = useState<AgenteComStatus | null>(null);
   const [agenteConvidando, setAgenteConvidando] = useState<AgenteComStatus | null>(null);
   const [agenteParaInativar, setAgenteParaInativar] = useState<AgenteComStatus | null>(null);
-  const [agenteParaReenviar, setAgenteParaReenviar] = useState<AgenteComStatus | null>(null);
+  const [agenteComConvitePendente, setAgenteComConvitePendente] = useState<AgenteComStatus | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const carregarAgentes = useCallback(async () => {
@@ -88,25 +86,45 @@ export default function AgentesPublicos() {
     setAgenteParaInativar(agente);
   };
 
-  const handleReenviarConvite = (agente: AgenteComStatus) => {
-    setAgenteParaReenviar(agente);
+  const handleGerenciarConvitePendente = (agente: AgenteComStatus) => {
+    setAgenteComConvitePendente(agente);
   };
 
   const handleConfirmarReenvio = async () => {
-    if (!agenteParaReenviar) return;
+    if (!agenteComConvitePendente) return;
 
     try {
       const { error } = await supabase.functions.invoke('reenviar-convite-usuario', {
-        body: { agente_publico_id: agenteParaReenviar.id },
+        body: { agente_publico_id: agenteComConvitePendente.id },
       });
 
       if (error) throw error;
 
-      toast({ title: "Sucesso", description: `Convite reenviado para ${agenteParaReenviar.nome_completo}.` });
-      setAgenteParaReenviar(null);
+      toast({ title: "Sucesso", description: `Convite reenviado para ${agenteComConvitePendente.nome_completo}.` });
+      setAgenteComConvitePendente(null);
     } catch (error: unknown) {
       console.error('Erro ao reenviar convite:', error);
       const errorMessage = error instanceof Error ? error.message : "Falha ao reenviar o convite.";
+      toast({ title: "Erro", description: errorMessage, variant: "destructive" });
+    }
+  };
+
+  const handleConfirmarCancelamento = async () => {
+    if (!agenteComConvitePendente) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('cancelar-convite-usuario', {
+        body: { agente_publico_id: agenteComConvitePendente.id },
+      });
+
+      if (error) throw error;
+
+      toast({ title: "Sucesso", description: `Convite para ${agenteComConvitePendente.nome_completo} foi cancelado.` });
+      setAgenteComConvitePendente(null);
+      await carregarAgentes(); // Recarrega a lista para atualizar o status
+    } catch (error: unknown) {
+      console.error('Erro ao cancelar convite:', error);
+      const errorMessage = error instanceof Error ? error.message : "Falha ao cancelar o convite.";
       toast({ title: "Erro", description: errorMessage, variant: "destructive" });
     }
   };
@@ -179,7 +197,7 @@ export default function AgentesPublicos() {
           onEditar={handleEditarAgente}
           onDesativar={handleDesativarAgente}
           onConvidar={handleConvidarAgente}
-          onReenviarConvite={handleReenviarConvite}
+          onGerenciarConvitePendente={handleGerenciarConvitePendente}
         />
          <ModalAgentePublico
           isOpen={modalAberto}
@@ -200,17 +218,17 @@ export default function AgentesPublicos() {
           onConfirm={handleConfirmarInativacao}
           agente={agenteParaInativar}
         />
-        <AlertDialog open={!!agenteParaReenviar} onOpenChange={(open) => !open && setAgenteParaReenviar(null)}>
+        <AlertDialog open={!!agenteComConvitePendente} onOpenChange={(open) => !open && setAgenteComConvitePendente(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Reenviar Convite</AlertDialogTitle>
+              <AlertDialogTitle>Gerenciar Convite Pendente</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem a certeza que deseja reenviar o convite para {agenteParaReenviar?.nome_completo}? O link anterior será invalidado.
+                O convite para {agenteComConvitePendente?.nome_completo} está pendente. O que deseja fazer?
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmarReenvio}>Reenviar</AlertDialogAction>
+            <AlertDialogFooter className="gap-2 sm:gap-0">
+                <Button variant="destructive" onClick={handleConfirmarCancelamento}>Cancelar Convite</Button>
+                <Button onClick={handleConfirmarReenvio}>Reenviar Convite</Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

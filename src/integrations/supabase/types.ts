@@ -15,6 +15,7 @@ export type Database = {
           foto_url: string | null
           id: number
           nome_completo: string
+          status_agente: string
           tipo: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Insert: {
@@ -22,6 +23,7 @@ export type Database = {
           foto_url?: string | null
           id?: number
           nome_completo: string
+          status_agente?: string
           tipo: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Update: {
@@ -29,6 +31,7 @@ export type Database = {
           foto_url?: string | null
           id?: number
           nome_completo?: string
+          status_agente?: string
           tipo?: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Relationships: []
@@ -1168,22 +1171,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      upsert_agente_publico: {
-        Args: {
-          p_id: number
-          p_nome_completo: string
-          p_cpf: string
-          p_foto_url: string
-          p_tipo: Database["public"]["Enums"]["tipo_agente_publico"]
-          p_nome_parlamentar?: string
-          p_perfil?: string
-          p_cargo?: string
-          p_tipo_vinculo?: Database["public"]["Enums"]["tipo_vinculo_funcionario"]
-          p_data_admissao?: string
-          p_data_exoneracao?: string
-        }
-        Returns: number
-      }
     }
     Enums: {
       cargo_comissao: "Presidente" | "Membro" | "Relator"
@@ -1200,12 +1187,7 @@ export type Database = {
         | "Subscritor"
         | "Relator"
         | "Autor"
-      permissao_usuario:
-        | "Admin"
-        | "Assessoria"
-        | "Secretaria"
-        | "Vereador"
-        | "Inativo"
+      permissao_usuario: "Admin" | "Assessoria" | "Secretaria" | "Vereador"
       status_documento: "Rascunho" | "Protocolado" | "Tramitando" | "Arquivado"
       status_presenca: "Presente" | "Ausente" | "Ausente com Justificativa"
       status_sessao: "Agendada" | "Em Andamento" | "Realizada" | "Cancelada"
@@ -1375,13 +1357,7 @@ export const Constants = {
         "Relator",
         "Autor",
       ],
-      permissao_usuario: [
-        "Admin",
-        "Assessoria",
-        "Secretaria",
-        "Vereador",
-        "Inativo",
-      ],
+      permissao_usuario: ["Admin", "Assessoria", "Secretaria", "Vereador"],
       status_documento: ["Rascunho", "Protocolado", "Tramitando", "Arquivado"],
       status_presenca: ["Presente", "Ausente", "Ausente com Justificativa"],
       status_sessao: ["Agendada", "Em Andamento", "Realizada", "Cancelada"],

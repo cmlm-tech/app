@@ -11,12 +11,13 @@ import { useCpfValidation } from "@/hooks/useCpfValidation";
 import { ImageUpload } from "@/components/ImageUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos"; // Importar o tipo AgenteComStatus
 
 type ModalAgentePublicoProps = {
   isOpen: boolean;
   onClose: () => void;
   onSave: (agente: Partial<AgentePublico>) => void;
-  agente?: AgentePublico | null;
+  agente?: AgenteComStatus | null; // Usar AgenteComStatus aqui
   isEditing: boolean;
 };
 
@@ -35,7 +36,7 @@ export const ModalAgentePublico = ({
     cpf: '',
     foto: '',
     tipo: undefined,
-    statusUsuario: 'Sem Acesso',
+    // statusUsuario: 'Sem Acesso', // Removido, pois não é editável
     nomeParlamantar: '',
     perfil: '',
     cargo: '',
@@ -48,14 +49,27 @@ export const ModalAgentePublico = ({
 
   useEffect(() => {
     if (agente && isEditing) {
-      setFormData(agente);
+      setFormData({
+        id: agente.id.toString(),
+        nomeCompleto: agente.nome_completo || '',
+        cpf: agente.cpf || '',
+        foto: agente.foto_url || '',
+        tipo: agente.tipo,
+        // statusUsuario: agente.status_usuario, // Removido
+        nomeParlamantar: agente.nome_parlamentar || '',
+        perfil: agente.perfil || '',
+        cargo: agente.cargo || '',
+        tipoVinculo: agente.tipo_vinculo || undefined,
+        dataAdmissao: agente.data_admissao || '',
+        dataExoneracao: agente.data_exoneracao || ''
+      });
     } else {
       setFormData({
         nomeCompleto: '',
         cpf: '',
         foto: '',
         tipo: undefined,
-        statusUsuario: 'Sem Acesso',
+        // statusUsuario: 'Sem Acesso', // Removido
         nomeParlamantar: '',
         perfil: '',
         cargo: '',
@@ -109,94 +123,26 @@ export const ModalAgentePublico = ({
     setIsSaving(true);
 
     try {
-      if (isEditing && agente) {
-        // Atualizar agente existente
-        const { error: updateError } = await supabase
-          .from('agentespublicos')
-          .update({
-            nome_completo: formData.nomeCompleto,
-            cpf: formData.cpf?.replace(/\D/g, ''), // Salvar CPF apenas com números
-            foto_url: formData.foto,
-            tipo: formData.tipo
-          })
-          .eq('id', Number(agente.id));
+      const { data, error } = await supabase.rpc('upsert_agente_publico', {
+        p_id: isEditing && agente ? Number(agente.id) : null,
+        p_nome_completo: formData.nomeCompleto,
+        p_cpf: formData.cpf?.replace(/\D/g, ''),
+        p_foto_url: formData.foto,
+        p_tipo: formData.tipo,
+        p_nome_parlamentar: formData.nomeParlamantar || null,
+        p_perfil: formData.perfil || null,
+        p_cargo: formData.cargo || null,
+        p_tipo_vinculo: formData.tipoVinculo || null,
+        p_data_admissao: formData.dataAdmissao || null,
+        p_data_exoneracao: formData.dataExoneracao || null
+      });
 
-        if (updateError) throw updateError;
+      if (error) throw error;
 
-        // Atualizar tabelas específicas
-        if (formData.tipo === 'Vereador') {
-          const { error: vereadorError } = await supabase
-            .from('vereadores')
-            .upsert({
-              agente_publico_id: Number(agente.id),
-              nome_parlamentar: formData.nomeParlamantar,
-              perfil: formData.perfil
-            });
-          
-          if (vereadorError) throw vereadorError;
-        } else if (formData.tipo === 'Funcionario') {
-          const { error: funcionarioError } = await supabase
-            .from('funcionarios')
-            .upsert({
-              agente_publico_id: Number(agente.id),
-              cargo: formData.cargo,
-              tipo_vinculo: formData.tipoVinculo,
-              data_admissao: formData.dataAdmissao || null,
-              data_exoneracao: formData.dataExoneracao || null
-            });
-          
-          if (funcionarioError) throw funcionarioError;
-        }
-
-        toast({
-          title: "Sucesso!",
-          description: "Agente atualizado com sucesso!"
-        });
-      } else {
-        // Criar novo agente
-        const { data: novoAgente, error: insertError } = await supabase
-          .from('agentespublicos')
-          .insert({
-            nome_completo: formData.nomeCompleto,
-            cpf: formData.cpf?.replace(/\D/g, ''), // Salvar CPF apenas com números
-            foto_url: formData.foto,
-            tipo: formData.tipo
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        // Inserir nas tabelas específicas
-        if (formData.tipo === 'Vereador') {
-          const { error: vereadorError } = await supabase
-            .from('vereadores')
-            .insert({
-              agente_publico_id: novoAgente.id,
-              nome_parlamentar: formData.nomeParlamantar,
-              perfil: formData.perfil
-            });
-          
-          if (vereadorError) throw vereadorError;
-        } else if (formData.tipo === 'Funcionario') {
-          const { error: funcionarioError } = await supabase
-            .from('funcionarios')
-            .insert({
-              agente_publico_id: novoAgente.id,
-              cargo: formData.cargo,
-              tipo_vinculo: formData.tipoVinculo,
-              data_admissao: formData.dataAdmissao || null,
-              data_exoneracao: formData.dataExoneracao || null
-            });
-          
-          if (funcionarioError) throw funcionarioError;
-        }
-
-        toast({
-          title: "Sucesso!",
-          description: "Agente cadastrado com sucesso!"
-        });
-      }
+      toast({
+        title: "Sucesso!",
+        description: isEditing ? "Agente atualizado com sucesso!" : "Agente cadastrado com sucesso!"
+      });
 
       onSave(formData);
       onClose();
@@ -240,27 +186,26 @@ export const ModalAgentePublico = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Seleção de Tipo (apenas no cadastro) */}
-          {!isEditing && (
-            <div className="space-y-2">
-              <Label htmlFor="tipo">Tipo de Agente *</Label>
-              <Select
-                value={formData.tipo || ''}
-                onValueChange={(value) => handleInputChange('tipo', value as TipoAgente)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOS_AGENTE.map((tipo) => (
-                    <SelectItem key={tipo} value={tipo}>
-                      {tipo === 'Funcionario' ? 'Funcionário' : tipo}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {/* Seleção de Tipo (agora sempre visível) */}
+          <div className="space-y-2">
+            <Label htmlFor="tipo">Tipo de Agente *</Label>
+            <Select
+              value={formData.tipo || ''}
+              onValueChange={(value) => handleInputChange('tipo', value as TipoAgente)}
+              disabled={isSaving} // Desabilitar durante o salvamento
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo..." />
+              </SelectTrigger>
+              <SelectContent>
+                {TIPOS_AGENTE.map((tipo) => (
+                  <SelectItem key={tipo} value={tipo}>
+                    {tipo === 'Funcionario' ? 'Funcionário' : tipo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Campos Comuns */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -271,6 +216,7 @@ export const ModalAgentePublico = ({
                 value={formData.nomeCompleto}
                 onChange={(e) => handleInputChange('nomeCompleto', e.target.value)}
                 required
+                disabled={isSaving}
               />
             </div>
 
@@ -284,6 +230,7 @@ export const ModalAgentePublico = ({
                 placeholder="000.000.000-00"
                 maxLength={14}
                 required
+                disabled={isSaving}
               />
               {cpfError && (
                 <p className="text-sm text-red-600">{cpfError}</p>
@@ -307,6 +254,7 @@ export const ModalAgentePublico = ({
                   id="nomeParlamantar"
                   value={formData.nomeParlamantar}
                   onChange={(e) => handleInputChange('nomeParlamantar', e.target.value)}
+                  disabled={isSaving}
                 />
               </div>
 
@@ -317,6 +265,7 @@ export const ModalAgentePublico = ({
                   value={formData.perfil}
                   onChange={(e) => handleInputChange('perfil', e.target.value)}
                   rows={3}
+                  disabled={isSaving}
                 />
               </div>
             </>
@@ -332,6 +281,7 @@ export const ModalAgentePublico = ({
                     id="cargo"
                     value={formData.cargo}
                     onChange={(e) => handleInputChange('cargo', e.target.value)}
+                    disabled={isSaving}
                   />
                 </div>
 
@@ -340,6 +290,7 @@ export const ModalAgentePublico = ({
                   <Select
                     value={formData.tipoVinculo || ''}
                     onValueChange={(value) => handleInputChange('tipoVinculo', value)}
+                    disabled={isSaving}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o vínculo..." />
@@ -363,6 +314,7 @@ export const ModalAgentePublico = ({
                     type="date"
                     value={formData.dataAdmissao}
                     onChange={(e) => handleInputChange('dataAdmissao', e.target.value)}
+                    disabled={isSaving}
                   />
                 </div>
 
@@ -373,6 +325,7 @@ export const ModalAgentePublico = ({
                     type="date"
                     value={formData.dataExoneracao}
                     onChange={(e) => handleInputChange('dataExoneracao', e.target.value)}
+                    disabled={isSaving}
                   />
                 </div>
               </div>

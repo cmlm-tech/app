@@ -1,214 +1,356 @@
-// Caminho: src/components/agentes-publicos/ModalAgentePublico.tsx (VERSÃO CORRIGIDA)
 
-import { useState, useEffect, useCallback } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos";
+import { Textarea } from "@/components/ui/textarea";
+import { useState, useEffect } from "react";
+import { AgentePublico, TipoAgente, TIPOS_AGENTE, TIPOS_VINCULO } from "./types";
+import { useCpfValidation } from "@/hooks/useCpfValidation";
+import { ImageUpload } from "@/components/ImageUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
-import { Database, Enums } from "@/integrations/supabase/types";
+import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos"; // Importar o tipo AgenteComStatus
 
-// Tipos para as props do modal
 type ModalAgentePublicoProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: () => void;
-  agente: AgenteComStatus | null;
+  onSave: (agente: Partial<AgentePublico>) => void;
+  agente?: AgenteComStatus | null; // Usar AgenteComStatus aqui
   isEditing: boolean;
 };
 
-// Tipo para o estado do formulário
-type FormData = {
-  nome_completo: string;
-  cpf: string;
-  foto_url: string;
-  tipo: Enums<'tipo_agente_publico'>;
-  cargo: string;
-  tipo_vinculo: Enums<'tipo_vinculo_funcionario'>;
-  data_admissao: string;
-  nome_parlamentar: string;
-  perfil: string;
-};
-
-export const ModalAgentePublico = ({ isOpen, onClose, onSave, agente, isEditing }: ModalAgentePublicoProps) => {
+export const ModalAgentePublico = ({
+  isOpen,
+  onClose,
+  onSave,
+  agente,
+  isEditing
+}: ModalAgentePublicoProps) => {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const { cpfError, isValidCpf, handleCpfBlur, formatCpf } = useCpfValidation();
   
-  const initialState: FormData = {
-    nome_completo: '',
+  const [formData, setFormData] = useState<Partial<AgentePublico>>({
+    nomeCompleto: '',
     cpf: '',
-    foto_url: '',
-    tipo: 'Funcionario',
+    foto: '',
+    tipo: undefined,
+    // statusUsuario: 'Sem Acesso', // Removido, pois não é editável
+    nomeParlamantar: '',
+    perfil: '',
     cargo: '',
-    tipo_vinculo: 'Efetivo',
-    data_admissao: '',
-    nome_parlamentar: '',
-    perfil: ''
-  };
-  
-  const [formData, setFormData] = useState<FormData>(initialState);
-  const [errors, setErrors] = useState<{ nome_completo?: string }>({});
+    tipoVinculo: undefined,
+    dataAdmissao: '',
+    dataExoneracao: ''
+  });
 
-  // Efeito para popular o formulário quando o modo de edição é ativado
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
-    if (isEditing && agente) {
+    if (agente && isEditing) {
       setFormData({
-        nome_completo: agente.nome_completo || '',
+        id: agente.id.toString(),
+        nomeCompleto: agente.nome_completo || '',
         cpf: agente.cpf || '',
-        foto_url: agente.foto_url || '',
-        tipo: agente.tipo || 'Funcionario',
+        foto: agente.foto_url || '',
+        tipo: agente.tipo,
+        // statusUsuario: agente.status_usuario, // Removido
+        nomeParlamantar: agente.nome_parlamentar || '',
+        perfil: agente.perfil || '',
         cargo: agente.cargo || '',
-        tipo_vinculo: agente.tipo_vinculo || 'Efetivo',
-        data_admissao: agente.data_admissao ? new Date(agente.data_admissao).toISOString().split('T')[0] : '',
-        nome_parlamentar: agente.nome_parlamentar || '',
-        perfil: agente.perfil || ''
+        tipoVinculo: agente.tipo_vinculo || undefined,
+        dataAdmissao: agente.data_admissao || '',
+        dataExoneracao: agente.data_exoneracao || ''
       });
-      // Limpa os erros ao carregar novos dados
-      setErrors({});
     } else {
-      setFormData(initialState);
+      setFormData({
+        nomeCompleto: '',
+        cpf: '',
+        foto: '',
+        tipo: undefined,
+        // statusUsuario: 'Sem Acesso', // Removido
+        nomeParlamantar: '',
+        perfil: '',
+        cargo: '',
+        tipoVinculo: undefined,
+        dataAdmissao: '',
+        dataExoneracao: ''
+      });
     }
   }, [agente, isEditing, isOpen]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (name: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const validateForm = useCallback(() => {
-    const newErrors: { nome_completo?: string } = {};
-    if (!formData.nome_completo.trim()) {
-      newErrors.nome_completo = "O nome completo é obrigatório.";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }, [formData.nome_completo]);
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
     
-    setLoading(true);
+    // Validações
+    if (!formData.nomeCompleto?.trim()) {
+      toast({
+        title: "Erro de validação",
+        description: "Nome completo é obrigatório.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.cpf?.trim()) {
+      toast({
+        title: "Erro de validação", 
+        description: "CPF é obrigatório.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!isValidCpf) {
+      toast({
+        title: "Erro de validação",
+        description: "CPF inválido.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.tipo) {
+      toast({
+        title: "Erro de validação",
+        description: "Tipo de agente é obrigatório.", 
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
-      const { error } = await supabase.rpc('upsert_agente_publico', {
-        p_id: isEditing ? agente?.id : null,
-        p_nome_completo: formData.nome_completo,
-        p_cpf: formData.cpf || null,
-        p_foto_url: formData.foto_url || null,
+      const { data, error } = await supabase.rpc('upsert_agente_publico', {
+        p_id: isEditing && agente ? Number(agente.id) : null,
+        p_nome_completo: formData.nomeCompleto,
+        p_cpf: formData.cpf?.replace(/\D/g, ''),
+        p_foto_url: formData.foto,
         p_tipo: formData.tipo,
-        p_cargo: formData.tipo === 'Funcionario' ? formData.cargo : null,
-        p_tipo_vinculo: formData.tipo === 'Funcionario' ? formData.tipo_vinculo : null,
-        p_data_admissao: formData.tipo === 'Funcionario' && formData.data_admissao ? formData.data_admissao : null,
-        p_nome_parlamentar: formData.tipo === 'Vereador' ? formData.nome_parlamentar : null,
-        p_perfil: formData.tipo === 'Vereador' ? formData.perfil : null
+        p_nome_parlamentar: formData.nomeParlamantar || null,
+        p_perfil: formData.perfil || null,
+        p_cargo: formData.cargo || null,
+        p_tipo_vinculo: formData.tipoVinculo || null,
+        p_data_admissao: formData.dataAdmissao || null,
+        p_data_exoneracao: formData.dataExoneracao || null
       });
 
       if (error) throw error;
 
       toast({
         title: "Sucesso!",
-        description: `Agente ${isEditing ? 'atualizado' : 'criado'} com sucesso.`,
+        description: isEditing ? "Agente atualizado com sucesso!" : "Agente cadastrado com sucesso!"
       });
-      onSave();
-      onClose();
 
-    } catch (error: any) {
-      console.error("Erro ao salvar agente:", error);
+      onSave(formData);
+      onClose();
+    } catch (error) {
+      console.error('Erro ao salvar agente:', error);
       toast({
-        title: "Erro ao salvar",
-        description: error.message || "Não foi possível salvar os dados do agente.",
-        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao salvar agente. Tente novamente.",
+        variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
-  // O botão de salvar é desativado se estiver a carregar ou se o nome estiver vazio.
-  const isSaveDisabled = loading || !formData.nome_completo.trim();
+  const handleInputChange = (field: keyof AgentePublico, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCpfChange = (value: string) => {
+    const formattedCpf = formatCpf(value);
+    handleInputChange('cpf', formattedCpf);
+  };
+
+  const handleCpfBlurEvent = (e: React.FocusEvent<HTMLInputElement>) => {
+    handleCpfBlur(e.target.value);
+  };
+
+  const isFormValid = formData.nomeCompleto?.trim() && 
+                     formData.cpf?.trim() && 
+                     isValidCpf && 
+                     formData.tipo;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Agente Público' : 'Cadastrar Novo Agente Público'}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? 'Editar Agente Público' : 'Cadastrar Novo Agente Público'}
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome_completo">Nome Completo *</Label>
-              <Input id="nome_completo" name="nome_completo" value={formData.nome_completo} onChange={handleInputChange} />
-               {errors.nome_completo && <p className="text-sm text-red-500 mt-1">{errors.nome_completo}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
-              <Input id="cpf" name="cpf" value={formData.cpf} onChange={handleInputChange} />
-            </div>
-          </div>
-          
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Seleção de Tipo (agora sempre visível) */}
           <div className="space-y-2">
-            <Label htmlFor="tipo">Tipo de Agente</Label>
-            <Select value={formData.tipo} onValueChange={(v) => handleSelectChange('tipo', v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Label htmlFor="tipo">Tipo de Agente *</Label>
+            <Select
+              value={formData.tipo || ''}
+              onValueChange={(value) => handleInputChange('tipo', value as TipoAgente)}
+              disabled={isSaving} // Desabilitar durante o salvamento
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo..." />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Funcionario">Funcionário</SelectItem>
-                <SelectItem value="Vereador">Vereador</SelectItem>
+                {TIPOS_AGENTE.map((tipo) => (
+                  <SelectItem key={tipo} value={tipo}>
+                    {tipo === 'Funcionario' ? 'Funcionário' : tipo}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {formData.tipo === 'Funcionario' ? (
-            <div className="p-4 border rounded-md space-y-4 bg-gray-50">
-              <h3 className="font-semibold text-gray-800">Dados do Funcionário</h3>
+          {/* Campos Comuns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="nomeCompleto">Nome Completo *</Label>
+              <Input
+                id="nomeCompleto"
+                value={formData.nomeCompleto}
+                onChange={(e) => handleInputChange('nomeCompleto', e.target.value)}
+                required
+                disabled={isSaving}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cpf">CPF *</Label>
+              <Input
+                id="cpf"
+                value={formData.cpf}
+                onChange={(e) => handleCpfChange(e.target.value)}
+                onBlur={handleCpfBlurEvent}
+                placeholder="000.000.000-00"
+                maxLength={14}
+                required
+                disabled={isSaving}
+              />
+              {cpfError && (
+                <p className="text-sm text-red-600">{cpfError}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Upload de Imagem */}
+          <ImageUpload
+            onImageUploaded={(url) => handleInputChange('foto', url)}
+            currentImageUrl={formData.foto}
+            disabled={isSaving}
+          />
+
+          {/* Campos Condicionais para Vereador */}
+          {formData.tipo === 'Vereador' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="nomeParlamantar">Nome Parlamentar</Label>
+                <Input
+                  id="nomeParlamantar"
+                  value={formData.nomeParlamantar}
+                  onChange={(e) => handleInputChange('nomeParlamantar', e.target.value)}
+                  disabled={isSaving}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="perfil">Perfil</Label>
+                <Textarea
+                  id="perfil"
+                  value={formData.perfil}
+                  onChange={(e) => handleInputChange('perfil', e.target.value)}
+                  rows={3}
+                  disabled={isSaving}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Campos Condicionais para Funcionário */}
+          {formData.tipo === 'Funcionario' && (
+            <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="cargo">Cargo</Label>
-                  <Input id="cargo" name="cargo" value={formData.cargo} onChange={handleInputChange} />
+                  <Input
+                    id="cargo"
+                    value={formData.cargo}
+                    onChange={(e) => handleInputChange('cargo', e.target.value)}
+                    disabled={isSaving}
+                  />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="tipo_vinculo">Tipo de Vínculo</Label>
-                   <Select value={formData.tipo_vinculo} onValueChange={(v) => handleSelectChange('tipo_vinculo', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Label htmlFor="tipoVinculo">Tipo de Vínculo</Label>
+                  <Select
+                    value={formData.tipoVinculo || ''}
+                    onValueChange={(value) => handleInputChange('tipoVinculo', value)}
+                    disabled={isSaving}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o vínculo..." />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Efetivo">Efetivo</SelectItem>
-                      <SelectItem value="Comissionado">Comissionado</SelectItem>
-                      <SelectItem value="Terceirizado">Terceirizado</SelectItem>
+                      {TIPOS_VINCULO.map((vinculo) => (
+                        <SelectItem key={vinculo} value={vinculo}>
+                          {vinculo}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="data_admissao">Data de Admissão</Label>
-                  <Input id="data_admissao" name="data_admissao" type="date" value={formData.data_admissao} onChange={handleInputChange} />
+                  <Label htmlFor="dataAdmissao">Data de Admissão</Label>
+                  <Input
+                    id="dataAdmissao"
+                    type="date"
+                    value={formData.dataAdmissao}
+                    onChange={(e) => handleInputChange('dataAdmissao', e.target.value)}
+                    disabled={isSaving}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dataExoneracao">Data de Exoneração</Label>
+                  <Input
+                    id="dataExoneracao"
+                    type="date"
+                    value={formData.dataExoneracao}
+                    onChange={(e) => handleInputChange('dataExoneracao', e.target.value)}
+                    disabled={isSaving}
+                  />
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="p-4 border rounded-md space-y-4 bg-gray-50">
-              <h3 className="font-semibold text-gray-800">Dados do Vereador</h3>
-              <div className="space-y-2">
-                  <Label htmlFor="nome_parlamentar">Nome Parlamentar</Label>
-                  <Input id="nome_parlamentar" name="nome_parlamentar" value={formData.nome_parlamentar} onChange={handleInputChange} />
-              </div>
-            </div>
+            </>
           )}
 
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancelar</Button>
-            <Button type="submit" disabled={isSaveDisabled}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? 'Salvar Alterações' : 'Criar Agente'}
+          {/* Botões */}
+          <div className="flex gap-4 pt-6">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              className="flex-1"
+              disabled={isSaving}
+            >
+              Cancelar
             </Button>
-          </DialogFooter>
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={!isFormValid || isSaving}
+            >
+              {isSaving ? 'Salvando...' : 'Salvar Agente Público'}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

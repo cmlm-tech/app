@@ -11,13 +11,15 @@ import { useCpfValidation } from "@/hooks/useCpfValidation";
 import { ImageUpload } from "@/components/ImageUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos"; // Importar o tipo AgenteComStatus
+import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos";
+import { agentePublicoSchema, generateDefaultAvatar, type AgentePublicoFormData } from "./validation";
+import { z } from "zod";
 
 type ModalAgentePublicoProps = {
   isOpen: boolean;
   onClose: () => void;
   onSave: (agente: Partial<AgentePublico>) => void;
-  agente?: AgenteComStatus | null; // Usar AgenteComStatus aqui
+  agente?: AgenteComStatus | null;
   isEditing: boolean;
 };
 
@@ -29,14 +31,13 @@ export const ModalAgentePublico = ({
   isEditing
 }: ModalAgentePublicoProps) => {
   const { toast } = useToast();
-  const { cpfError, isValidCpf, handleCpfBlur, formatCpf } = useCpfValidation();
+  const { formatCpf } = useCpfValidation();
   
   const [formData, setFormData] = useState<Partial<AgentePublico>>({
     nomeCompleto: '',
     cpf: '',
     foto: '',
     tipo: undefined,
-    // statusUsuario: 'Sem Acesso', // Removido, pois não é editável
     nomeParlamantar: '',
     perfil: '',
     cargo: '',
@@ -45,6 +46,7 @@ export const ModalAgentePublico = ({
     dataExoneracao: ''
   });
 
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -55,7 +57,6 @@ export const ModalAgentePublico = ({
         cpf: agente.cpf || '',
         foto: agente.foto_url || '',
         tipo: agente.tipo,
-        // statusUsuario: agente.status_usuario, // Removido
         nomeParlamantar: agente.nome_parlamentar || '',
         perfil: agente.perfil || '',
         cargo: agente.cargo || '',
@@ -69,7 +70,6 @@ export const ModalAgentePublico = ({
         cpf: '',
         foto: '',
         tipo: undefined,
-        // statusUsuario: 'Sem Acesso', // Removido
         nomeParlamantar: '',
         perfil: '',
         cargo: '',
@@ -78,43 +78,43 @@ export const ModalAgentePublico = ({
         dataExoneracao: ''
       });
     }
+    setValidationErrors({});
   }, [agente, isEditing, isOpen]);
+
+  // Validar formulário em tempo real
+  const validateForm = () => {
+    try {
+      agentePublicoSchema.parse(formData);
+      setValidationErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path.length > 0) {
+            errors[err.path[0] as string] = err.message;
+          }
+        });
+        setValidationErrors(errors);
+      }
+      return false;
+    }
+  };
+
+  // Executar validação sempre que formData mudar
+  useEffect(() => {
+    if (Object.keys(formData).length > 0) {
+      validateForm();
+    }
+  }, [formData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validações
-    if (!formData.nomeCompleto?.trim()) {
+    if (!validateForm()) {
       toast({
         title: "Erro de validação",
-        description: "Nome completo é obrigatório.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!formData.cpf?.trim()) {
-      toast({
-        title: "Erro de validação", 
-        description: "CPF é obrigatório.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!isValidCpf) {
-      toast({
-        title: "Erro de validação",
-        description: "CPF inválido.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!formData.tipo) {
-      toast({
-        title: "Erro de validação",
-        description: "Tipo de agente é obrigatório.", 
+        description: "Por favor, corrija os erros no formulário antes de continuar.",
         variant: "destructive"
       });
       return;
@@ -123,11 +123,17 @@ export const ModalAgentePublico = ({
     setIsSaving(true);
 
     try {
+      // Gerar avatar padrão se não houver foto
+      let fotoUrl = formData.foto;
+      if (!fotoUrl || fotoUrl.trim() === '') {
+        fotoUrl = generateDefaultAvatar(formData.nomeCompleto || '');
+      }
+
       const { data, error } = await supabase.rpc('upsert_agente_publico', {
         p_id: isEditing && agente ? Number(agente.id) : null,
         p_nome_completo: formData.nomeCompleto,
         p_cpf: formData.cpf?.replace(/\D/g, ''),
-        p_foto_url: formData.foto,
+        p_foto_url: fotoUrl,
         p_tipo: formData.tipo,
         p_nome_parlamentar: formData.nomeParlamantar || null,
         p_perfil: formData.perfil || null,
@@ -167,13 +173,10 @@ export const ModalAgentePublico = ({
     handleInputChange('cpf', formattedCpf);
   };
 
-  const handleCpfBlurEvent = (e: React.FocusEvent<HTMLInputElement>) => {
-    handleCpfBlur(e.target.value);
-  };
-
-  const isFormValid = formData.nomeCompleto?.trim() && 
+  // Verificar se o formulário é válido
+  const isFormValid = Object.keys(validationErrors).length === 0 && 
+                     formData.nomeCompleto?.trim() && 
                      formData.cpf?.trim() && 
-                     isValidCpf && 
                      formData.tipo;
 
   return (
@@ -186,13 +189,13 @@ export const ModalAgentePublico = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Seleção de Tipo (agora sempre visível) */}
+          {/* Seleção de Tipo */}
           <div className="space-y-2">
             <Label htmlFor="tipo">Tipo de Agente *</Label>
             <Select
               value={formData.tipo || ''}
               onValueChange={(value) => handleInputChange('tipo', value as TipoAgente)}
-              disabled={isSaving} // Desabilitar durante o salvamento
+              disabled={isSaving}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo..." />
@@ -205,6 +208,9 @@ export const ModalAgentePublico = ({
                 ))}
               </SelectContent>
             </Select>
+            {validationErrors.tipo && (
+              <p className="text-sm text-red-600">{validationErrors.tipo}</p>
+            )}
           </div>
 
           {/* Campos Comuns */}
@@ -218,6 +224,9 @@ export const ModalAgentePublico = ({
                 required
                 disabled={isSaving}
               />
+              {validationErrors.nomeCompleto && (
+                <p className="text-sm text-red-600">{validationErrors.nomeCompleto}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -226,24 +235,29 @@ export const ModalAgentePublico = ({
                 id="cpf"
                 value={formData.cpf}
                 onChange={(e) => handleCpfChange(e.target.value)}
-                onBlur={handleCpfBlurEvent}
                 placeholder="000.000.000-00"
                 maxLength={14}
                 required
                 disabled={isSaving}
               />
-              {cpfError && (
-                <p className="text-sm text-red-600">{cpfError}</p>
+              {validationErrors.cpf && (
+                <p className="text-sm text-red-600">{validationErrors.cpf}</p>
               )}
             </div>
           </div>
 
           {/* Upload de Imagem */}
-          <ImageUpload
-            onImageUploaded={(url) => handleInputChange('foto', url)}
-            currentImageUrl={formData.foto}
-            disabled={isSaving}
-          />
+          <div className="space-y-2">
+            <Label>Foto do Agente</Label>
+            <ImageUpload
+              onImageUploaded={(url) => handleInputChange('foto', url)}
+              currentImageUrl={formData.foto}
+              disabled={isSaving}
+            />
+            <p className="text-sm text-gray-500">
+              Se não enviar uma foto, será gerado um avatar automaticamente com as iniciais do nome.
+            </p>
+          </div>
 
           {/* Campos Condicionais para Vereador */}
           {formData.tipo === 'Vereador' && (
@@ -316,6 +330,9 @@ export const ModalAgentePublico = ({
                     onChange={(e) => handleInputChange('dataAdmissao', e.target.value)}
                     disabled={isSaving}
                   />
+                  {validationErrors.dataAdmissao && (
+                    <p className="text-sm text-red-600">{validationErrors.dataAdmissao}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

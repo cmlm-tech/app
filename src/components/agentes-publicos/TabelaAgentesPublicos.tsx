@@ -5,15 +5,18 @@ import { Eye, Edit, UserX, Mail } from "lucide-react";
 import { StatusUsuarioBadge } from "./StatusUsuarioBadge";
 import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos"; // Importa o tipo unificado
 
+import { UserCheck } from "lucide-react";
+
 type TabelaAgentesPublicosProps = {
   agentes: AgenteComStatus[];
   onEditar: (agente: AgenteComStatus) => void;
   onDesativar: (agente: AgenteComStatus) => void;
   onConvidar: (agente: AgenteComStatus) => void;
   onGerenciarConvitePendente: (agente: AgenteComStatus) => void;
+  onReativar: (agente: AgenteComStatus) => void;
 };
 
-export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvidar, onGerenciarConvitePendente }: TabelaAgentesPublicosProps) => {
+export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvidar, onGerenciarConvitePendente, onReativar }: TabelaAgentesPublicosProps) => {
   const formatarCPF = (cpf: string | null) => {
     if (!cpf) return 'N/A';
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.$3-**");
@@ -80,8 +83,16 @@ export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvid
                       <Mail className="w-4 h-4" />
                     </Button>
                   )}
-                  {(agente.status_usuario === 'Ativo' || agente.status_usuario === 'Convite Pendente') && (
-                    <Button variant="ghost" size="sm" onClick={() => onDesativar(agente)}><UserX className="w-4 h-4" /></Button>
+                  {agente.status_usuario === 'Inativo' ? (
+                    <Button variant="ghost" size="sm" onClick={() => onReativar(agente)} title="Reativar usuário">
+                      <UserCheck className="w-4 h-4" />
+                    </Button>
+                  ) : (
+                    (agente.status_usuario === 'Ativo' || agente.status_usuario === 'Convite Pendente') && (
+                      <Button variant="ghost" size="sm" onClick={() => onDesativar(agente)} title="Desativar usuário">
+                        <UserX className="w-4 h-4" />
+                      </Button>
+                    )
                   )}
                 </div>
               </TableCell>

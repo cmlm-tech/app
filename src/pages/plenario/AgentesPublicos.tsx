@@ -1,3 +1,4 @@
+
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -11,7 +12,7 @@ import { ModalReativarUsuario } from "@/components/agentes-publicos/ModalReativa
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Database } from "@/integrations/supabase/types";
+import { Database, Enums } from "@/integrations/supabase/types";
 import {
   AlertDialog,
   AlertDialogContent,

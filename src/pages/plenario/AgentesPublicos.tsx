@@ -10,6 +10,7 @@ import { ModalConfirmacaoInativar } from "@/components/agentes-publicos/ModalCon
 import { ModalReativarUsuario } from "@/components/agentes-publicos/ModalReativarUsuario";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Database } from "@/integrations/supabase/types";
 import {
   AlertDialog,
@@ -24,8 +25,10 @@ export type AgenteComStatus = Database['public']['Functions']['get_agentes_publi
 
 export default function AgentesPublicos() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [agentes, setAgentes] = useState<AgenteComStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [idAgenteLogado, setIdAgenteLogado] = useState<number | null>(null);
   
   const [busca, setBusca] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('Todos');
@@ -55,7 +58,25 @@ export default function AgentesPublicos() {
 
   useEffect(() => {
     carregarAgentes();
-  }, [carregarAgentes]);
+
+    const fetchIdAgenteLogado = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from('usuarios')
+          .select('agente_publico_id')
+          .eq('id', user.id)
+          .single();
+
+        if (data) {
+          setIdAgenteLogado(data.agente_publico_id);
+        } else if (error) {
+          console.error("Erro ao buscar agente_publico_id do usuário logado:", error);
+        }
+      }
+    };
+
+    fetchIdAgenteLogado();
+  }, [carregarAgentes, user]);
 
   const agentesFiltrados = agentes.filter(agente => {
     const buscaMatch = agente.nome_completo.toLowerCase().includes(busca.toLowerCase()) ||
@@ -255,6 +276,7 @@ export default function AgentesPublicos() {
           onConvidar={handleConvidarAgente}
           onGerenciarConvitePendente={handleGerenciarConvitePendente}
           onReativar={handleReativarAgente}
+          idAgenteLogado={idAgenteLogado}
         />
          <ModalAgentePublico
           isOpen={modalAberto}

@@ -14,9 +14,10 @@ type TabelaAgentesPublicosProps = {
   onConvidar: (agente: AgenteComStatus) => void;
   onGerenciarConvitePendente: (agente: AgenteComStatus) => void;
   onReativar: (agente: AgenteComStatus) => void;
+  idAgenteLogado: number | null;
 };
 
-export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvidar, onGerenciarConvitePendente, onReativar }: TabelaAgentesPublicosProps) => {
+export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvidar, onGerenciarConvitePendente, onReativar, idAgenteLogado }: TabelaAgentesPublicosProps) => {
   const formatarCPF = (cpf: string | null) => {
     if (!cpf) return 'N/A';
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.$3-**");
@@ -88,7 +89,7 @@ export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvid
                       <UserCheck className="w-4 h-4" />
                     </Button>
                   ) : (
-                    (agente.status_usuario === 'Ativo' || agente.status_usuario === 'Convite Pendente') && (
+                    (agente.status_usuario === 'Ativo' || agente.status_usuario === 'Convite Pendente') && (agente.id !== idAgenteLogado) && (
                       <Button variant="ghost" size="sm" onClick={() => onDesativar(agente)} title="Desativar usuário">
                         <UserX className="w-4 h-4" />
                       </Button>

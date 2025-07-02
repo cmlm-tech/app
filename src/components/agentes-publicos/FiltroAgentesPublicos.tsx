@@ -40,7 +40,7 @@ export const FiltroAgentesPublicos = ({
         <SelectContent>
           <SelectItem value="Todos">Todos os tipos</SelectItem>
           <SelectItem value="Vereador">Vereador</SelectItem>
-          <SelectItem value="Funcionário">Funcionário</SelectItem>
+          <SelectItem value="Funcionario">Funcionário</SelectItem>
         </SelectContent>
       </Select>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,7 +59,7 @@ export const ModalConviteUsuario = ({ isOpen, onClose, agente, onConviteEnviado 
       onConviteEnviado(); // Chama a função para recarregar a lista
       onClose(); // Fecha o modal
 
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({
         title: "Erro ao enviar convite",
         description: error.message || "Ocorreu um erro inesperado.",
@@ -101,7 +101,7 @@ export const ModalConviteUsuario = ({ isOpen, onClose, agente, onConviteEnviado 
               type="email"
               placeholder="Digite o e-mail do agente"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               required
               disabled={isSending}
             />

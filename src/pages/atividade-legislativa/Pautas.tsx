@@ -23,7 +23,7 @@ type Pauta = {
   dataPublicacao?: string;
 };
 
-export const PAUTAS_MOCK: Pauta[] = [
+const PAUTAS_MOCK: Pauta[] = [
   {
     id: "pauta1",
     sessao: {

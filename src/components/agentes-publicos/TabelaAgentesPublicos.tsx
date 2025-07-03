@@ -15,9 +15,10 @@ type TabelaAgentesPublicosProps = {
   onGerenciarConvitePendente: (agente: AgenteComStatus) => void;
   onReativar: (agente: AgenteComStatus) => void;
   idAgenteLogado: number | null;
+  permissaoUsuarioLogado: string | undefined;
 };
 
-export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvidar, onGerenciarConvitePendente, onReativar, idAgenteLogado }: TabelaAgentesPublicosProps) => {
+export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvidar, onGerenciarConvitePendente, onReativar, idAgenteLogado, permissaoUsuarioLogado }: TabelaAgentesPublicosProps) => {
   const formatarCPF = (cpf: string | null) => {
     if (!cpf) return 'N/A';
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.$3-**");
@@ -28,6 +29,8 @@ export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvid
       ? 'bg-blue-100 text-blue-800' 
       : 'bg-green-100 text-green-800';
   };
+
+  const isAdmin = permissaoUsuarioLogado === 'admin';
 
   return (
     <div className="border rounded-lg">
@@ -76,24 +79,28 @@ export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvid
               <TableCell className="text-right">
                 <div className="flex gap-2 justify-end">
                   <Button variant="ghost" size="sm"><Eye className="w-4 h-4" /></Button>
-                  {agente.status_usuario !== 'Inativo' && (
-                    <Button variant="ghost" size="sm" onClick={() => onEditar(agente)}><Edit className="w-4 h-4" /></Button>
-                  )}
-                  {agente.status_usuario === 'Sem Acesso' && (
-                    <Button variant="ghost" size="sm" onClick={() => onConvidar(agente)} title="Convidar usuário">
-                      <Mail className="w-4 h-4" />
-                    </Button>
-                  )}
-                  {agente.status_usuario === 'Inativo' ? (
-                    <Button variant="ghost" size="sm" onClick={() => onReativar(agente)} title="Reativar usuário">
-                      <UserCheck className="w-4 h-4" />
-                    </Button>
-                  ) : (
-                    (agente.status_usuario === 'Ativo' || agente.status_usuario === 'Convite Pendente') && (agente.id !== idAgenteLogado) && (
-                      <Button variant="ghost" size="sm" onClick={() => onDesativar(agente)} title="Desativar usuário">
-                        <UserX className="w-4 h-4" />
-                      </Button>
-                    )
+                  {isAdmin && (
+                    <>
+                      {agente.status_usuario !== 'Inativo' && (
+                        <Button variant="ghost" size="sm" onClick={() => onEditar(agente)}><Edit className="w-4 h-4" /></Button>
+                      )}
+                      {agente.status_usuario === 'Sem Acesso' && (
+                        <Button variant="ghost" size="sm" onClick={() => onConvidar(agente)} title="Convidar usuário">
+                          <Mail className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {agente.status_usuario === 'Inativo' ? (
+                        <Button variant="ghost" size="sm" onClick={() => onReativar(agente)} title="Reativar usuário">
+                          <UserCheck className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        (agente.status_usuario === 'Ativo' || agente.status_usuario === 'Convite Pendente') && (agente.id !== idAgenteLogado) && (
+                          <Button variant="ghost" size="sm" onClick={() => onDesativar(agente)} title="Desativar usuário">
+                            <UserX className="w-4 h-4" />
+                          </Button>
+                        )
+                      )}
+                    </>
                   )}
                 </div>
               </TableCell>

@@ -241,23 +241,29 @@ export default function AgentesPublicos() {
     );
   }
 
+  const isAdmin = user?.user_metadata?.permissao === 'admin';
+
   return (
     <AppLayout>
        <div className="space-y-6">
         <div className="space-y-2">
           <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800">
-            Gerenciamento de Agentes Públicos
+            {isAdmin ? "Gerenciamento de Agentes Públicos" : "Consulta de Agentes Públicos"}
           </h1>
           <p className="text-gray-600">
-            Cadastre e gerencie todos os vereadores e funcionários da Câmara.
+            {isAdmin
+              ? "Cadastre e gerencie todos os vereadores e funcionários da Câmara."
+              : "Visualize as informações sobre os vereadores e funcionários da Câmara."}
           </p>
         </div>
          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <Button onClick={handleNovoAgente} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Cadastrar Novo Agente Público
-          </Button>
-          <div className="text-sm text-gray-500">
+          {isAdmin && (
+            <Button onClick={handleNovoAgente} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Cadastrar Novo Agente Público
+            </Button>
+          )}
+          <div className="text-sm text-gray-500 ml-auto">
             {agentesFiltrados.length} de {agentes.length} agentes
           </div>
         </div>
@@ -277,6 +283,7 @@ export default function AgentesPublicos() {
           onGerenciarConvitePendente={handleGerenciarConvitePendente}
           onReativar={handleReativarAgente}
           idAgenteLogado={idAgenteLogado}
+          permissaoUsuarioLogado={user?.user_metadata?.permissao}
         />
          <ModalAgentePublico
           isOpen={modalAberto}

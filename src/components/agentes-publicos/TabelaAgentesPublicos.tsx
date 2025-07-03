@@ -1,11 +1,9 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, UserX, Mail } from "lucide-react";
+import { Eye, Edit, UserX, Mail, UserCheck } from "lucide-react";
 import { StatusUsuarioBadge } from "./StatusUsuarioBadge";
-import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos"; // Importa o tipo unificado
-
-import { UserCheck } from "lucide-react";
+import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos";
 
 type TabelaAgentesPublicosProps = {
   agentes: AgenteComStatus[];
@@ -15,10 +13,20 @@ type TabelaAgentesPublicosProps = {
   onGerenciarConvitePendente: (agente: AgenteComStatus) => void;
   onReativar: (agente: AgenteComStatus) => void;
   idAgenteLogado: number | null;
-  permissaoUsuarioLogado: string | undefined;
+  // ALTERAÇÃO: Tipo da prop alinhado com o estado do componente pai.
+  permissaoUsuarioLogado: string | null;
 };
 
-export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvidar, onGerenciarConvitePendente, onReativar, idAgenteLogado, permissaoUsuarioLogado }: TabelaAgentesPublicosProps) => {
+export const TabelaAgentesPublicos = ({ 
+    agentes, 
+    onEditar, 
+    onDesativar, 
+    onConvidar, 
+    onGerenciarConvitePendente, 
+    onReativar, 
+    idAgenteLogado, 
+    permissaoUsuarioLogado 
+}: TabelaAgentesPublicosProps) => {
   const formatarCPF = (cpf: string | null) => {
     if (!cpf) return 'N/A';
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.$3-**");
@@ -30,7 +38,8 @@ export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvid
       : 'bg-green-100 text-green-800';
   };
 
-  const isAdmin = permissaoUsuarioLogado === 'Admin';
+  // ALTERAÇÃO: Verificação de admin segura e que não diferencia maiúsculas/minúsculas.
+  const isAdmin = permissaoUsuarioLogado?.toLowerCase() === 'admin';
 
   return (
     <div className="border rounded-lg">
@@ -79,6 +88,7 @@ export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvid
               <TableCell className="text-right">
                 <div className="flex gap-2 justify-end">
                   <Button variant="ghost" size="sm"><Eye className="w-4 h-4" /></Button>
+                  {/* Este bloco agora funciona corretamente com base na verificação 'isAdmin' */}
                   {isAdmin && (
                     <>
                       {agente.status_usuario !== 'Inativo' && (

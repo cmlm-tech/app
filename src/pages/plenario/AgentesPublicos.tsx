@@ -11,7 +11,7 @@ import { ModalReativarUsuario } from "@/components/agentes-publicos/ModalReativa
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Database } from "@/integrations/supabase/types";
+import { Database, Enums } from "@/integrations/supabase/types";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -29,6 +29,9 @@ export default function AgentesPublicos() {
   const [agentes, setAgentes] = useState<AgenteComStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [idAgenteLogado, setIdAgenteLogado] = useState<number | null>(null);
+
+  // ALTERAÇÃO: Estado para armazenar a permissão real do usuário, vinda do banco.
+  const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null);
   
   const [busca, setBusca] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('Todos');
@@ -43,7 +46,7 @@ export default function AgentesPublicos() {
 
   const carregarAgentes = useCallback(async () => {
     try {
-      setLoading(true);
+      // Não inicia o loading aqui, pois o loading principal controlará a tela
       const { data, error } = await supabase.rpc('get_agentes_publicos_com_status');
       if (error) throw error;
       setAgentes(data || []);
@@ -51,31 +54,36 @@ export default function AgentesPublicos() {
       console.error('Erro ao carregar agentes:', error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao carregar lista de agentes.";
       toast({ title: "Erro", description: errorMessage, variant: "destructive" });
-    } finally {
-      setLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
-    carregarAgentes();
-
-    const fetchIdAgenteLogado = async () => {
+    const carregarDadosIniciais = async () => {
+      setLoading(true);
       if (user) {
-        const { data, error } = await supabase
+        // Busca o perfil do usuário para obter a permissão
+        const { data: perfilData, error: perfilError } = await supabase
           .from('usuarios')
-          .select('agente_publico_id')
+          .select('agente_publico_id, permissao')
           .eq('id', user.id)
           .single();
 
-        if (data) {
-          setIdAgenteLogado(data.agente_publico_id);
-        } else if (error) {
-          console.error("Erro ao buscar agente_publico_id do usuário logado:", error);
+        if (perfilData) {
+          setIdAgenteLogado(perfilData.agente_publico_id);
+          setPermissaoLogado(perfilData.permissao); // Armazena a permissão correta
+        } else {
+          console.error("Erro ao buscar perfil do usuário logado:", perfilError);
+          setPermissaoLogado('consultor'); // Define uma permissão padrão não-admin em caso de erro
         }
+      } else {
+        setPermissaoLogado(null); // Nenhum usuário, nenhuma permissão
       }
+      // Carrega os agentes após ter a informação do usuário
+      await carregarAgentes();
+      setLoading(false);
     };
 
-    fetchIdAgenteLogado();
+    carregarDadosIniciais();
   }, [carregarAgentes, user]);
 
   const agentesFiltrados = agentes.filter(agente => {
@@ -112,16 +120,13 @@ export default function AgentesPublicos() {
     setAgenteComConvitePendente(agente);
   };
 
+  // ... (demais funções handle... sem alterações)
+
   const handleConfirmarReenvio = async () => {
     if (!agenteComConvitePendente) return;
-
     try {
-      const { error } = await supabase.functions.invoke('reenviar-convite-usuario', {
-        body: { agente_publico_id: agenteComConvitePendente.id },
-      });
-
+      const { error } = await supabase.functions.invoke('reenviar-convite-usuario', { body: { agente_publico_id: agenteComConvitePendente.id } });
       if (error) throw error;
-
       toast({ title: "Sucesso", description: `Convite reenviado para ${agenteComConvitePendente.nome_completo}.` });
       setAgenteComConvitePendente(null);
     } catch (error: unknown) {
@@ -133,17 +138,12 @@ export default function AgentesPublicos() {
 
   const handleConfirmarCancelamento = async () => {
     if (!agenteComConvitePendente) return;
-
     try {
-      const { error } = await supabase.functions.invoke('cancelar-convite-usuario', {
-        body: { agente_publico_id: agenteComConvitePendente.id },
-      });
-
+      const { error } = await supabase.functions.invoke('cancelar-convite-usuario', { body: { agente_publico_id: agenteComConvitePendente.id } });
       if (error) throw error;
-
       toast({ title: "Sucesso", description: `Convite para ${agenteComConvitePendente.nome_completo} foi cancelado.` });
       setAgenteComConvitePendente(null);
-      await carregarAgentes(); // Recarrega a lista para atualizar o status
+      await carregarAgentes();
     } catch (error: unknown) {
       console.error('Erro ao cancelar convite:', error);
       const errorMessage = error instanceof Error ? error.message : "Falha ao cancelar o convite.";
@@ -153,29 +153,11 @@ export default function AgentesPublicos() {
 
   const handleConfirmarInativacao = async () => {
     if (!agenteParaInativar) return;
-
     try {
-      // Busca o ID do usuário associado ao agente público
-      const { data: usuarioData, error: fetchUserError } = await supabase
-        .from('usuarios')
-        .select('id')
-        .eq('agente_publico_id', agenteParaInativar.id)
-        .single();
-
-      if (fetchUserError || !usuarioData) {
-        throw new Error("Usuário não encontrado para inativação.");
-      }
-
-      // Atualiza a permissão do usuário para 'Inativo'
-      const { error: updatePermissionError } = await supabase
-        .from('usuarios')
-        .update({ permissao: 'Inativo' })
-        .eq('id', usuarioData.id);
-
-      if (updatePermissionError) {
-        throw updatePermissionError;
-      }
-
+      const { data: usuarioData, error: fetchUserError } = await supabase.from('usuarios').select('id').eq('agente_publico_id', agenteParaInativar.id).single();
+      if (fetchUserError || !usuarioData) throw new Error("Usuário não encontrado para inativação.");
+      const { error: updatePermissionError } = await supabase.from('usuarios').update({ permissao: 'Inativo' }).eq('id', usuarioData.id);
+      if (updatePermissionError) throw updatePermissionError;
       toast({ title: "Sucesso", description: `O agente ${agenteParaInativar.nome_completo} foi inativado.` });
       setAgenteParaInativar(null);
       await carregarAgentes();
@@ -194,29 +176,11 @@ export default function AgentesPublicos() {
 
   const handleConfirmarReativacao = async (novaPermissao: Enums<"permissao_usuario">) => {
     if (!agenteParaReativar) return;
-
     try {
-      // Busca o ID do usuário associado ao agente público
-      const { data: usuarioData, error: fetchUserError } = await supabase
-        .from('usuarios')
-        .select('id')
-        .eq('agente_publico_id', agenteParaReativar.id)
-        .single();
-
-      if (fetchUserError || !usuarioData) {
-        throw new Error("Usuário não encontrado para reativação.");
-      }
-
-      // Atualiza a permissão do usuário para a nova permissão
-      const { error: updatePermissionError } = await supabase
-        .from('usuarios')
-        .update({ permissao: novaPermissao })
-        .eq('id', usuarioData.id);
-
-      if (updatePermissionError) {
-        throw updatePermissionError;
-      }
-
+      const { data: usuarioData, error: fetchUserError } = await supabase.from('usuarios').select('id').eq('agente_publico_id', agenteParaReativar.id).single();
+      if (fetchUserError || !usuarioData) throw new Error("Usuário não encontrado para reativação.");
+      const { error: updatePermissionError } = await supabase.from('usuarios').update({ permissao: novaPermissao }).eq('id', usuarioData.id);
+      if (updatePermissionError) throw updatePermissionError;
       toast({ title: "Sucesso", description: `O agente ${agenteParaReativar.nome_completo} foi reativado com sucesso.` });
       setAgenteParaReativar(null);
       await carregarAgentes();
@@ -241,7 +205,8 @@ export default function AgentesPublicos() {
     );
   }
 
-  const isAdmin = user?.user_metadata?.permissao === 'Admin';
+  // ALTERAÇÃO: Verificação de admin segura, usando o estado correto.
+  const isAdmin = permissaoLogado?.toLowerCase() === 'admin';
 
   return (
     <AppLayout>
@@ -283,33 +248,13 @@ export default function AgentesPublicos() {
           onGerenciarConvitePendente={handleGerenciarConvitePendente}
           onReativar={handleReativarAgente}
           idAgenteLogado={idAgenteLogado}
-          permissaoUsuarioLogado={user?.user_metadata?.permissao}
+          // ALTERAÇÃO: Passando a permissão correta para o componente filho.
+          permissaoUsuarioLogado={permissaoLogado}
         />
-         <ModalAgentePublico
-          isOpen={modalAberto}
-          onClose={() => setModalAberto(false)}
-          onSave={handleAcaoConcluida}
-          agente={agenteEditando}
-          isEditing={isEditing}
-        />
-         <ModalConviteUsuario
-          isOpen={modalConviteAberto}
-          onClose={() => setModalConviteAberto(false)}
-          onConviteEnviado={handleAcaoConcluida}
-          agente={agenteConvidando}
-        />
-        <ModalConfirmacaoInativar
-          isOpen={!!agenteParaInativar}
-          onClose={() => setAgenteParaInativar(null)}
-          onConfirm={handleConfirmarInativacao}
-          agente={agenteParaInativar}
-        />
-        <ModalReativarUsuario
-          isOpen={!!agenteParaReativar}
-          onClose={() => setAgenteParaReativar(null)}
-          agente={agenteParaReativar}
-          onConfirm={handleConfirmarReativacao}
-        />
+        <ModalAgentePublico isOpen={modalAberto} onClose={() => setModalAberto(false)} onSave={handleAcaoConcluida} agente={agenteEditando} isEditing={isEditing} />
+        <ModalConviteUsuario isOpen={modalConviteAberto} onClose={() => setModalConviteAberto(false)} onConviteEnviado={handleAcaoConcluida} agente={agenteConvidando} />
+        <ModalConfirmacaoInativar isOpen={!!agenteParaInativar} onClose={() => setAgenteParaInativar(null)} onConfirm={handleConfirmarInativacao} agente={agenteParaInativar} />
+        <ModalReativarUsuario isOpen={!!agenteParaReativar} onClose={() => setAgenteParaReativar(null)} agente={agenteParaReativar} onConfirm={handleConfirmarReativacao} />
         <AlertDialog open={!!agenteComConvitePendente} onOpenChange={(open) => !open && setAgenteComConvitePendente(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>

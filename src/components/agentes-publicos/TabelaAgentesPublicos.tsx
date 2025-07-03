@@ -30,7 +30,7 @@ export const TabelaAgentesPublicos = ({ agentes, onEditar, onDesativar, onConvid
       : 'bg-green-100 text-green-800';
   };
 
-  const isAdmin = permissaoUsuarioLogado === 'admin';
+  const isAdmin = permissaoUsuarioLogado === 'Admin';
 
   return (
     <div className="border rounded-lg">

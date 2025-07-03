@@ -241,7 +241,7 @@ export default function AgentesPublicos() {
     );
   }
 
-  const isAdmin = user?.user_metadata?.permissao === 'admin';
+  const isAdmin = user?.user_metadata?.permissao === 'Admin';
 
   return (
     <AppLayout>

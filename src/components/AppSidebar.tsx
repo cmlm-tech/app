@@ -271,6 +271,7 @@ export const AppSidebar = ({
         // Desktop styles
         isCollapsed ? "w-20" : "w-64"
       )}>
+        {/* Menu principal */}
         <div className="flex-1 py-6">
           <ul className="space-y-1">
             {sidebarMenu.map((item) =>
@@ -288,17 +289,20 @@ export const AppSidebar = ({
         </div>
 
         {/* Footer com controles */}
-        <div className="border-t border-gov-blue-700 py-4 px-3 flex flex-col gap-2">
+        <div className="border-t border-gov-blue-700 p-4 space-y-3">
           {/* Botão de colapsar - sempre visível no desktop */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden md:flex items-center justify-center p-2 rounded-md transition-colors hover:bg-gov-blue-700/70 mb-2"
+            className="hidden md:flex items-center justify-center w-full p-2 rounded-md transition-colors hover:bg-gov-blue-700/70"
             title={isCollapsed ? "Expandir menu" : "Recolher menu"}
           >
             {isCollapsed ? (
               <ChevronRight className="w-5 h-5" />
             ) : (
-              <ChevronLeft className="w-5 h-5" />
+              <>
+                <ChevronLeft className="w-5 h-5 mr-2" />
+                <span>Recolher</span>
+              </>
             )}
           </button>
 
@@ -339,7 +343,7 @@ export const AppSidebar = ({
               }
             >
               <Cog className="w-5 h-5" />
-              Configurações
+              <span>Configurações</span>
             </NavLink>
           )}
 
@@ -349,7 +353,7 @@ export const AppSidebar = ({
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setDialogoSairAberto(true)}
-                  className="flex items-center justify-center p-2 rounded-md transition-colors hover:bg-gov-blue-700/70"
+                  className="flex items-center justify-center w-full p-2 rounded-md transition-colors hover:bg-gov-blue-700/70"
                 >
                   <LogOut className="w-5 h-5" />
                 </button>
@@ -364,7 +368,7 @@ export const AppSidebar = ({
               className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm hover:bg-gov-blue-700/70 w-full text-left"
             >
               <LogOut className="w-5 h-5" />
-              Sair
+              <span>Sair</span>
             </button>
           )}
         </div>

@@ -272,7 +272,7 @@ export const AppSidebar = ({
         isCollapsed ? "w-20" : "w-64"
       )}>
         {/* Menu principal */}
-        <div className="flex-1 py-6">
+        <div className="flex-1 py-6 px-2">
           <ul className="space-y-1">
             {sidebarMenu.map((item) =>
               item.type === "link" ? (
@@ -288,8 +288,8 @@ export const AppSidebar = ({
           </ul>
         </div>
 
-        {/* Footer com controles */}
-        <div className="border-t border-gov-blue-700 p-4 space-y-3">
+        {/* Footer com controles - sempre no final */}
+        <div className="border-t border-gov-blue-700 p-3 space-y-2 mt-auto">
           {/* Botão de colapsar - sempre visível no desktop */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}

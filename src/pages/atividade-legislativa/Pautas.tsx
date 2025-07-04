@@ -8,10 +8,11 @@ import TagStatusPauta from "@/components/pautas/TagStatusPauta";
 import { Plus, Pencil, Printer, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { CardPauta } from "@/components/pautas/CardPauta";
 
 type PautaStatus = "Em Elaboração" | "Publicada" | "Concluída";
 
-type Pauta = {
+export type Pauta = {
   id: string;
   sessao: {
     id: string;
@@ -61,7 +62,6 @@ export const PAUTAS_MOCK: Pauta[] = [
 const Pautas = () => {
   const [pautas, setPautas] = useState<Pauta[]>(PAUTAS_MOCK);
 
-  // Lógica de filtro viria aqui
   const pautasFiltradas = pautas;
 
   return (
@@ -98,7 +98,7 @@ const Pautas = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -170,6 +170,11 @@ const Pautas = () => {
               )}
             </TableBody>
           </Table>
+        </div>
+        <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
+            {pautasFiltradas.map(pauta => (
+                <CardPauta key={pauta.id} pauta={pauta} />
+            ))}
         </div>
       </div>
     </AppLayout>

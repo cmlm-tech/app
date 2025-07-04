@@ -1,9 +1,11 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Edit, UserX, Mail, UserCheck } from "lucide-react";
 import { StatusUsuarioBadge } from "./StatusUsuarioBadge";
 import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos";
+import { CardAgentePublico } from "./CardAgentePublico";
 
 type TabelaAgentesPublicosProps = {
   agentes: AgenteComStatus[];
@@ -13,7 +15,6 @@ type TabelaAgentesPublicosProps = {
   onGerenciarConvitePendente: (agente: AgenteComStatus) => void;
   onReativar: (agente: AgenteComStatus) => void;
   idAgenteLogado: number | null;
-  // ALTERAÇÃO: Tipo da prop alinhado com o estado do componente pai.
   permissaoUsuarioLogado: string | null;
 };
 
@@ -38,86 +39,101 @@ export const TabelaAgentesPublicos = ({
       : 'bg-green-100 text-green-800';
   };
 
-  // ALTERAÇÃO: Verificação de admin segura e que não diferencia maiúsculas/minúsculas.
   const isAdmin = permissaoUsuarioLogado?.toLowerCase() === 'admin';
 
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16">Foto</TableHead>
-            <TableHead>Nome Completo</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Cargo/Nome Parlamentar</TableHead>
-            <TableHead>CPF</TableHead>
-            <TableHead>Status do Usuário</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {agentes.map((agente) => (
-            <TableRow key={agente.id}>
-              <TableCell>
-                <img
-                  src={agente.foto_url || "/placeholder.svg"}
-                  alt={agente.nome_completo}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              </TableCell>
-              <TableCell className="font-medium">{agente.nome_completo}</TableCell>
-              <TableCell>
-                <Badge className={getTipoColor(agente.tipo)}>
-                  {agente.tipo}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {agente.tipo === 'Vereador' ? agente.nome_parlamentar : agente.cargo}
-              </TableCell>
-              <TableCell className="font-mono text-sm">
-                {formatarCPF(agente.cpf)}
-              </TableCell>
-              <TableCell>
-                <StatusUsuarioBadge
-                  status={agente.status_usuario}
-                  agente={agente}
-                  onConvidar={onConvidar}
-                  onGerenciarConvitePendente={onGerenciarConvitePendente}
-                />
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex gap-2 justify-end">
-                  <Button variant="ghost" size="sm"><Eye className="w-4 h-4" /></Button>
-                  {/* Este bloco agora funciona corretamente com base na verificação 'isAdmin' */}
-                  {isAdmin && (
-                    <>
-                      {agente.status_usuario !== 'Inativo' && (
-                        <Button variant="ghost" size="sm" onClick={() => onEditar(agente)}><Edit className="w-4 h-4" /></Button>
-                      )}
-                      {agente.status_usuario === 'Sem Acesso' && (
-                        <Button variant="ghost" size="sm" onClick={() => onConvidar(agente)} title="Convidar usuário">
-                          <Mail className="w-4 h-4" />
-                        </Button>
-                      )}
-                      {agente.status_usuario === 'Inativo' ? (
-                        <Button variant="ghost" size="sm" onClick={() => onReativar(agente)} title="Reativar usuário">
-                          <UserCheck className="w-4 h-4" />
-                        </Button>
-                      ) : (
-                        (agente.status_usuario === 'Ativo' || agente.status_usuario === 'Convite Pendente') && (agente.id !== idAgenteLogado) && (
-                          <Button variant="ghost" size="sm" onClick={() => onDesativar(agente)} title="Desativar usuário">
-                            <UserX className="w-4 h-4" />
-                          </Button>
-                        )
-                      )}
-                    </>
-                  )}
-                </div>
-              </TableCell>
+    <div>
+      <div className="hidden md:block border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16">Foto</TableHead>
+              <TableHead>Nome Completo</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Cargo/Nome Parlamentar</TableHead>
+              <TableHead>CPF</TableHead>
+              <TableHead>Status do Usuário</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {agentes.map((agente) => (
+              <TableRow key={agente.id}>
+                <TableCell>
+                  <img
+                    src={agente.foto_url || "/placeholder.svg"}
+                    alt={agente.nome_completo}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                </TableCell>
+                <TableCell className="font-medium">{agente.nome_completo}</TableCell>
+                <TableCell>
+                  <Badge className={getTipoColor(agente.tipo)}>
+                    {agente.tipo}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {agente.tipo === 'Vereador' ? agente.nome_parlamentar : agente.cargo}
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {formatarCPF(agente.cpf)}
+                </TableCell>
+                <TableCell>
+                  <StatusUsuarioBadge
+                    status={agente.status_usuario}
+                    agente={agente}
+                    onConvidar={onConvidar}
+                    onGerenciarConvitePendente={onGerenciarConvitePendente}
+                  />
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="ghost" size="sm"><Eye className="w-4 h-4" /></Button>
+                    {isAdmin && (
+                      <>
+                        {agente.status_usuario !== 'Inativo' && (
+                          <Button variant="ghost" size="sm" onClick={() => onEditar(agente)}><Edit className="w-4 h-4" /></Button>
+                        )}
+                        {agente.status_usuario === 'Sem Acesso' && (
+                          <Button variant="ghost" size="sm" onClick={() => onConvidar(agente)} title="Convidar usuário">
+                            <Mail className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {agente.status_usuario === 'Inativo' ? (
+                          <Button variant="ghost" size="sm" onClick={() => onReativar(agente)} title="Reativar usuário">
+                            <UserCheck className="w-4 h-4" />
+                          </Button>
+                        ) : (
+                          (agente.status_usuario === 'Ativo' || agente.status_usuario === 'Convite Pendente') && (agente.id !== idAgenteLogado) && (
+                            <Button variant="ghost" size="sm" onClick={() => onDesativar(agente)} title="Desativar usuário">
+                              <UserX className="w-4 h-4" />
+                            </Button>
+                          )
+                        )}
+                      </>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {agentes.map((agente) => (
+          <CardAgentePublico 
+            key={agente.id} 
+            agente={agente} 
+            onEditar={onEditar} 
+            onDesativar={onDesativar} 
+            onConvidar={onConvidar} 
+            onGerenciarConvitePendente={onGerenciarConvitePendente} 
+            onReativar={onReativar} 
+            idAgenteLogado={idAgenteLogado} 
+            permissaoUsuarioLogado={permissaoUsuarioLogado} 
+          />
+        ))}
+      </div>
     </div>
   );
 };

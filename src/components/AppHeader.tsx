@@ -1,4 +1,3 @@
-
 import { Menu, Bell, User, Cog } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -14,7 +13,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export const AppHeader = () => {
+type AppHeaderProps = {
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (open: boolean) => void;
+};
+
+export const AppHeader = ({ isMobileMenuOpen, setIsMobileMenuOpen }: AppHeaderProps) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dialogoSairAberto, setDialogoSairAberto] = useState(false);
   const { user, signOut } = useAuth();
@@ -38,8 +42,9 @@ export const AppHeader = () => {
       <header className="fixed top-0 left-0 right-0 h-14 bg-white shadow z-30 flex items-center px-6 justify-between">
         <div className="flex items-center gap-4">
           <button
-            className="p-2 rounded hover:bg-gray-100 transition-colors"
+            className="p-2 rounded hover:bg-gray-100 transition-colors md:hidden"
             aria-label="Abrir menu lateral"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             <Menu className="text-gov-blue-800 w-6 h-6" />
           </button>

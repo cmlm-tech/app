@@ -384,23 +384,6 @@ export const AppSidebar = ({
               Confirmar Saída
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogFooter>
-      </nav>
-
-      <AlertDialog open={dialogoSairAberto} onOpenChange={setDialogoSairAberto}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Saída</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza de que deseja sair do sistema? Você precisará fazer login novamente para acessar suas informações.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmLogout}>
-              Confirmar Saída
-            </AlertDialogAction>
-          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </TooltipProvider>

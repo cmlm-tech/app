@@ -139,7 +139,7 @@ export const AppSidebar = ({
     setIsMobileMenuOpen(false);
   };
 
-  const SidebarLink = ({ item, isCollapsed }: { item: any, isCollapsed: boolean }) => {
+  const SidebarLink = ({ item }: { item: any }) => {
     const content = (
       <NavLink
         to={item.to!}
@@ -175,7 +175,7 @@ export const AppSidebar = ({
     return content;
   };
 
-  const SidebarMenuGroup = ({ item, isCollapsed }: { item: any, isCollapsed: boolean }) => {
+  const SidebarMenuGroup = ({ item }: { item: any }) => {
     const isActive = isSubMenuActive(item.children);
     
     if (isCollapsed) {
@@ -276,11 +276,11 @@ export const AppSidebar = ({
             {sidebarMenu.map((item) =>
               item.type === "link" ? (
                 <li key={item.label}>
-                  <SidebarLink item={item} isCollapsed={isCollapsed} />
+                  <SidebarLink item={item} />
                 </li>
               ) : (
                 <li key={item.label}>
-                  <SidebarMenuGroup item={item} isCollapsed={isCollapsed} />
+                  <SidebarMenuGroup item={item} />
                 </li>
               )
             )}
@@ -289,7 +289,7 @@ export const AppSidebar = ({
 
         {/* Footer com controles */}
         <div className="border-t border-gov-blue-700 py-4 px-3 flex flex-col gap-2">
-          {/* Botão de colapsar - apenas no desktop */}
+          {/* Botão de colapsar - sempre visível no desktop */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="hidden md:flex items-center justify-center p-2 rounded-md transition-colors hover:bg-gov-blue-700/70 mb-2"
@@ -368,6 +368,23 @@ export const AppSidebar = ({
             </button>
           )}
         </div>
+      </nav>
+
+      <AlertDialog open={dialogoSairAberto} onOpenChange={setDialogoSairAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Saída</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza de que deseja sair do sistema? Você precisará fazer login novamente para acessar suas informações.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmLogout}>
+              Confirmar Saída
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogFooter>
       </nav>
 
       <AlertDialog open={dialogoSairAberto} onOpenChange={setDialogoSairAberto}>

@@ -14,12 +14,12 @@ import NotFound from "./pages/NotFound";
 import Entrar from "./pages/Entrar";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
-import Documentos from "./pages/Documentos";
 import Configuracoes from "./pages/Configuracoes";
 import Dashboard from "./pages/Dashboard";
 import Materias from "./pages/documentos/Materias";
 import Atas from "./pages/documentos/Atas";
 import AgentesPublicos from "./pages/plenario/AgentesPublicos";
+import Vereadores from "./pages/plenario/Vereadores";
 import MesaDiretoraPlenario from "./pages/plenario/MesaDiretora";
 import ComissoesPlenario from "./pages/plenario/Comissoes";
 import SessoesLeg from "./pages/atividade-legislativa/Sessoes";
@@ -50,11 +50,11 @@ const App = () => (
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
 
             {/* --- ROTAS PROTEGIDAS --- */}
-            <Route path="/painel" element={<RotaProtegida><Painel /></RotaProtegida>} />
-            <Route path="/documentos" element={<RotaProtegida><Documentos /></RotaProtegida>} />
+            <Route path="/painel" element={<RotaProtegida><Painel /></RotaProtegida>} />            
             <Route path="/documentos/materias" element={<RotaProtegida><Materias /></RotaProtegida>} />
             <Route path="/documentos/atas" element={<RotaProtegida><Atas /></RotaProtegida>} />
             <Route path="/plenario/agentes-publicos" element={<RotaProtegida><AgentesPublicos /></RotaProtegida>} />
+            <Route path="/plenario/vereadores" element={<RotaProtegida><Vereadores /></RotaProtegida>} />          
             <Route path="/plenario/mesa-diretora" element={<RotaProtegida><MesaDiretoraPlenario /></RotaProtegida>} />
             <Route path="/plenario/comissoes" element={<RotaProtegida><ComissoesPlenario /></RotaProtegida>} />
             <Route path="/plenario/comissoes/:id" element={<RotaProtegida><DetalheComissao /></RotaProtegida>} />

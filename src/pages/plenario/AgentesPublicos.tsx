@@ -30,7 +30,7 @@ export default function AgentesPublicos() {
   const [loading, setLoading] = useState(true);
   const [idAgenteLogado, setIdAgenteLogado] = useState<number | null>(null);
 
-  // ALTERAÇÃO: Estado para armazenar a permissão real do usuário, vinda do banco.
+  // Estado para armazenar a permissão real do usuário, vinda do banco.
   const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null);
   
   const [busca, setBusca] = useState('');
@@ -43,10 +43,12 @@ export default function AgentesPublicos() {
   const [agenteParaInativar, setAgenteParaInativar] = useState<AgenteComStatus | null>(null);
   const [agenteComConvitePendente, setAgenteComConvitePendente] = useState<AgenteComStatus | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [agenteParaReativar, setAgenteParaReativar] = useState<AgenteComStatus | null>(null);
+
+  const isAdmin = permissaoLogado?.toLowerCase() === 'admin';
 
   const carregarAgentes = useCallback(async () => {
     try {
-      // Não inicia o loading aqui, pois o loading principal controlará a tela
       const { data, error } = await supabase.rpc('get_agentes_publicos_com_status');
       if (error) throw error;
       setAgentes(data || []);
@@ -61,7 +63,6 @@ export default function AgentesPublicos() {
     const carregarDadosIniciais = async () => {
       setLoading(true);
       if (user) {
-        // Busca o perfil do usuário para obter a permissão
         const { data: perfilData, error: perfilError } = await supabase
           .from('usuarios')
           .select('agente_publico_id, permissao')
@@ -70,15 +71,14 @@ export default function AgentesPublicos() {
 
         if (perfilData) {
           setIdAgenteLogado(perfilData.agente_publico_id);
-          setPermissaoLogado(perfilData.permissao); // Armazena a permissão correta
+          setPermissaoLogado(perfilData.permissao); 
         } else {
           console.error("Erro ao buscar perfil do usuário logado:", perfilError);
-          setPermissaoLogado('consultor'); // Define uma permissão padrão não-admin em caso de erro
+          setPermissaoLogado('consultor');
         }
       } else {
-        setPermissaoLogado(null); // Nenhum usuário, nenhuma permissão
+        setPermissaoLogado(null); 
       }
-      // Carrega os agentes após ter a informação do usuário
       await carregarAgentes();
       setLoading(false);
     };
@@ -113,17 +113,22 @@ export default function AgentesPublicos() {
   };
   
   const handleDesativarAgente = (agente: AgenteComStatus) => {
+    if (!isAdmin) return; // Segurança adicional
     setAgenteParaInativar(agente);
   };
 
+  const handleReativarAgente = (agente: AgenteComStatus) => {
+    if (!isAdmin) return; // Segurança adicional
+    setAgenteParaReativar(agente);
+  };
+
   const handleGerenciarConvitePendente = (agente: AgenteComStatus) => {
+    if (!isAdmin) return;
     setAgenteComConvitePendente(agente);
   };
 
-  // ... (demais funções handle... sem alterações)
-
   const handleConfirmarReenvio = async () => {
-    if (!agenteComConvitePendente) return;
+    if (!agenteComConvitePendente || !isAdmin) return;
     try {
       const { error } = await supabase.functions.invoke('reenviar-convite-usuario', { body: { agente_publico_id: agenteComConvitePendente.id } });
       if (error) throw error;
@@ -137,7 +142,7 @@ export default function AgentesPublicos() {
   };
 
   const handleConfirmarCancelamento = async () => {
-    if (!agenteComConvitePendente) return;
+    if (!agenteComConvitePendente || !isAdmin) return;
     try {
       const { error } = await supabase.functions.invoke('cancelar-convite-usuario', { body: { agente_publico_id: agenteComConvitePendente.id } });
       if (error) throw error;
@@ -152,7 +157,7 @@ export default function AgentesPublicos() {
   };
 
   const handleConfirmarInativacao = async () => {
-    if (!agenteParaInativar) return;
+    if (!agenteParaInativar || !isAdmin) return;
     try {
       const { data: usuarioData, error: fetchUserError } = await supabase.from('usuarios').select('id').eq('agente_publico_id', agenteParaInativar.id).single();
       if (fetchUserError || !usuarioData) throw new Error("Usuário não encontrado para inativação.");
@@ -168,14 +173,8 @@ export default function AgentesPublicos() {
     }
   };
 
-  const [agenteParaReativar, setAgenteParaReativar] = useState<AgenteComStatus | null>(null);
-
-  const handleReativarAgente = (agente: AgenteComStatus) => {
-    setAgenteParaReativar(agente);
-  };
-
   const handleConfirmarReativacao = async (novaPermissao: Enums<"permissao_usuario">) => {
-    if (!agenteParaReativar) return;
+    if (!agenteParaReativar || !isAdmin) return;
     try {
       const { data: usuarioData, error: fetchUserError } = await supabase.from('usuarios').select('id').eq('agente_publico_id', agenteParaReativar.id).single();
       if (fetchUserError || !usuarioData) throw new Error("Usuário não encontrado para reativação.");
@@ -204,10 +203,7 @@ export default function AgentesPublicos() {
       </AppLayout>
     );
   }
-
-  // ALTERAÇÃO: Verificação de admin segura, usando o estado correto.
-  const isAdmin = permissaoLogado?.toLowerCase() === 'admin';
-
+  
   return (
     <AppLayout>
        <div className="space-y-6">
@@ -217,8 +213,8 @@ export default function AgentesPublicos() {
           </h1>
           <p className="text-gray-600">
             {isAdmin
-              ? "Cadastre e gerencie todos os vereadores e funcionários da Câmara."
-              : "Visualize as informações sobre os vereadores e funcionários da Câmara."}
+              ? "Cadastre, gerencie e controle o status de todos os vereadores e funcionários da Câmara."
+              : "Visualize as informações e o status dos vereadores e funcionários da Câmara."}
           </p>
         </div>
          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -242,33 +238,36 @@ export default function AgentesPublicos() {
         />
          <TabelaAgentesPublicos
           agentes={agentesFiltrados}
-          onEditar={handleEditarAgente}
-          onDesativar={handleDesativarAgente}
-          onConvidar={handleConvidarAgente}
-          onGerenciarConvitePendente={handleGerenciarConvitePendente}
-          onReativar={handleReativarAgente}
+          onEditar={isAdmin ? handleEditarAgente : undefined}
+          onDesativar={isAdmin ? handleDesativarAgente : undefined}
+          onConvidar={isAdmin ? handleConvidarAgente : undefined}
+          onGerenciarConvitePendente={isAdmin ? handleGerenciarConvitePendente : undefined}
+          onReativar={isAdmin ? handleReativarAgente : undefined}
           idAgenteLogado={idAgenteLogado}
-          // ALTERAÇÃO: Passando a permissão correta para o componente filho.
           permissaoUsuarioLogado={permissaoLogado}
         />
-        <ModalAgentePublico isOpen={modalAberto} onClose={() => setModalAberto(false)} onSave={handleAcaoConcluida} agente={agenteEditando} isEditing={isEditing} />
-        <ModalConviteUsuario isOpen={modalConviteAberto} onClose={() => setModalConviteAberto(false)} onConviteEnviado={handleAcaoConcluida} agente={agenteConvidando} />
-        <ModalConfirmacaoInativar isOpen={!!agenteParaInativar} onClose={() => setAgenteParaInativar(null)} onConfirm={handleConfirmarInativacao} agente={agenteParaInativar} />
-        <ModalReativarUsuario isOpen={!!agenteParaReativar} onClose={() => setAgenteParaReativar(null)} agente={agenteParaReativar} onConfirm={handleConfirmarReativacao} />
-        <AlertDialog open={!!agenteComConvitePendente} onOpenChange={(open) => !open && setAgenteComConvitePendente(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Gerenciar Convite Pendente</AlertDialogTitle>
-              <AlertDialogDescription>
-                O convite para {agenteComConvitePendente?.nome_completo} está pendente. O que deseja fazer?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="gap-2 sm:gap-0">
-                <Button variant="destructive" onClick={handleConfirmarCancelamento}>Cancelar Convite</Button>
-                <Button onClick={handleConfirmarReenvio}>Reenviar Convite</Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {isAdmin && (
+            <>
+                <ModalAgentePublico isOpen={modalAberto} onClose={() => setModalAberto(false)} onSave={handleAcaoConcluida} agente={agenteEditando} isEditing={isEditing} />
+                <ModalConviteUsuario isOpen={modalConviteAberto} onClose={() => setModalConviteAberto(false)} onConviteEnviado={handleAcaoConcluida} agente={agenteConvidando} />
+                <ModalConfirmacaoInativar isOpen={!!agenteParaInativar} onClose={() => setAgenteParaInativar(null)} onConfirm={handleConfirmarInativacao} agente={agenteParaInativar} />
+                <ModalReativarUsuario isOpen={!!agenteParaReativar} onClose={() => setAgenteParaReativar(null)} agente={agenteParaReativar} onConfirm={handleConfirmarReativacao} />
+                <AlertDialog open={!!agenteComConvitePendente} onOpenChange={(open) => !open && setAgenteComConvitePendente(null)}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Gerenciar Convite Pendente</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        O convite para {agenteComConvitePendente?.nome_completo} está pendente. O que deseja fazer?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="destructive" onClick={handleConfirmarCancelamento}>Cancelar Convite</Button>
+                        <Button onClick={handleConfirmarReenvio}>Reenviar Convite</Button>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+            </>
+        )}
       </div>
     </AppLayout>
   );

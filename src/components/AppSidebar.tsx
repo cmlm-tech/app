@@ -1,3 +1,4 @@
+
 import {
   Home,
   FileText,
@@ -79,11 +80,11 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
         to={item.to!} 
         onClick={handleMobileNavClick} 
         className={({ isActive }) => cn(
-          "relative flex items-center gap-3 px-6 py-3 rounded-md transition-colors font-medium", // Adicionado 'relative' aqui
+          "relative flex items-center gap-3 px-3 py-3 rounded-md transition-colors font-medium",
           isActive 
-            ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full" // Lógica do marcador
+            ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full" 
             : "hover:bg-gov-blue-700/70",
-          isCollapsed && "justify-center px-3"
+          isCollapsed && "justify-center"
         )}
       >
         <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -127,8 +128,8 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
         <AccordionItem value={item.label} className="border-none">
           <AccordionTrigger 
             className={cn(
-              "relative flex items-center gap-3 px-6 py-3 rounded-md transition-colors font-medium text-white hover:bg-gov-blue-700/80 hover:no-underline", // Adicionado 'relative' e 'hover:no-underline'
-              (isActive || openMenus.includes(item.label)) && "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full" // Lógica do marcador
+              "relative flex items-center gap-3 px-3 py-3 rounded-md transition-colors font-medium text-white hover:bg-gov-blue-700/80 hover:no-underline",
+              (isActive || openMenus.includes(item.label)) && "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
             )} 
             onClick={(e) => { e.preventDefault(); handleMenuToggle(item.label); }}
           >
@@ -156,7 +157,7 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
       {isMobileMenuOpen && <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
       <nav className={cn("fixed top-14 left-0 bottom-0 bg-gov-blue-800 text-white flex flex-col shadow-lg transition-all duration-300 z-50", isMobileMenuOpen ? "translate-x-0" : "-translate-x-full", "md:translate-x-0", isCollapsed ? "w-20" : "w-64")}>
         <div className="flex-1 py-6 space-y-1 overflow-y-auto">
-          <ul className="list-none p-0 m-0">
+          <ul className="list-none p-0 m-0 px-3">
             {sidebarMenu.map((item) => <li key={item.label}>{item.type === "link" ? <SidebarLink item={item} /> : <SidebarMenuGroup item={item} />}</li>)}
           </ul>
         </div>
@@ -165,19 +166,45 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
             {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <><ChevronLeft className="w-5 h-5" /> <span className="ml-2">Recolher</span></>}
           </button>
           
-          <SidebarLink item={{ label: "Configurações", to: "/configuracoes", icon: Cog, type: 'link' }} />
+          <div className="px-3">
+            <SidebarLink item={{ label: "Configurações", to: "/configuracoes", icon: Cog, type: 'link' }} />
+          </div>
 
-          {isCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild><button onClick={() => setDialogoSairAberto(true)} className="flex items-center justify-center w-full p-2 rounded-md transition-colors hover:bg-gov-blue-700/70"><LogOut className="w-5 h-5" /></button></TooltipTrigger>
-              <TooltipContent side="right"><p>Sair</p></TooltipContent>
-            </Tooltip>
-          ) : (
-            <button onClick={() => setDialogoSairAberto(true)} className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm hover:bg-gov-blue-700/70 w-full text-left"><LogOut className="w-5 h-5" /><span>Sair</span></button>
-          )}
+          <div className="px-3">
+            {isCollapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button onClick={() => setDialogoSairAberto(true)} className="flex items-center justify-center w-full p-3 rounded-md transition-colors hover:bg-gov-blue-700/70">
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right"><p>Sair</p></TooltipContent>
+              </Tooltip>
+            ) : (
+              <button onClick={() => setDialogoSairAberto(true)} className="flex items-center gap-3 px-3 py-3 rounded-md transition-colors text-sm hover:bg-gov-blue-700/70 w-full text-left">
+                <LogOut className="w-5 h-5" />
+                <span>Sair</span>
+              </button>
+            )}
+          </div>
         </div>
       </nav>
-      <AlertDialog open={dialogoSairAberto} onOpenChange={setDialogoSairAberto}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar Saída</AlertDialogTitle><AlertDialogDescription>Tem certeza de que deseja sair do sistema? Você precisará fazer login novamente para acessar suas informações.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleConfirmLogout}>Confirmar Saída</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={dialogoSairAberto} onOpenChange={setDialogoSairAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Saída</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza de que deseja sair do sistema? Você precisará fazer login novamente para acessar suas informações.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmLogout}>
+              Confirmar Saída
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 };

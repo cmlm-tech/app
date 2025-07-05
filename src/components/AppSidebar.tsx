@@ -84,7 +84,7 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
           isActive 
             ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full" 
             : "hover:bg-gov-blue-700/70",
-          isCollapsed && "justify-center px-2"
+          isCollapsed && "justify-center px-3"
         )}
       >
         <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -103,7 +103,7 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <div className={cn("relative flex items-center justify-center w-full px-2 py-3 rounded-md cursor-pointer hover:bg-gov-blue-700/70", isActive && "bg-gov-blue-700 before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full shadow")}>
+                <div className={cn("relative flex items-center justify-center w-full px-3 py-3 rounded-md cursor-pointer hover:bg-gov-blue-700/70", isActive && "bg-gov-blue-700 before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full shadow")}>
                   <item.icon className="w-5 h-5" />
                 </div>
               </DropdownMenuTrigger>
@@ -173,7 +173,7 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
                 <NavLink 
                   to="/configuracoes" 
                   className={({ isActive }) => cn(
-                    "relative flex items-center justify-center w-full px-2 py-3 rounded-md transition-colors hover:bg-gov-blue-700/70",
+                    "relative flex items-center justify-center w-full px-3 py-3 rounded-md transition-colors hover:bg-gov-blue-700/70",
                     isActive && "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
                   )}
                 >
@@ -203,7 +203,7 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
               <TooltipTrigger asChild>
                 <button 
                   onClick={() => setDialogoSairAberto(true)} 
-                  className="flex items-center justify-center w-full px-2 py-3 rounded-md transition-colors hover:bg-gov-blue-700/70"
+                  className="flex items-center justify-center w-full px-3 py-3 rounded-md transition-colors hover:bg-gov-blue-700/70"
                 >
                   <LogOut className="w-5 h-5" />
                 </button>
@@ -221,22 +221,7 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
           )}
         </div>
       </nav>
-      <AlertDialog open={dialogoSairAberto} onOpenChange={setDialogoSairAberto}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Saída</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza de que deseja sair do sistema? Você precisará fazer login novamente para acessar suas informações.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmLogout}>
-              Confirmar Saída
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogFooter>
-      </nav>
+
       <AlertDialog open={dialogoSairAberto} onOpenChange={setDialogoSairAberto}>
         <AlertDialogContent>
           <AlertDialogHeader>

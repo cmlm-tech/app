@@ -13,24 +13,9 @@ const userName = "Ana Silva";
 const todayText = "domingo, 15 de junho de 2025";
 
 const pendencias = [
-  {
-    id: "PL15",
-    titulo: "Projeto de Lei nº 15/2025",
-    status: "Aguardando parecer da Comissão de Justiça",
-    link: "/documentos/materias/15",
-  },
-  {
-    id: "PL13",
-    titulo: "Projeto de Lei nº 13/2025",
-    status: "Aguardando votação em plenário",
-    link: "/documentos/materias/13",
-  },
-  {
-    id: "PL12",
-    titulo: "Projeto de Lei nº 12/2025",
-    status: "Aguardando parecer da Comissão de Finanças",
-    link: "/documentos/materias/12",
-  },
+  { id: "PL15", titulo: "Projeto de Lei nº 15/2025", status: "Aguardando parecer da Comissão de Justiça", link: "/documentos/materias/15" },
+  { id: "PL13", titulo: "Projeto de Lei nº 13/2025", status: "Aguardando votação em plenário", link: "/documentos/materias/13" },
+  { id: "PL12", titulo: "Projeto de Lei nº 12/2025", status: "Aguardando parecer da Comissão de Finanças", link: "/documentos/materias/12" },
 ];
 
 const atividadeRecente = [
@@ -41,35 +26,15 @@ const atividadeRecente = [
   "Sessão extraordinária agendada para o dia 20/06/2025.",
 ];
 
-const atalhos = [
-  {
-    label: "Protocolar Matéria",
-    icon: "+",
-    to: "/documentos/materias", // ajuste conforme fluxo real
-  },
-  {
-    label: "Agendar Sessão",
-    icon: "+",
-    to: "/atividade-legislativa/sessoes", // ajuste conforme fluxo real
-  },
-  {
-    label: "Consultar Vereador",
-    icon: "",
-    to: "/plenario/vereadores",
-  },
-  {
-    label: "Gerenciar Comissões",
-    icon: "",
-    to: "/plenario/comissoes",
-  },
-];
+// ... (array 'atalhos' não utilizado no JSX, pode ser removido se não for usado em outro lugar)
 
 export default function Painel() {
   return (
     <AppLayout>
       {/* Cabeçalho */}
       <div className="mb-8">
-        <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800 mb-2 animate-fade-in">
+        {/* ALTERAÇÃO: Fonte responsiva para melhor visualização em telas pequenas */}
+        <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gov-blue-800 mb-2 animate-fade-in">
           Painel de Controle
         </h1>
         <p className="text-muted-foreground text-lg">
@@ -78,9 +43,10 @@ export default function Painel() {
       </div>
       
       {/* Linha de cards de KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 mb-8">
-        <Card className="flex flex-row items-center gap-4 px-6 py-4 shadow-sm hover-scale animate-fade-in">
-          <div className="rounded-full bg-gov-blue-100 text-gov-blue-800 p-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* ALTERAÇÃO: Layout interno dos cards responsivo (flex-col sm:flex-row) */}
+        <Card className="flex flex-col text-center sm:flex-row sm:text-left items-center gap-4 px-6 py-4 shadow-sm hover-scale animate-fade-in">
+          <div className="rounded-full bg-gov-blue-100 text-gov-blue-800 p-3 flex-shrink-0">
             <FileText className="w-7 h-7" />
           </div>
           <div>
@@ -88,8 +54,8 @@ export default function Painel() {
             <div className="text-sm text-gray-500">Matérias Protocoladas no Mês</div>
           </div>
         </Card>
-        <Card className="flex flex-row items-center gap-4 px-6 py-4 shadow-sm hover-scale animate-fade-in">
-          <div className="rounded-full bg-gov-gold-100 text-gov-gold-600 p-3">
+        <Card className="flex flex-col text-center sm:flex-row sm:text-left items-center gap-4 px-6 py-4 shadow-sm hover-scale animate-fade-in">
+          <div className="rounded-full bg-gov-gold-100 text-gov-gold-600 p-3 flex-shrink-0">
             <Gavel className="w-7 h-7" />
           </div>
           <div>
@@ -97,8 +63,8 @@ export default function Painel() {
             <div className="text-sm text-gray-500">Matérias em Votação</div>
           </div>
         </Card>
-        <Card className="flex flex-row items-center gap-4 px-6 py-4 shadow-sm hover-scale animate-fade-in">
-          <div className="rounded-full bg-green-100 text-green-700 p-3">
+        <Card className="flex flex-col text-center sm:flex-row sm:text-left items-center gap-4 px-6 py-4 shadow-sm hover-scale animate-fade-in">
+          <div className="rounded-full bg-green-100 text-green-700 p-3 flex-shrink-0">
             <Calendar className="w-7 h-7" />
           </div>
           <div>
@@ -120,8 +86,8 @@ export default function Painel() {
             <CardDescription>Reunião ordinária do Plenário</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-2 text-2xl font-bold text-gov-blue-800">{nextSessionDate}</div>
-            <div className="mb-1 text-lg text-gray-700">{countdown}</div>
+            <div className="mb-2 text-xl md:text-2xl font-bold text-gov-blue-800">{nextSessionDate}</div>
+            <div className="mb-1 text-base md:text-lg text-gray-700">{countdown}</div>
             <div className="text-gray-600 mb-4">12 matérias na pauta</div>
             <Button asChild size="lg" className="w-full mt-4 bg-gov-blue-700 hover:bg-gov-blue-900 text-white text-base font-bold py-3 rounded animate-scale-in">
               <Link to={`/atividade-legislativa/pautas/${pautaId}`}>Ver Pauta Completa</Link>
@@ -130,7 +96,8 @@ export default function Painel() {
         </Card>
 
         {/* Pendências */}
-        <Card className="shadow-lg animate-fade-in max-h-[420px] flex flex-col">
+        {/* ALTERAÇÃO: Altura do card agora é flexível (h-full) para se alinhar com o vizinho no desktop */}
+        <Card className="shadow-lg animate-fade-in h-full flex flex-col">
           <CardHeader>
             <CardTitle className="text-lg">Aguardando Parecer ou Votação</CardTitle>
             <CardDescription>
@@ -140,7 +107,7 @@ export default function Painel() {
           <CardContent className="flex-1 overflow-hidden">
             <ScrollArea className="h-48 pr-1">
               <ul className="space-y-3">
-                {pendencias.map((item, idx) => (
+                {pendencias.map((item) => (
                   <li key={item.id}>
                     <Link
                       to={item.link}
@@ -155,7 +122,7 @@ export default function Painel() {
               </ul>
             </ScrollArea>
           </CardContent>
-          <CardFooter className="justify-end">
+          <CardFooter className="mt-auto justify-end pt-4">
             <Link
               to="/documentos/materias?filtro=pendentes"
               className="text-sm text-gov-blue-700 font-semibold hover:underline"
@@ -177,7 +144,7 @@ export default function Painel() {
             <ul className="space-y-4">
               {atividadeRecente.map((item, idx) => (
                 <li key={idx} className="flex items-start gap-2">
-                  <span className="inline-block w-2 h-2 rounded-full bg-gov-gold-500 mt-2 mr-2" />
+                  <span className="inline-block w-2 h-2 rounded-full bg-gov-gold-500 mt-2 mr-2 flex-shrink-0" />
                   <span>{item}</span>
                 </li>
               ))}

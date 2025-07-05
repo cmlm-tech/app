@@ -1,4 +1,4 @@
-import { Menu, Bell, User, Cog } from "lucide-react";
+import { Menu, Bell, User, Cog, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,7 +33,6 @@ export const AppHeader = ({ isMobileMenuOpen, setIsMobileMenuOpen }: AppHeaderPr
     }
   };
 
-  // Extrair nome do usuário do email (parte antes do @)
   const userName = user?.email?.split('@')[0] || 'Usuário';
   const userInitial = userName.charAt(0).toUpperCase();
 
@@ -96,13 +95,7 @@ export const AppHeader = ({ isMobileMenuOpen, setIsMobileMenuOpen }: AppHeaderPr
                       }}
                       className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors text-sm"
                     >
-                      <span>
-                        <svg viewBox="0 0 24 24" className="w-4 h-4 mr-2" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                          <polyline points="16 17 21 12 16 7" />
-                          <line x1="21" x2="9" y1="12" y2="12" />
-                        </svg>
-                      </span>
+                       <LogOut className="w-4 h-4 mr-2" />
                       Sair
                     </button>
                   </li>

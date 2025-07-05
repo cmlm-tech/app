@@ -17,7 +17,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
-// Tipos definidos para maior segurança e clareza do código.
 interface SubMenuItem {
   label: string;
   to: string;
@@ -31,67 +30,11 @@ interface MenuItem {
   children?: SubMenuItem[];
 }
 
-// Array completo com os dados do menu.
 const sidebarMenu: MenuItem[] = [
-  {
-    label: "Painel de Controle",
-    icon: Home,
-    to: "/painel",
-    type: "link",
-  },
-  {
-    label: "Documentos",
-    icon: FileText,
-    type: "menu",
-    children: [
-      {
-        label: "Matérias",
-        to: "/documentos/materias",
-      },
-      {
-        label: "Atas",
-        to: "/documentos/atas"
-      }
-    ],
-  },
-  {
-    label: "Plenário",
-    icon: Gavel,
-    type: "menu",
-    children: [
-      {
-        label: "Agentes Públicos",
-        to: "/plenario/agentes-publicos"
-      },
-      {
-        label: "Mesa Diretora",
-        to: "/plenario/mesa-diretora"
-      },
-      {
-        label: "Comissões",
-        to: "/plenario/comissoes"
-      }
-    ],
-  },
-  {
-    label: "Atividade Legislativa",
-    icon: Activity,
-    type: "menu",
-    children: [
-      {
-        label: "Sessões",
-        to: "/atividade-legislativa/sessoes"
-      },
-      {
-        label: "Pautas",
-        to: "/atividade-legislativa/pautas"
-      },
-      {
-        label: "Legislaturas",
-        to: "/atividade-legislativa/legislaturas"
-      }
-    ],
-  }
+  { label: "Painel de Controle", icon: Home, to: "/painel", type: "link" },
+  { label: "Documentos", icon: FileText, type: "menu", children: [{ label: "Matérias", to: "/documentos/materias" }, { label: "Atas", to: "/documentos/atas" }] },
+  { label: "Plenário", icon: Gavel, type: "menu", children: [{ label: "Agentes Públicos", to: "/plenario/agentes-publicos" }, { label: "Mesa Diretora", to: "/plenario/mesa-diretora" }, { label: "Comissões", to: "/plenario/comissoes" }] },
+  { label: "Atividade Legislativa", icon: Activity, type: "menu", children: [{ label: "Sessões", to: "/atividade-legislativa/sessoes" }, { label: "Pautas", to: "/atividade-legislativa/pautas" }, { label: "Legislaturas", to: "/atividade-legislativa/legislaturas" }] }
 ];
 
 type AppSidebarProps = {
@@ -130,10 +73,19 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
     }
   };
 
-  // Componente interno para links, já com a lógica de tooltip
   const SidebarLink = ({ item }: { item: MenuItem }) => {
     const content = (
-      <NavLink to={item.to!} onClick={handleMobileNavClick} className={({ isActive }) => cn("flex items-center gap-3 px-6 py-3 rounded-md transition-colors font-medium", isActive ? "bg-gov-blue-700 shadow border-l-4 border-gov-gold-500" : "hover:bg-gov-blue-700/70", isCollapsed && "justify-center px-3")}>
+      <NavLink 
+        to={item.to!} 
+        onClick={handleMobileNavClick} 
+        className={({ isActive }) => cn(
+          "relative flex items-center gap-3 px-6 py-3 rounded-md transition-colors font-medium", // Adicionado 'relative' aqui
+          isActive 
+            ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full" // Lógica do marcador
+            : "hover:bg-gov-blue-700/70",
+          isCollapsed && "justify-center px-3"
+        )}
+      >
         <item.icon className="w-5 h-5 flex-shrink-0" />
         {!isCollapsed && <span>{item.label}</span>}
       </NavLink>
@@ -141,7 +93,6 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
     return isCollapsed ? <Tooltip><TooltipTrigger asChild>{content}</TooltipTrigger><TooltipContent side="right"><p>{item.label}</p></TooltipContent></Tooltip> : content;
   };
 
-  // Componente interno para grupos de menu (acordeão / dropdown)
   const SidebarMenuGroup = ({ item }: { item: MenuItem }) => {
     const isActive = isSubMenuActive(item.children);
 
@@ -151,7 +102,7 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <div className={cn("flex items-center justify-center w-full px-3 py-3 rounded-md cursor-pointer hover:bg-gov-blue-700/70", isActive && "bg-gov-blue-700 border-l-4 border-gov-gold-500 shadow")}>
+                <div className={cn("relative flex items-center justify-center w-full px-3 py-3 rounded-md cursor-pointer hover:bg-gov-blue-700/70", isActive && "bg-gov-blue-700 before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full shadow")}>
                   <item.icon className="w-5 h-5" />
                 </div>
               </DropdownMenuTrigger>
@@ -174,14 +125,24 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
     return (
       <Accordion type="multiple" value={openMenus.includes(item.label) || isActive ? [item.label] : []} onValueChange={(vals) => { setOpenMenus(vals as string[]); }}>
         <AccordionItem value={item.label} className="border-none">
-          <AccordionTrigger className={cn("flex items-center gap-3 px-6 py-3 rounded-md transition-colors font-medium text-white hover:bg-gov-blue-700/80", (isActive || openMenus.includes(item.label)) && "bg-gov-blue-700 border-l-4 border-gov-gold-500 shadow")} onClick={(e) => { e.preventDefault(); handleMenuToggle(item.label); }}>
+          <AccordionTrigger 
+            className={cn(
+              "relative flex items-center gap-3 px-6 py-3 rounded-md transition-colors font-medium text-white hover:bg-gov-blue-700/80 hover:no-underline", // Adicionado 'relative' e 'hover:no-underline'
+              (isActive || openMenus.includes(item.label)) && "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full" // Lógica do marcador
+            )} 
+            onClick={(e) => { e.preventDefault(); handleMenuToggle(item.label); }}
+          >
             <item.icon className="w-5 h-5" />
             <span>{item.label}</span>
           </AccordionTrigger>
           <AccordionContent className="pl-3">
             <ul className="flex flex-col gap-1">
               {item.children?.map((sub) => (
-                <li key={sub.to}><NavLink to={sub.to} onClick={handleMobileNavClick} className={({ isActive: subIsActive }) => cn("flex items-center gap-2 px-8 py-2 rounded transition-colors text-sm", subIsActive ? "bg-gov-blue-600 border-l-4 border-gov-gold-500 font-semibold text-white" : "hover:bg-gov-blue-700/70 text-gray-200")}><span>{sub.label}</span></NavLink></li>
+                <li key={sub.to}>
+                  <NavLink to={sub.to} onClick={handleMobileNavClick} className={({ isActive: subIsActive }) => cn("flex items-center gap-2 px-8 py-2 rounded transition-colors text-sm", subIsActive ? "bg-gov-blue-600 border-l-4 border-gov-gold-500 font-semibold text-white" : "hover:bg-gov-blue-700/70 text-gray-200")}>
+                    <span>{sub.label}</span>
+                  </NavLink>
+                </li>
               ))}
             </ul>
           </AccordionContent>

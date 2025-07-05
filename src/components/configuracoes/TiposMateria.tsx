@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -9,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils"; // Import cn para melhor concatenação de classes
 
 const tipos = [
   { id: 1, nome: "Projeto de Lei" },
@@ -27,7 +27,8 @@ export const AbaTiposMateria = () => {
             + Adicionar Novo Tipo
           </Button>
         </div>
-        <div className="border rounded-lg">
+        {/* ALTERAÇÃO 1: Adicionada a classe 'overflow-x-auto' para a tabela rolar no mobile */}
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -39,9 +40,12 @@ export const AbaTiposMateria = () => {
               {tipos.map((tipo) => (
                 <TableRow key={tipo.id}>
                   <TableCell className="font-medium">{tipo.nome}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm">Editar Nome</Button>
-                    <Button variant="destructive" size="sm">Excluir</Button>
+                  {/* ALTERAÇÃO 2: Lógica de espaçamento dos botões */}
+                  <TableCell className="text-right">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                      <Button variant="outline" size="sm">Editar Nome</Button>
+                      <Button variant="destructive" size="sm">Excluir</Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

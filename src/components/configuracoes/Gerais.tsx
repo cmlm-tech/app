@@ -1,47 +1,82 @@
-
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { ImageUpload } from "@/components/ImageUpload";
+// ALTERAÇÃO: Importando o 'Link' da biblioteca correta para o seu projeto.
 import { Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 
 export const AbaGeral = () => {
   return (
     <Card>
-      <CardContent className="p-6">
-        <h2 className="text-2xl font-bold text-gov-blue-800 mb-6">Configurações Gerais da Instituição</h2>
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="nome-instituicao">Nome da Instituição</Label>
-            <Input id="nome-instituicao" defaultValue="Câmara Municipal de Lavras da Mangabeira - CE" />
+      <CardHeader>
+        <CardTitle>Configurações Gerais da Instituição</CardTitle>
+        <CardDescription>
+          Ajuste as informações básicas que são exibidas em todo o sistema.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        {/* Item: Nome da Instituição */}
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Label htmlFor="nomeInstituicao">Nome da Instituição</Label>
+            <p className="text-sm text-muted-foreground">
+              O nome que aparecerá em todo o sistema.
+            </p>
           </div>
-          <div className="space-y-2">
+          <Input 
+            id="nomeInstituicao" 
+            defaultValue="Câmara Municipal de Lavras da Mangabeira - CE" 
+            className="w-full sm:max-w-md" 
+          />
+        </div>
+
+        <Separator />
+
+        {/* Item: Logo da Instituição */}
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
             <Label>Logo da Instituição</Label>
-            <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src="/placeholder.svg" alt="Logo" />
-                <AvatarFallback>CMLM</AvatarFallback>
-              </Avatar>
-              <Button variant="outline">Trocar Logo</Button>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Faça o upload do brasão ou logo oficial.
+            </p>
           </div>
-          <div className="space-y-2">
-            <Label>Legislatura Atual</Label>
-            <div className="flex items-center gap-2">
-              <p className="text-gray-700">2025-2028</p>
-              <Link to="/atividade-legislativa/legislaturas" className="text-sm text-blue-600 hover:underline">
-                (Gerenciar Legislaturas)
-              </Link>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Período Legislativo Atual</Label>
-            <p className="text-gray-700">2025</p>
+          <div className="flex items-center gap-4">
+            {/* ALTERAÇÃO: Removida a propriedade 'initialPreview' que não existe no seu componente. */}
+            <ImageUpload 
+              onImageUploaded={() => {}} 
+            />
+            <Button variant="outline">Trocar Logo</Button>
           </div>
         </div>
-        <div className="mt-8 flex justify-end">
-          <Button>Salvar Alterações Gerais</Button>
+        
+        <Separator />
+        
+        {/* Item: Legislatura Atual */}
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <Label>Legislatura Atual</Label>
+                <p className="text-sm text-muted-foreground">Período que está em vigência.</p>
+            </div>
+            <div className="text-right">
+                <p className="font-medium">2025-2028</p>
+                {/* ALTERAÇÃO: Usando a propriedade 'to' em vez de 'href'. */}
+                <Link to="/atividade-legislativa/legislaturas" className="text-sm text-blue-600 hover:underline">
+                    Gerenciar Legislaturas
+                </Link>
+            </div>
+        </div>
+
+        <Separator />
+        
+        {/* Item: Período Legislativo Atual */}
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <Label>Período Legislativo Atual</Label>
+                <p className="text-sm text-muted-foreground">Ano legislativo corrente.</p>
+            </div>
+            <p className="font-medium">2025</p>
         </div>
       </CardContent>
     </Card>

@@ -34,7 +34,7 @@ interface MenuItem {
 const sidebarMenu: MenuItem[] = [
   { label: "Painel de Controle", icon: Home, to: "/painel", type: "link" },
   { label: "Documentos", icon: FileText, type: "menu", children: [{ label: "Matérias", to: "/documentos/materias" }, { label: "Atas", to: "/documentos/atas" }] },
-  { label: "Plenário", icon: Gavel, type: "menu", children: [{ label: "Agentes Públicos", to: "/plenario/agentes-publicos" }, { label: "Mesa Diretora", to: "/plenario/mesa-diretora" }, { label: "Comissões", to: "/plenario/comissoes" }] },
+  { label: "Plenário", icon: Gavel, type: "menu", children: [{ label: "Agentes Públicos", to: "/plenario/agentes-publicos" }, { label: "Vereadores", to: "/plenario/vereadores" }, { label: "Mesa Diretora", to: "/plenario/mesa-diretora" }, { label: "Comissões", to: "/plenario/comissoes" }] },
   { label: "Atividade Legislativa", icon: Activity, type: "menu", children: [{ label: "Sessões", to: "/atividade-legislativa/sessoes" }, { label: "Pautas", to: "/atividade-legislativa/pautas" }, { label: "Legislaturas", to: "/atividade-legislativa/legislaturas" }] }
 ];
 

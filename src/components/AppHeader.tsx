@@ -1,4 +1,4 @@
-import { Menu, Bell, User, Cog, LogOut } from "lucide-react";
+import { Cloud, Menu, Bell, User, Cog, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,9 +47,10 @@ export const AppHeader = ({ isMobileMenuOpen, setIsMobileMenuOpen }: AppHeaderPr
           >
             <Menu className="text-gov-blue-800 w-6 h-6" />
           </button>
-          <span className="font-montserrat text-xl font-bold text-gov-blue-800">
-            CMLM.TECH
-          </span>
+          <div className="w-8 h-8 bg-gov-blue-800 rounded-lg flex items-center justify-center">
+             <Cloud className="text-white h-5 w-5" />
+            </div>
+            <span className="text-xl font-montserrat font-bold text-gov-blue-800">cmlm.tech</span>
         </div>
         <div className="flex items-center gap-6">
           <button className="relative hover:bg-gray-100 p-2 rounded transition-colors" aria-label="Notificações">

@@ -1,6 +1,6 @@
 // Corrigindo as importações, removendo linhas de diff
 import { useState, useEffect } from 'react';
-import { Clock, Shield, Settings, Database, ArrowRight, Users, Link, Archive, LogIn } from 'lucide-react';
+import { Cloud, Clock, Shield, Settings, Database, ArrowRight, Users, Link, Archive, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link as RouterLink } from "react-router-dom";
 
@@ -32,7 +32,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gov-blue-800 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">C</span>
+             <Cloud className="text-white h-5 w-5" />
             </div>
             <span className="text-xl font-montserrat font-bold text-gov-blue-800">cmlm.tech</span>
           </div>
@@ -248,7 +248,7 @@ const Index = () => {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                  <span className="text-gov-blue-800 font-bold text-sm">C</span>
+                  <Cloud className="text-gov-blue-800 h-5 w-5" />
                 </div>
                 <span className="text-xl font-montserrat font-bold">cmlm.tech</span>
               </div>

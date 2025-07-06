@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Key, Eye, EyeOff, Check, Loader2, AlertCircle } from "lucide-react";
+import { Cloud, Eye, EyeOff, Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,7 +117,7 @@ const RedefinirSenha = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gov-blue-800 px-4">
       <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md flex flex-col items-center">
-        <Key className="h-12 w-12 text-gov-blue-800 mb-5" aria-hidden="true" />
+        <Cloud className="h-12 w-12 text-gov-blue-800 mb-5" aria-hidden="true" />
         <h1 className="text-2xl font-montserrat font-bold text-gov-blue-800 mb-4 text-center">
           Crie sua Nova Senha
         </h1>

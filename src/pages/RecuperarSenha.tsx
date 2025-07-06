@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { LogIn, Send, Loader2 } from "lucide-react";
+import { Cloud, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +40,7 @@ const RecuperarSenha = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gov-blue-800 px-4">
       <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md flex flex-col items-center">
-        <LogIn className="h-12 w-12 text-gov-blue-800 mb-5" aria-hidden="true" />
+        <Cloud className="h-12 w-12 text-gov-blue-800 mb-5" aria-hidden="true" />
         <h1 className="text-2xl font-montserrat font-bold text-gov-blue-800 mb-4 text-center">
           Recuperar Acesso
         </h1>

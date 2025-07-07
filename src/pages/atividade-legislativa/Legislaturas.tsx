@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -121,8 +120,9 @@ const Legislaturas = () => {
           <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800">Legislaturas</h1>
           <p className="text-gray-600 text-lg">Selecione uma legislatura para gerenciar seus períodos legislativos.</p>
         </div>
-        {isStaff && (
-          <Button 
+        {/* BOTÃO ALTERADO PARA SEGUIR A SUGESTÃO */}
+        {isStaff && legislaturas.length > 0 && (
+          <Button
             onClick={handleNovaLegislatura}
             className="bg-gov-blue-800 hover:bg-gov-blue-700"
           >
@@ -136,7 +136,7 @@ const Legislaturas = () => {
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">Nenhuma legislatura encontrada.</p>
           {isStaff && (
-            <Button 
+            <Button
               onClick={handleNovaLegislatura}
               className="mt-4 bg-gov-blue-800 hover:bg-gov-blue-700"
             >

@@ -15,7 +15,6 @@ import Entrar from "./pages/Entrar";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import Configuracoes from "./pages/Configuracoes";
-import Dashboard from "./pages/Dashboard";
 import Materias from "./pages/documentos/Materias";
 import Atas from "./pages/documentos/Atas";
 import AgentesPublicos from "./pages/plenario/AgentesPublicos";

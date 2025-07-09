@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -47,7 +46,7 @@ export const ModalLegislatura: React.FC<ModalLegislaturaProps> = ({
   const isEditMode = Boolean(legislatura);
 
   useEffect(() => {
-    if (legislatura) {
+    if (legislatura && isOpen) {
       setFormData({
         numero: legislatura.numero,
         descricao: legislatura.descricao,
@@ -57,7 +56,7 @@ export const ModalLegislatura: React.FC<ModalLegislaturaProps> = ({
       });
     } else {
       setFormData({
-        numero: 0,
+        numero: new Date().getFullYear(),
         descricao: '',
         data_inicio: undefined,
         data_fim: undefined,
@@ -73,21 +72,8 @@ export const ModalLegislatura: React.FC<ModalLegislaturaProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.data_inicio || !formData.data_fim) {
-      toast({
-        title: "Erro",
-        description: "Por favor, preencha todas as datas.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!formData.descricao.trim()) {
-      toast({
-        title: "Erro",
-        description: "Por favor, preencha a descrição.",
-        variant: "destructive"
-      });
+    if (!formData.data_inicio || !formData.data_fim || !formData.descricao.trim()) {
+      toast({ title: "Erro", description: "Todos os campos são obrigatórios.", variant: "destructive" });
       return;
     }
 
@@ -101,22 +87,18 @@ export const ModalLegislatura: React.FC<ModalLegislaturaProps> = ({
         data_fim: format(formData.data_fim, 'yyyy-MM-dd'),
         numero_vagas_vereadores: formData.numero_vagas_vereadores
       };
-
-      let result;
       
       if (isEditMode && legislatura) {
-        result = await supabase
+        const { error } = await supabase
           .from('legislaturas')
           .update(dataToSave)
           .eq('id', legislatura.id);
+        if (error) throw error;
       } else {
-        result = await supabase
-          .from('legislaturas')
-          .insert([dataToSave]);
-      }
-
-      if (result.error) {
-        throw result.error;
+        const { error } = await supabase.functions.invoke('criar-legislatura-completa', {
+          body: dataToSave
+        });
+        if (error) throw error;
       }
 
       toast({
@@ -126,11 +108,11 @@ export const ModalLegislatura: React.FC<ModalLegislaturaProps> = ({
 
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar legislatura:', error);
       toast({
         title: "Erro",
-        description: `Erro ao ${isEditMode ? 'atualizar' : 'criar'} legislatura. Tente novamente.`,
+        description: error.message || `Erro ao ${isEditMode ? 'atualizar' : 'criar'} legislatura.`,
         variant: "destructive"
       });
     } finally {
@@ -139,7 +121,8 @@ export const ModalLegislatura: React.FC<ModalLegislaturaProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    // ALTERAÇÃO APLICADA AQUI
+    <Dialog open={isOpen} onOpenChange={onClose} modal={false}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
@@ -149,117 +132,45 @@ export const ModalLegislatura: React.FC<ModalLegislaturaProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="numero">Número</Label>
-            <Input
-              id="numero"
-              type="number"
-              value={formData.numero}
-              onChange={(e) => handleInputChange('numero', parseInt(e.target.value) || 0)}
-              required
-              min="1"
-            />
+            <Label htmlFor="numero">Número/Ano</Label>
+            <Input id="numero" type="number" value={formData.numero} onChange={(e) => handleInputChange('numero', parseInt(e.target.value) || 0)} required min="1" />
           </div>
-
           <div>
             <Label htmlFor="descricao">Descrição</Label>
-            <Input
-              id="descricao"
-              value={formData.descricao}
-              onChange={(e) => handleInputChange('descricao', e.target.value)}
-              placeholder="Ex: Legislatura 2029-2032"
-              required
-            />
+            <Input id="descricao" value={formData.descricao} onChange={(e) => handleInputChange('descricao', e.target.value)} placeholder="Ex: Legislatura 2029-2032" required />
           </div>
-
           <div>
             <Label>Data de Início</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.data_inicio && "text-muted-foreground"
-                  )}
-                >
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !formData.data_inicio && "text-muted-foreground")}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {formData.data_inicio ? format(formData.data_inicio, "dd/MM/yyyy") : "Selecione a data"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={formData.data_inicio}
-                  onSelect={(date) => handleInputChange('data_inicio', date)}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
+              <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={formData.data_inicio} onSelect={(date) => handleInputChange('data_inicio', date)} initialFocus /></PopoverContent>
             </Popover>
           </div>
-
           <div>
             <Label>Data de Fim</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.data_fim && "text-muted-foreground"
-                  )}
-                >
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !formData.data_fim && "text-muted-foreground")}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {formData.data_fim ? format(formData.data_fim, "dd/MM/yyyy") : "Selecione a data"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={formData.data_fim}
-                  onSelect={(date) => handleInputChange('data_fim', date)}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
+              <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={formData.data_fim} onSelect={(date) => handleInputChange('data_fim', date)} initialFocus /></PopoverContent>
             </Popover>
           </div>
-
           <div>
             <Label htmlFor="vagas">Número de Vagas para Vereadores</Label>
-            <Input
-              id="vagas"
-              type="number"
-              value={formData.numero_vagas_vereadores}
-              onChange={(e) => handleInputChange('numero_vagas_vereadores', parseInt(e.target.value) || 0)}
-              required
-              min="1"
-            />
+            <Input id="vagas" type="number" value={formData.numero_vagas_vereadores} onChange={(e) => handleInputChange('numero_vagas_vereadores', parseInt(e.target.value) || 0)} required min="1" />
           </div>
-
           <div className="flex gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex-1"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                'Salvar'
-              )}
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={loading}>Cancelar</Button>
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : 'Salvar'}
             </Button>
           </div>
         </form>

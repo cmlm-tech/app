@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,36 +28,17 @@ const Legislaturas = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingLegislatura, setEditingLegislatura] = useState<Legislatura | null>(null);
 
-  // Verificação de permissão seguindo o padrão obrigatório
-  useEffect(() => {
-    const fetchUserPermission = async () => {
-      if (user) {
-        const { data: perfil } = await supabase
-          .from('usuarios')
-          .select('permissao')
-          .eq('id', user.id)
-          .single();
-        setPermissaoLogado(perfil?.permissao || null);
-      }
-    };
-    fetchUserPermission();
-  }, [user]);
+  // LÓGICA DE PERMISSÃO ATUALIZADA - IGUAL A TABELA DE AGENTES
+  const isAdmin = permissaoLogado?.toLowerCase() === 'admin';
 
-  const isStaff = ['admin', 'assessoria', 'secretaria'].includes(permissaoLogado?.toLowerCase() || '');
-
-  // Buscar legislaturas do Supabase
-  const fetchLegislaturas = async () => {
+  const fetchLegislaturas = useCallback(async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('legislaturas')
         .select('*')
         .order('numero', { ascending: false });
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       setLegislaturas(data || []);
     } catch (error) {
       console.error('Erro ao buscar legislaturas:', error);
@@ -66,14 +47,31 @@ const Legislaturas = () => {
         description: "Erro ao carregar legislaturas. Tente novamente.",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
-    fetchLegislaturas();
-  }, []);
+    const carregarDadosIniciais = async () => {
+      setLoading(true);
+
+      if (user) {
+        const { data: perfil } = await supabase
+          .from('usuarios')
+          .select('permissao')
+          .eq('id', user.id)
+          .single();
+        setPermissaoLogado(perfil?.permissao || null);
+      } else {
+        setPermissaoLogado(null);
+      }
+      
+      await fetchLegislaturas();
+      
+      setLoading(false);
+    };
+
+    carregarDadosIniciais();
+  }, [user, fetchLegislaturas]);
 
   const handleNovaLegislatura = () => {
     setEditingLegislatura(null);
@@ -92,6 +90,7 @@ const Legislaturas = () => {
 
   const handleModalSuccess = () => {
     fetchLegislaturas();
+    setModalOpen(false);
   };
 
   const formatarPeriodo = (dataInicio: string, dataFim: string) => {
@@ -120,11 +119,11 @@ const Legislaturas = () => {
           <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800">Legislaturas</h1>
           <p className="text-gray-600 text-lg">Selecione uma legislatura para gerenciar seus períodos legislativos.</p>
         </div>
-        {/* BOTÃO ALTERADO PARA SEGUIR A SUGESTÃO */}
-        {isStaff && legislaturas.length > 0 && (
+        {/* LÓGICA DO BOTÃO ATUALIZADA PARA USAR 'isAdmin' */}
+        {isAdmin && legislaturas.length > 0 && (
           <Button
             onClick={handleNovaLegislatura}
-            className="bg-gov-blue-800 hover:bg-gov-blue-700"
+            className="bg-gov-blue-800 hover:bg-gov-blue-700 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nova Legislatura
@@ -135,10 +134,11 @@ const Legislaturas = () => {
       {legislaturas.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">Nenhuma legislatura encontrada.</p>
-          {isStaff && (
+          {/* LÓGICA DO BOTÃO ATUALIZADA PARA USAR 'isAdmin' */}
+          {isAdmin && (
             <Button
               onClick={handleNovaLegislatura}
-              className="mt-4 bg-gov-blue-800 hover:bg-gov-blue-700"
+              className="mt-4 bg-gov-blue-800 hover:bg-gov-blue-700 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
               Criar primeira legislatura
@@ -168,7 +168,8 @@ const Legislaturas = () => {
                 </Card>
               </Link>
               
-              {isStaff && (
+              {/* LÓGICA DO MENU ATUALIZADA PARA USAR 'isAdmin' */}
+              {isAdmin && (
                 <div className="absolute top-2 right-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

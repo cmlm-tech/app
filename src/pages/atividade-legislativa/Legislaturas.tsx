@@ -28,7 +28,6 @@ const Legislaturas = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingLegislatura, setEditingLegislatura] = useState<Legislatura | null>(null);
 
-  // LÓGICA DE PERMISSÃO ATUALIZADA - IGUAL A TABELA DE AGENTES
   const isAdmin = permissaoLogado?.toLowerCase() === 'admin';
 
   const fetchLegislaturas = useCallback(async () => {
@@ -53,7 +52,6 @@ const Legislaturas = () => {
   useEffect(() => {
     const carregarDadosIniciais = async () => {
       setLoading(true);
-
       if (user) {
         const { data: perfil } = await supabase
           .from('usuarios')
@@ -64,12 +62,9 @@ const Legislaturas = () => {
       } else {
         setPermissaoLogado(null);
       }
-      
       await fetchLegislaturas();
-      
       setLoading(false);
     };
-
     carregarDadosIniciais();
   }, [user, fetchLegislaturas]);
 
@@ -114,16 +109,21 @@ const Legislaturas = () => {
 
   return (
     <AppLayout>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
         <div>
-          <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800">Legislaturas</h1>
-          <p className="text-gray-600 text-lg">Selecione uma legislatura para gerenciar seus períodos legislativos.</p>
+          <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gov-blue-800">Legislaturas</h1>
+          
+          <p className="text-base md:text-lg text-gray-600">
+            {isAdmin
+              ? "Selecione uma legislatura para gerenciar seus períodos legislativos."
+              : "Consulte os detalhes e os períodos de cada legislatura."
+            }
+          </p>
         </div>
-        {/* LÓGICA DO BOTÃO ATUALIZADA PARA USAR 'isAdmin' */}
         {isAdmin && legislaturas.length > 0 && (
           <Button
             onClick={handleNovaLegislatura}
-            className="bg-gov-blue-800 hover:bg-gov-blue-700 text-white"
+            className="bg-gov-blue-800 hover:bg-gov-blue-700 text-white flex-shrink-0"
           >
             <Plus className="w-4 h-4 mr-2" />
             Nova Legislatura
@@ -134,7 +134,6 @@ const Legislaturas = () => {
       {legislaturas.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">Nenhuma legislatura encontrada.</p>
-          {/* LÓGICA DO BOTÃO ATUALIZADA PARA USAR 'isAdmin' */}
           {isAdmin && (
             <Button
               onClick={handleNovaLegislatura}
@@ -146,7 +145,7 @@ const Legislaturas = () => {
           )}
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {legislaturas.map((leg) => (
             <div key={leg.id} className="relative">
               <Link to={`/atividade-legislativa/legislaturas/${leg.id}`} className="block">
@@ -168,7 +167,6 @@ const Legislaturas = () => {
                 </Card>
               </Link>
               
-              {/* LÓGICA DO MENU ATUALIZADA PARA USAR 'isAdmin' */}
               {isAdmin && (
                 <div className="absolute top-2 right-2">
                   <DropdownMenu>

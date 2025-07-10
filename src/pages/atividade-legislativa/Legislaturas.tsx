@@ -148,7 +148,7 @@ const Legislaturas = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {legislaturas.map((leg) => (
             <div key={leg.id} className="relative">
-              <Link to={`/atividade-legislativa/legislaturas/${leg.id}`} className="block">
+              <Link to={`/atividade-legislativa/legislaturas/${leg.numero}`} className="block">
                 <Card className="hover:shadow-lg hover:border-gov-blue-500 transition-all duration-200 cursor-pointer h-full flex flex-col">
                   <CardHeader className="flex-grow">
                     <CardTitle className="text-gov-blue-800">

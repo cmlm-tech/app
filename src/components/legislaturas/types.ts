@@ -1,17 +1,11 @@
+import { Database } from '@/lib/database.types';
 
-export type PeriodoStatus = "Em andamento" | "Concluído" | "Futuro";
+// Tipos reais, derivados diretamente do seu banco de dados!
+export type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
+export type PeriodoRow = Database['public']['Tables']['periodossessao']['Row'];
+export type AgentePublicoRow = Database['public']['Tables']['agentespublicos']['Row'];
 
-export interface PeriodoLegislativo {
-  id: string;
-  ano: number;
-  status: PeriodoStatus;
-  presidenteId?: string;
-}
-
-export interface Legislatura {
-  id: string;
-  anoInicio: number;
-  anoFim: number;
-  periodos: PeriodoLegislativo[];
-}
-
+// Tipo customizado para usar no estado do componente, combinando a legislatura com seus períodos
+export type LegislaturaComPeriodos = LegislaturaRow & {
+  periodos: PeriodoRow[];
+};

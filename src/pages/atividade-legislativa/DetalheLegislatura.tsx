@@ -1,94 +1,115 @@
-
 import { AppLayout } from "@/components/AppLayout";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Legislatura, PeriodoLegislativo } from "@/components/legislaturas/types";
-import { Vereador } from "@/components/vereadores/types";
 import { PeriodoCard } from "@/components/legislaturas/PeriodoCard";
 import { ModalGerenciarPeriodo } from "@/components/legislaturas/ModalGerenciarPeriodo";
-
-// MOCKS
-const VEREADORES_MOCK: Vereador[] = [
-  { id: "1", nome: "Ana Paula Silva", partido: "Democratas", partidoLogo: "", foto: "https://static.wikia.nocookie.net/simpsons/images/0/0b/Marge_Simpson.png", email: "", telefone: "", biografia: "", legislatura: "", comissoes: [] },
-  { id: "2", nome: "Carlos Moura", partido: "Republicanos", partidoLogo: "", foto: "/vereadores/bart.png", email: "", telefone: "", biografia: "", legislatura: "", comissoes: [] },
-  { id: "3", nome: "Lívia Rocha", partido: "Progressistas", partidoLogo: "", foto: "https://static.wikia.nocookie.net/simpsons/images/e/ec/Lisa_Simpson.png", email: "", telefone: "", biografia: "", legislatura: "", comissoes: [] },
-  { id: "4", nome: "Roberto Lima", partido: "Democratas", partidoLogo: "", foto: "https://static.wikia.nocookie.net/simpsons/images/0/02/Homer_Simpson_2006.png", email: "", telefone: "", biografia: "", legislatura: "", comissoes: [] },
-];
-
-const LEGISLATURAS_MOCK: Legislatura[] = [
-    {
-        id: '2025-2028', anoInicio: 2025, anoFim: 2028, 
-        periodos: [
-            { id: 'p-2025', ano: 2025, status: 'Em andamento', presidenteId: '1' },
-            { id: 'p-2026', ano: 2026, status: 'Futuro' },
-            { id: 'p-2027', ano: 2027, status: 'Futuro' },
-            { id: 'p-2028', ano: 2028, status: 'Futuro' },
-        ]
-    },
-    { id: '2021-2024', anoInicio: 2021, anoFim: 2024, periodos: [] },
-];
+import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+// Importando os novos tipos seguros
+import { LegislaturaComPeriodos, PeriodoRow, AgentePublicoRow } from "@/components/legislaturas/types";
 
 export default function DetalheLegislatura() {
-    const { legislaturaId } = useParams<{ legislaturaId: string }>();
-    
-    // Simula a busca dos dados da legislatura e a atualização do estado
-    const [legislatura, setLegislatura] = useState<Legislatura | undefined>(
-        LEGISLATURAS_MOCK.find(l => l.id === legislaturaId)
-    );
-    const [modalOpen, setModalOpen] = useState(false);
-    const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoLegislativo | null>(null);
+    const { legislaturaNumero } = useParams<{ legislaturaNumero: string }>();
+    const { toast } = useToast();
 
-    const handleGerenciarClick = (periodo: PeriodoLegislativo) => {
+    const [legislatura, setLegislatura] = useState<LegislaturaComPeriodos | null>(null);
+    const [vereadores, setVereadores] = useState<AgentePublicoRow[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoRow | null>(null);
+
+    const fetchData = useCallback(async (numero: number) => {
+        setLoading(true);
+        try {
+            const { data: legData, error: legError } = await supabase.from('legislaturas').select('*').eq('numero', numero).single();
+            if (legError) throw new Error(`Legislatura não encontrada: ${legError.message}`);
+
+            const legislaturaId = legData.id;
+            const [periodosResult, verResult] = await Promise.all([
+                supabase.from('periodossessao').select('*').eq('legislatura_id', legislaturaId),
+                supabase.from('legislatura_vereadores').select('agente_publico_id').eq('legislatura_id', legislaturaId)
+            ]);
+
+            if (periodosResult.error) throw periodosResult.error;
+            if (verResult.error) throw verResult.error;
+
+            const vereadorIds = verResult.data.map(v => v.agente_publico_id);
+            let vereadoresData: AgentePublicoRow[] = [];
+            if (vereadorIds.length > 0) {
+              const { data, error } = await supabase.from('agentespublicos').select('*').in('id', vereadorIds);
+              if (error) throw error;
+              vereadoresData = data || [];
+            }
+            
+            setLegislatura({ ...legData, periodos: periodosResult.data || [] });
+            setVereadores(vereadoresData);
+        } catch (error: any) {
+            toast({ title: "Erro", description: error.message, variant: "destructive" });
+            setLegislatura(null);
+        } finally {
+            setLoading(false);
+        }
+    }, [toast]);
+
+    useEffect(() => {
+        const numeroAsNumber = legislaturaNumero ? parseInt(legislaturaNumero, 10) : null;
+        if (numeroAsNumber && !isNaN(numeroAsNumber)) {
+            fetchData(numeroAsNumber);
+        } else {
+            setLoading(false);
+        }
+    }, [legislaturaNumero, fetchData]);
+    
+    const handleGerenciarClick = (periodo: PeriodoRow) => {
         setPeriodoSelecionado(periodo);
         setModalOpen(true);
     };
 
-    const handleSavePeriodo = (data: { presidenteId: string }) => {
+    const handleSavePeriodo = async (data: { presidenteId: string }) => {
         if (!periodoSelecionado || !legislatura) return;
-
-        const updatedPeriodos = legislatura.periodos.map(p => 
-            p.id === periodoSelecionado.id ? { ...p, presidenteId: data.presidenteId } : p
-        );
-        
-        setLegislatura({ ...legislatura, periodos: updatedPeriodos });
+        try {
+            // Nota: Esta parte só funcionará se você adicionar uma coluna 'presidente_id' na tabela 'periodossessao'
+            const { error } = await supabase
+                .from('periodossessao')
+                .update({ presidente_id: parseInt(data.presidenteId) })
+                .eq('id', periodoSelecionado.id);
+            if (error) throw error;
+            
+            toast({ title: "Sucesso", description: `Presidente atualizado com sucesso.` });
+            fetchData(legislatura.numero);
+        } catch(error: any) {
+             toast({ title: "Erro", description: `Não foi possível atualizar o presidente. Verifique se a coluna 'presidente_id' existe na tabela 'periodossessao'. Erro: ${error.message}`, variant: "destructive" });
+        }
         setModalOpen(false);
-        setPeriodoSelecionado(null);
     };
 
-    if (!legislatura) {
-        return (
-            <AppLayout>
-                <div className="text-center py-10">
-                    <h1 className="text-2xl font-bold">Legislatura não encontrada</h1>
-                    <Link to="/atividade-legislativa/legislaturas" className="text-gov-blue-700 hover:underline">Voltar para a lista</Link>
-                </div>
-            </AppLayout>
-        );
-    }
+    if (loading) return <AppLayout><div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
+    if (!legislatura) return <AppLayout><div className="text-center py-10"><h1>Legislatura não encontrada</h1></div></AppLayout>;
     
+    const anoInicio = new Date(legislatura.data_inicio).getFullYear();
+    const anoFim = new Date(legislatura.data_fim).getFullYear();
+
     return (
         <AppLayout>
             <Breadcrumb className="mb-4">
                 <BreadcrumbList>
-                    <BreadcrumbItem><BreadcrumbLink asChild><Link to="/atividade-legislativa/sessoes">Atividade Legislativa</Link></BreadcrumbLink></BreadcrumbItem>
+                    <BreadcrumbItem><Link to="/atividade-legislativa/legislaturas">Legislaturas</Link></BreadcrumbItem>
                     <BreadcrumbSeparator />
-                    <BreadcrumbItem><BreadcrumbLink asChild><Link to="/atividade-legislativa/legislaturas">Legislaturas</Link></BreadcrumbLink></BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem><BreadcrumbPage>Legislatura {legislatura.anoInicio} - {legislatura.anoFim}</BreadcrumbPage></BreadcrumbItem>
+                    <BreadcrumbItem><BreadcrumbPage>Legislatura {anoInicio} - {anoFim}</BreadcrumbPage></BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
             
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold text-gov-blue-800">Legislatura {legislatura.anoInicio} - {legislatura.anoFim}</h1>
-                    <p className="text-gray-600 text-lg">Gerencie os períodos anuais e suas respectivas composições.</p>
-                </div>
+            <div className="mb-6">
+                <h1 className="text-3xl font-bold">Legislatura {anoInicio} - {anoFim}</h1>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
                 {legislatura.periodos.map(periodo => {
-                    const presidente = VEREADORES_MOCK.find(v => v.id === periodo.presidenteId);
+                    // O código vai procurar por 'presidente_id', mas como não existe na tabela, 'presidente' será undefined.
+                    // Isso é o comportamento esperado até que a coluna seja adicionada no banco de dados.
+                    const presidente = vereadores.find(v => v.id === (periodo as any).presidente_id);
                     return (
                         <PeriodoCard 
                             key={periodo.id} 
@@ -104,10 +125,9 @@ export default function DetalheLegislatura() {
                 open={modalOpen}
                 onOpenChange={setModalOpen}
                 periodo={periodoSelecionado}
-                vereadores={VEREADORES_MOCK}
+                vereadores={vereadores}
                 onSave={handleSavePeriodo}
             />
-
         </AppLayout>
     );
 }

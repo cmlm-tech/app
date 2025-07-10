@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -61,7 +60,10 @@ const App = () => (
             <Route path="/atividade-legislativa/pautas" element={<RotaProtegida><Pautas /></RotaProtegida>} />
             <Route path="/atividade-legislativa/pautas/:pautaId" element={<RotaProtegida><GerenciarPauta /></RotaProtegida>} />
             <Route path="/atividade-legislativa/legislaturas" element={<RotaProtegida><Legislaturas /></RotaProtegida>} />
-            <Route path="/atividade-legislativa/legislaturas/:legislaturaId" element={<RotaProtegida><DetalheLegislatura /></RotaProtegida>} />
+            
+            {/* LINHA CORRIGIDA AQUI */}
+            <Route path="/atividade-legislativa/legislaturas/:legislaturaNumero" element={<RotaProtegida><DetalheLegislatura /></RotaProtegida>} />
+            
             <Route path="/configuracoes" element={<RotaProtegida><Configuracoes /></RotaProtegida>} />
             <Route path="/perfil" element={<RotaProtegida><MeuPerfil /></RotaProtegida>} />
 

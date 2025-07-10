@@ -7,8 +7,15 @@ import { ModalGerenciarPeriodo } from "@/components/legislaturas/ModalGerenciarP
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-// Importando os novos tipos seguros
-import { LegislaturaComPeriodos, PeriodoRow, AgentePublicoRow } from "@/components/legislaturas/types";
+import { Database } from "@/lib/database.types";
+
+// Tipos derivados dos tipos gerados pelo Supabase
+type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
+type PeriodoRow = Database['public']['Tables']['periodossessao']['Row'];
+type AgentePublicoRow = Database['public']['Tables']['agentespublicos']['Row'];
+type LegislaturaComPeriodos = LegislaturaRow & {
+  periodos: PeriodoRow[];
+};
 
 export default function DetalheLegislatura() {
     const { legislaturaNumero } = useParams<{ legislaturaNumero: string }>();
@@ -24,12 +31,17 @@ export default function DetalheLegislatura() {
         setLoading(true);
         try {
             const { data: legData, error: legError } = await supabase.from('legislaturas').select('*').eq('numero', numero).single();
-            if (legError) throw new Error(`Legislatura não encontrada: ${legError.message}`);
+            if (legError) throw new Error(`Legislatura de ${numero} não encontrada.`);
 
             const legislaturaId = legData.id;
+            
+            // ==================================================================
+            // CORREÇÃO APLICADA AQUI
+            // Trocado 'legislatura_vereadores' por 'legislaturavereadores' (sem o underscore)
+            // ==================================================================
             const [periodosResult, verResult] = await Promise.all([
                 supabase.from('periodossessao').select('*').eq('legislatura_id', legislaturaId),
-                supabase.from('legislatura_vereadores').select('agente_publico_id').eq('legislatura_id', legislaturaId)
+                supabase.from('legislaturavereadores').select('agente_publico_id').eq('legislatura_id', legislaturaId)
             ]);
 
             if (periodosResult.error) throw periodosResult.error;
@@ -45,6 +57,7 @@ export default function DetalheLegislatura() {
             
             setLegislatura({ ...legData, periodos: periodosResult.data || [] });
             setVereadores(vereadoresData);
+
         } catch (error: any) {
             toast({ title: "Erro", description: error.message, variant: "destructive" });
             setLegislatura(null);
@@ -62,6 +75,7 @@ export default function DetalheLegislatura() {
         }
     }, [legislaturaNumero, fetchData]);
     
+    // O resto do arquivo continua igual...
     const handleGerenciarClick = (periodo: PeriodoRow) => {
         setPeriodoSelecionado(periodo);
         setModalOpen(true);
@@ -70,17 +84,16 @@ export default function DetalheLegislatura() {
     const handleSavePeriodo = async (data: { presidenteId: string }) => {
         if (!periodoSelecionado || !legislatura) return;
         try {
-            // Nota: Esta parte só funcionará se você adicionar uma coluna 'presidente_id' na tabela 'periodossessao'
             const { error } = await supabase
                 .from('periodossessao')
-                .update({ presidente_id: parseInt(data.presidenteId) })
+                .update({ presidente_id: parseInt(data.presidenteId, 10) })
                 .eq('id', periodoSelecionado.id);
             if (error) throw error;
             
-            toast({ title: "Sucesso", description: `Presidente atualizado com sucesso.` });
+            toast({ title: "Sucesso", description: `Presidente atualizado.` });
             fetchData(legislatura.numero);
         } catch(error: any) {
-             toast({ title: "Erro", description: `Não foi possível atualizar o presidente. Verifique se a coluna 'presidente_id' existe na tabela 'periodossessao'. Erro: ${error.message}`, variant: "destructive" });
+             toast({ title: "Erro", description: error.message, variant: "destructive" });
         }
         setModalOpen(false);
     };
@@ -103,12 +116,11 @@ export default function DetalheLegislatura() {
             
             <div className="mb-6">
                 <h1 className="text-3xl font-bold">Legislatura {anoInicio} - {anoFim}</h1>
+                <p className="text-gray-600">Gerencie os períodos anuais e suas respectivas composições.</p>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
                 {legislatura.periodos.map(periodo => {
-                    // O código vai procurar por 'presidente_id', mas como não existe na tabela, 'presidente' será undefined.
-                    // Isso é o comportamento esperado até que a coluna seja adicionada no banco de dados.
                     const presidente = vereadores.find(v => v.id === (periodo as any).presidente_id);
                     return (
                         <PeriodoCard 

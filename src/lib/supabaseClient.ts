@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
+import { Database } from './database.types'
 
-const supabaseUrl = process.env.SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_ANON_KEY!
+// Lê as variáveis de ambiente da forma correta para o front-end (Vite)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+// Aplica os tipos do banco de dados ao criar o cliente
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey)

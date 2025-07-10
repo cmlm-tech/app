@@ -638,6 +638,7 @@ export type Database = {
           id: number
           legislatura_id: number
           numero: number
+          presidente_id: number | null
         }
         Insert: {
           data_fim: string
@@ -646,6 +647,7 @@ export type Database = {
           id?: number
           legislatura_id: number
           numero: number
+          presidente_id?: number | null
         }
         Update: {
           data_fim?: string
@@ -654,6 +656,7 @@ export type Database = {
           id?: number
           legislatura_id?: number
           numero?: number
+          presidente_id?: number | null
         }
         Relationships: [
           {
@@ -661,6 +664,13 @@ export type Database = {
             columns: ["legislatura_id"]
             isOneToOne: false
             referencedRelation: "legislaturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodossessao_presidente_id_fkey"
+            columns: ["presidente_id"]
+            isOneToOne: false
+            referencedRelation: "agentespublicos"
             referencedColumns: ["id"]
           },
         ]

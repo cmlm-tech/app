@@ -1,4 +1,4 @@
-import { Database } from '@/lib/database.types';
+import { Database } from '@/integrations/supabase/types';
 
 // Tipos reais, derivados diretamente do seu banco de dados!
 export type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];

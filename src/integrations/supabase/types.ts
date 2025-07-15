@@ -232,6 +232,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "documentos_criado_por_usuario_id_fkey"
+            columns: ["criado_por_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios_sem_rls"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "documentos_tipo_documento_id_fkey"
             columns: ["tipo_documento_id"]
             isOneToOne: false
@@ -354,6 +361,7 @@ export type Database = {
           id: number
           numero: number
           numero_vagas_vereadores: number
+          slug: string | null
         }
         Insert: {
           data_fim: string
@@ -362,6 +370,7 @@ export type Database = {
           id?: number
           numero: number
           numero_vagas_vereadores: number
+          slug?: string | null
         }
         Update: {
           data_fim?: string
@@ -370,6 +379,7 @@ export type Database = {
           id?: number
           numero?: number
           numero_vagas_vereadores?: number
+          slug?: string | null
         }
         Relationships: []
       }
@@ -1085,6 +1095,13 @@ export type Database = {
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tramitacoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios_sem_rls"
+            referencedColumns: ["id"]
+          },
         ]
       }
       usuarios: {
@@ -1144,9 +1161,56 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      usuarios_sem_rls: {
+        Row: {
+          agente_publico_id: number | null
+          email: string | null
+          id: string | null
+          permissao: Database["public"]["Enums"]["permissao_usuario"] | null
+        }
+        Insert: {
+          agente_publico_id?: number | null
+          email?: string | null
+          id?: string | null
+          permissao?: Database["public"]["Enums"]["permissao_usuario"] | null
+        }
+        Update: {
+          agente_publico_id?: number | null
+          email?: string | null
+          id?: string | null
+          permissao?: Database["public"]["Enums"]["permissao_usuario"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuarios_agente_publico_id_fkey"
+            columns: ["agente_publico_id"]
+            isOneToOne: true
+            referencedRelation: "agentespublicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      create_legislatura_with_periods: {
+        Args:
+          | {
+              p_numero: number
+              p_descricao: string
+              p_data_inicio: string
+              p_data_fim: string
+              p_numero_vagas_vereadores: number
+            }
+          | {
+              p_numero: number
+              p_slug: string
+              p_descricao: string
+              p_data_inicio: string
+              p_data_fim: string
+              p_numero_vagas_vereadores: number
+            }
+        Returns: number
+      }
       get_agentes_publicos_com_status: {
         Args: Record<PropertyKey, never>
         Returns: {

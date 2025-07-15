@@ -4,10 +4,10 @@ import { Link, useParams } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { PeriodoCard } from "@/components/legislaturas/PeriodoCard";
 import { ModalGerenciarPeriodo } from "@/components/legislaturas/ModalGerenciarPeriodo";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { Database } from "@/lib/database.types";
+import { Database } from "@/integrations/supabase/types";
 
 // Tipos derivados dos tipos gerados pelo Supabase
 type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
@@ -84,14 +84,13 @@ export default function DetalheLegislatura() {
     const handleSavePeriodo = async (data: { presidenteId: string }) => {
         if (!periodoSelecionado || !legislatura) return;
         try {
-            const { error } = await supabase
-                .from('periodossessao')
-                .update({ presidente_id: parseInt(data.presidenteId, 10) })
-                .eq('id', periodoSelecionado.id);
-            if (error) throw error;
-            
-            toast({ title: "Sucesso", description: `Presidente atualizado.` });
-            fetchData(legislatura.numero);
+            // Note: The 'presidente_id' field doesn't exist in the current database schema
+            // This functionality needs to be implemented with a database migration
+            toast({ 
+                title: "Funcionalidade não disponível", 
+                description: "A atribuição de presidente ao período requer atualização do banco de dados.",
+                variant: "destructive" 
+            });
         } catch(error: any) {
              toast({ title: "Erro", description: error.message, variant: "destructive" });
         }
@@ -121,7 +120,8 @@ export default function DetalheLegislatura() {
 
             <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
                 {legislatura.periodos.map(periodo => {
-                    const presidente = vereadores.find(v => v.id === (periodo as any).presidente_id);
+                    // Note: presidente_id field doesn't exist in current schema
+                    const presidente = undefined; // vereadores.find(v => v.id === periodo.presidente_id);
                     return (
                         <PeriodoCard 
                             key={periodo.id} 

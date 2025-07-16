@@ -1,0 +1,43 @@
+name: Deploy no Servidor aaPanel
+
+on:
+  push:
+    branches: [ main ] # Branch principal
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 1. Checkout do código
+      uses: actions/checkout@v4
+
+    - name: 2. Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # Use a versão do Node do seu projeto
+
+    - name: 3. Instalar dependências e Build
+      run: |
+        npm install --legacy-peer-deps
+        npm run build
+
+    - name: 4. Enviar arquivos para o servidor (Deploy)
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        source: "dist/*" # Envia apenas o conteúdo da pasta de build
+        target: "/www/wwwroot/cmlm-tech"
+        strip_components: 1
+
+    - name: 5. Reiniciar a aplicação no servidor
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        script: |
+          cd /www/wwwroot/cmlm-tech
+          pm2 restart cmlm-tech

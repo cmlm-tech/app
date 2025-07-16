@@ -39,4 +39,15 @@ jobs:
         target: "/www/wwwroot/cmlm-tech"
         strip_components: 1
 
+    - name: 6. Ajustar Permissões no Servidor
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        script: |
+          sudo chown -R www:www /www/wwwroot/cmlm-tech
+          sudo find /www/wwwroot/cmlm-tech -type d -exec chmod 755 {} \;
+          sudo find /www/wwwroot/cmlm-tech -type f -exec chmod 644 {} \;
+
     

@@ -39,12 +39,4 @@ jobs:
         target: "/www/wwwroot/cmlm-tech"
         strip_components: 1
 
-    - name: 6. Reiniciar a aplicação no servidor
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        username: ${{ secrets.DEPLOY_USER }}
-        key: ${{ secrets.DEPLOY_KEY }}
-        script: |
-          cd /www/wwwroot/cmlm-tech
-          pm2 restart cmlm-tech
+    

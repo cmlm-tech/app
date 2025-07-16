@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from "@/contexts/AuthContext";
 import { usePasswordValidation } from "@/hooks/usePasswordValidation";
 import { PasswordRequirements } from "@/components/PasswordRequirements";

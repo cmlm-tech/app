@@ -4,10 +4,10 @@ import { Link, useParams } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { PeriodoCard } from "@/components/legislaturas/PeriodoCard";
 import { ModalGerenciarPeriodo } from "@/components/legislaturas/ModalGerenciarPeriodo";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/lib/supabaseClient';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { Database } from "@/integrations/supabase/types";
+import { Database } from "@/lib/database.types";
 
 // Tipos derivados dos tipos gerados pelo Supabase
 type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];

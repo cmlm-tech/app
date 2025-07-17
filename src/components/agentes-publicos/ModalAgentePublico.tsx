@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { AgentePublico, TipoAgente, TIPOS_AGENTE, TIPOS_VINCULO } from "./types";
 import { useCpfValidation } from "@/hooks/useCpfValidation";
 import { ImageUpload } from "@/components/ImageUpload";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient"; // Atualizado para o novo caminho
 import { useToast } from "@/hooks/use-toast";
 import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos"; // Importar o tipo AgenteComStatus
 

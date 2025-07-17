@@ -5,10 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AgenteComStatus } from "@/pages/plenario/AgentesPublicos"; // Importa o tipo correto
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient"; // Importa o cliente Supabase
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { Enums } from "@/integrations/supabase/types"; // Importa os Enums para permissão
+import { Enums } from "@/lib/database.types"; // Importa os Enums para permissão
 
 type ModalConviteUsuarioProps = {
   isOpen: boolean;

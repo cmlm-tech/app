@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Loader2 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabaseClient';
 
 type ImageUploadProps = {
   onImageUploaded: (url: string) => void;

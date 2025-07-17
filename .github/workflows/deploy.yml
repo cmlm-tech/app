@@ -1,54 +1,63 @@
 name: Deploy no Servidor aaPanel
 
+# Gatilho: Executa a pipeline em todo push para o branch 'main'
 on:
   push:
-    branches: [ main ] # Branch principal
+    branches: [ main ]
 
 jobs:
   deploy:
+    # Usa uma máquina virtual limpa do Ubuntu para rodar o job
     runs-on: ubuntu-latest
 
     steps:
-    - name: 1. Checkout do código
-      uses: actions/checkout@v4
+      # Passo 1: Baixa o código do seu repositório para a máquina virtual
+      - name: 1. Checkout do código
+        uses: actions/checkout@v4
 
-    - name: 2. Configurar Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20' # Use a versão do Node do seu projeto
+      # Passo 2: Instala a versão correta do Node.js
+      - name: 2. Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-    - name: 3. Criar arquivo .env  
-      run: |
-        echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> .env
-        echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" >> .env
-        echo "Conteúdo do arquivo .env criado:"
-        cat .env
+      # Passo 3: Cria o arquivo .env com as chaves do Supabase para o build
+      - name: 3. Criar arquivo .env
+        run: |
+          echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> .env
+          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" >> .env
 
-    - name: 4. Instalar dependências e Build
-      run: |
-        npm install --legacy-peer-deps
-        npm run build
+      # Passo 4: Instala as dependências e gera os arquivos finais de produção na pasta 'dist'
+      - name: 4. Instalar dependências e Build
+        run: |
+          npm install --legacy-peer-deps
+          npm run build
 
-    - name: 5. Enviar arquivos para o servidor (Deploy)
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        username: ${{ secrets.DEPLOY_USER }}
-        key: ${{ secrets.DEPLOY_KEY }}
-        source: "dist/*" # Envia apenas o conteúdo da pasta de build
-        target: "/www/wwwroot/cmlm-tech"
-        strip_components: 1
-        overwrite: true
+      # Passo 5: Envia a pasta 'dist' inteira para uma pasta temporária no servidor
+      - name: 5. Enviar build para pasta temporária
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          source: "dist"
+          target: "/home/ubuntu/deploy_temp"
 
-    - name: 6. Ajustar Permissões no Servidor
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        username: ${{ secrets.DEPLOY_USER }}
-        key: ${{ secrets.DEPLOY_KEY }}
-        script: |
-          sudo chown -R www:www /www/wwwroot/cmlm-tech
-          sudo find /www/wwwroot/cmlm-tech -type d -exec chmod 755 {} \;
-          sudo find /www/wwwroot/cmlm-tech -type f -exec chmod 644 {} \;
-
-    
+      # Passo 6: Conecta-se ao servidor para mover os arquivos e ajustar as permissões
+      - name: 6. Finalizar Deploy e Ajustar Permissões
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            # Limpa o conteúdo antigo da pasta de produção
+            sudo rm -rf /www/wwwroot/cmlm-tech/*
+            # Move os novos arquivos da pasta temporária para o local final
+            sudo mv /home/ubuntu/deploy_temp/dist/* /www/wwwroot/cmlm-tech/
+            # Apaga a pasta temporária
+            rm -rf /home/ubuntu/deploy_temp
+            # Garante que o usuário do Nginx (www) seja o dono de tudo
+            sudo chown -R www:www /www/wwwroot/cmlm-tech
+            # Garante as permissões corretas para pastas (755) e arquivos (644)
+            sudo chmod -R 755 /www/wwwroot/cmlm-tech

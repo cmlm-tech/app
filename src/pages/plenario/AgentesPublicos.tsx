@@ -31,7 +31,7 @@ export default function AgentesPublicos() {
   const [idAgenteLogado, setIdAgenteLogado] = useState<number | null>(null);
 
   // Estado para armazenar a permissão real do usuário, vinda do banco.
-  const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null);
+  const [permissaoLogado, setPermissaoLogado] = useState<Enums<"permissao_usuario"> | null>(null);
   
   const [busca, setBusca] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('Todos');
@@ -45,7 +45,7 @@ export default function AgentesPublicos() {
   const [isEditing, setIsEditing] = useState(false);
   const [agenteParaReativar, setAgenteParaReativar] = useState<AgenteComStatus | null>(null);
 
-  const isAdmin = permissaoLogado?.toLowerCase() === 'admin';
+  const isAdmin = permissaoLogado === 'Admin';
 
   const carregarAgentes = useCallback(async () => {
     try {
@@ -74,7 +74,8 @@ export default function AgentesPublicos() {
           setPermissaoLogado(perfilData.permissao); 
         } else {
           console.error("Erro ao buscar perfil do usuário logado:", perfilError);
-          setPermissaoLogado('consultor');
+          setPermissaoLogado(null); // Se não encontrar o perfil, garantir que a permissão seja nula
+          toast({ title: "Erro", description: "Não foi possível carregar o perfil do usuário.", variant: "destructive" });
         }
       } else {
         setPermissaoLogado(null); 

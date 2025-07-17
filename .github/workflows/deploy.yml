@@ -38,6 +38,7 @@ jobs:
         source: "dist/*" # Envia apenas o conteúdo da pasta de build
         target: "/www/wwwroot/cmlm-tech"
         strip_components: 1
+        overwrite: true
 
     - name: 6. Ajustar Permissões no Servidor
       uses: appleboy/ssh-action@v1.0.3

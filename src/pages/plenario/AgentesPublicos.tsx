@@ -8,10 +8,10 @@ import { ModalAgentePublico } from "@/components/agentes-publicos/ModalAgentePub
 import { ModalConviteUsuario } from "@/components/agentes-publicos/ModalConviteUsuario";
 import { ModalConfirmacaoInativar } from "@/components/agentes-publicos/ModalConfirmacaoInativar";
 import { ModalReativarUsuario } from "@/components/agentes-publicos/ModalReativarUsuario";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Database, Enums } from "@/integrations/supabase/types";
+import { Database, Enums } from "@/lib/database.types";
 import {
   AlertDialog,
   AlertDialogContent,

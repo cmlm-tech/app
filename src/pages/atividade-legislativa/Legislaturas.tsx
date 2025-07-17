@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Link } from "react-router-dom";
 import { ArrowRight, Plus, MoreVertical, Edit, Loader2 } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabaseClient'
 import { useToast } from '@/hooks/use-toast';
 import { ModalLegislatura } from '@/components/legislaturas/ModalLegislatura';
 

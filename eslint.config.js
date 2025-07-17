@@ -10,8 +10,11 @@ export default tseslint.config(
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
+      ecmaVersion: 2020,     
+      globals: {
+        ...globals.browser, // Mantém os globais do navegador que você já tinha
+        "import.meta": "readonly", // Adiciona o import.meta como um global conhecido
+      },
     },
     plugins: {
       "react-hooks": reactHooks,

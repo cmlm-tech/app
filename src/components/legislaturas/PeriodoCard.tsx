@@ -1,14 +1,13 @@
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-// 1. IMPORTAÇÃO CORRIGIDA: Usa os novos nomes dos tipos
 import { PeriodoRow, AgentePublicoRow } from "./types";
 
-// 2. PROPS CORRIGIDAS: Usa os novos nomes dos tipos
 type Props = {
     periodo: PeriodoRow;
     presidente: AgentePublicoRow | undefined;
-    onGerenciar: () => void;
+    // ALTERAÇÃO 1: Tornar a propriedade 'onGerenciar' opcional adicionando '?'
+    onGerenciar?: () => void;
 };
 
 const statusStyles: Record<string, string> = {
@@ -62,7 +61,11 @@ export function PeriodoCard({ periodo, presidente, onGerenciar }: Props) {
                  <Button variant="outline" className="w-full" asChild>
                     <Link to={`/plenario/comissoes?periodoId=${periodo.id}`}>Comissões</Link>
                 </Button>
-                <Button onClick={onGerenciar} className="w-full">Gerenciar</Button>
+                
+                {/* ALTERAÇÃO 2: Renderizar o botão somente se 'onGerenciar' for uma função válida */}
+                {onGerenciar && (
+                    <Button onClick={onGerenciar} className="w-full">Gerenciar</Button>
+                )}
             </CardFooter>
         </Card>
     )

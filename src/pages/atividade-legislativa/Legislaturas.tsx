@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Link } from "react-router-dom";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ArrowRight, Plus, MoreVertical, Edit, Loader2 } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient'
@@ -20,6 +20,7 @@ interface Legislatura {
 }
 
 const Legislaturas = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [legislaturas, setLegislaturas] = useState<Legislatura[]>([]);
@@ -94,6 +95,11 @@ const Legislaturas = () => {
     return `${inicio} - ${fim}`;
   };
 
+  const handleCardClick = (numero: number) => {
+    navigate(`/atividade-legislativa/legislaturas/${numero}`);
+  };
+
+
   if (loading) {
     return (
       <AppLayout>
@@ -112,7 +118,6 @@ const Legislaturas = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-montserrat font-bold text-gov-blue-800">Legislaturas</h1>
-          
           <p className="text-base md:text-lg text-gray-600">
             {isAdmin
               ? "Selecione uma legislatura para gerenciar seus períodos legislativos."
@@ -148,48 +153,56 @@ const Legislaturas = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {legislaturas.map((leg) => (
             <div key={leg.id} className="relative">
-              <Link to={`/atividade-legislativa/legislaturas/${leg.numero}`} className="block">
-                <Card className="hover:shadow-lg hover:border-gov-blue-500 transition-all duration-200 cursor-pointer h-full flex flex-col">
-                  <CardHeader className="flex-grow">
-                    <CardTitle className="text-gov-blue-800">
-                      {leg.descricao || `Legislatura ${formatarPeriodo(leg.data_inicio, leg.data_fim)}`}
-                    </CardTitle>
-                    <CardDescription>
-                      {formatarPeriodo(leg.data_inicio, leg.data_fim)} • {leg.numero_vagas_vereadores} vagas
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-end items-center text-sm font-semibold text-gov-blue-700">
-                      Ver detalhes
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              <Card 
+                onClick={() => handleCardClick(leg.numero)}
+                className="hover:shadow-lg hover:border-gov-blue-500 transition-all duration-200 cursor-pointer h-full flex flex-col"
+              >
+                <CardHeader className="flex-grow">
+                  <CardTitle className="text-gov-blue-800">
+                    {leg.descricao || `Legislatura ${formatarPeriodo(leg.data_inicio, leg.data_fim)}`}
+                  </CardTitle>
+                  <CardDescription>
+                    {formatarPeriodo(leg.data_inicio, leg.data_fim)} • {leg.numero_vagas_vereadores} vagas
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-end items-center text-sm font-semibold text-gov-blue-700">
+                    Ver detalhes
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </div>
+                </CardContent>
+              </Card>
               
               {isAdmin && (
-                <div className="absolute top-2 right-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                <div 
+                  className="absolute top-2 right-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* ALTERAÇÃO 2: Substituição do DropdownMenu pelo Popover.
+                    O PopoverTrigger é o botão de 3 pontos.
+                    O PopoverContent contém o botão "Editar", que agora deve funcionar.
+                  */}
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 hover:bg-gray-100"
-                        onClick={(e) => e.preventDefault()}
                       >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => {
-                        e.preventDefault();
-                        handleEditarLegislatura(leg);
-                      }}>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-2">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => handleEditarLegislatura(leg)}
+                      >
                         <Edit className="mr-2 h-4 w-4" />
                         Editar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               )}
             </div>

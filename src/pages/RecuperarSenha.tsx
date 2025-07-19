@@ -22,7 +22,7 @@ const RecuperarSenha = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://preview--cmlm-tech.lovable.app/redefinir-senha'
+        redirectTo: 'https://cmlm.tech/redefinir-senha'
       });
 
       if (error) {

@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Database } from "@/lib/database.types";
+import { useAuth } from '@/contexts/AuthContext'; // ALTERAÇÃO 1: Importar useAuth
 
 // Tipos derivados dos tipos gerados pelo Supabase
 type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
@@ -20,25 +21,24 @@ type LegislaturaComPeriodos = LegislaturaRow & {
 export default function DetalheLegislatura() {
     const { legislaturaNumero } = useParams<{ legislaturaNumero: string }>();
     const { toast } = useToast();
+    const { user } = useAuth(); // ALTERAÇÃO 2: Obter o usuário logado
 
     const [legislatura, setLegislatura] = useState<LegislaturaComPeriodos | null>(null);
     const [vereadores, setVereadores] = useState<AgentePublicoRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoRow | null>(null);
+    const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null); // ALTERAÇÃO 3: Estado para permissão
+
+    const isAdmin = permissaoLogado?.toLowerCase() === 'admin'; // ALTERAÇÃO 4: Variável helper
 
     const fetchData = useCallback(async (numero: number) => {
-        setLoading(true);
         try {
             const { data: legData, error: legError } = await supabase.from('legislaturas').select('*').eq('numero', numero).single();
             if (legError) throw new Error(`Legislatura de ${numero} não encontrada.`);
 
             const legislaturaId = legData.id;
             
-            // ==================================================================
-            // CORREÇÃO APLICADA AQUI
-            // Trocado 'legislatura_vereadores' por 'legislaturavereadores' (sem o underscore)
-            // ==================================================================
             const [periodosResult, verResult] = await Promise.all([
                 supabase.from('periodossessao').select('*').eq('legislatura_id', legislaturaId),
                 supabase.from('legislaturavereadores').select('agente_publico_id').eq('legislatura_id', legislaturaId)
@@ -61,19 +61,34 @@ export default function DetalheLegislatura() {
         } catch (error: any) {
             toast({ title: "Erro", description: error.message, variant: "destructive" });
             setLegislatura(null);
-        } finally {
-            setLoading(false);
         }
     }, [toast]);
 
     useEffect(() => {
-        const numeroAsNumber = legislaturaNumero ? parseInt(legislaturaNumero, 10) : null;
-        if (numeroAsNumber && !isNaN(numeroAsNumber)) {
-            fetchData(numeroAsNumber);
-        } else {
+        const carregarDados = async () => {
+            setLoading(true);
+
+            // ALTERAÇÃO 5: Buscar a permissão do usuário logado
+            if (user) {
+                const { data: perfil } = await supabase
+                    .from('usuarios')
+                    .select('permissao')
+                    .eq('id', user.id)
+                    .single();
+                setPermissaoLogado(perfil?.permissao || null);
+            } else {
+                setPermissaoLogado(null);
+            }
+
+            const numeroAsNumber = legislaturaNumero ? parseInt(legislaturaNumero, 10) : null;
+            if (numeroAsNumber && !isNaN(numeroAsNumber)) {
+                await fetchData(numeroAsNumber);
+            }
             setLoading(false);
-        }
-    }, [legislaturaNumero, fetchData]);
+        };
+
+        carregarDados();
+    }, [legislaturaNumero, fetchData, user]);
     
     // O resto do arquivo continua igual...
     const handleGerenciarClick = (periodo: PeriodoRow) => {
@@ -84,8 +99,6 @@ export default function DetalheLegislatura() {
     const handleSavePeriodo = async (data: { presidenteId: string }) => {
         if (!periodoSelecionado || !legislatura) return;
         try {
-            // Note: The 'presidente_id' field doesn't exist in the current database schema
-            // This functionality needs to be implemented with a database migration
             toast({ 
                 title: "Funcionalidade não disponível", 
                 description: "A atribuição de presidente ao período requer atualização do banco de dados.",
@@ -113,33 +126,41 @@ export default function DetalheLegislatura() {
                 </BreadcrumbList>
             </Breadcrumb>
             
+            {/* ALTERAÇÃO 6: Renderização condicional do subtítulo */}
             <div className="mb-6">
                 <h1 className="text-3xl font-bold">Legislatura {anoInicio} - {anoFim}</h1>
-                <p className="text-gray-600">Gerencie os períodos anuais e suas respectivas composições.</p>
+                <p className="text-gray-600">
+                    {isAdmin
+                        ? "Gerencie os períodos anuais e suas respectivas composições."
+                        : "Consulte os detalhes de cada período legislativo anual."
+                    }
+                </p>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
                 {legislatura.periodos.map(periodo => {
-                    // Note: presidente_id field doesn't exist in current schema
-                    const presidente = undefined; // vereadores.find(v => v.id === periodo.presidente_id);
+                    const presidente = undefined;
                     return (
                         <PeriodoCard 
                             key={periodo.id} 
                             periodo={periodo} 
                             presidente={presidente}
-                            onGerenciar={() => handleGerenciarClick(periodo)}
+                            // ALTERAÇÃO 7: Passar a prop 'onGerenciar' apenas se for admin
+                            onGerenciar={isAdmin ? () => handleGerenciarClick(periodo) : undefined}
                         />
                     );
                 })}
             </div>
 
-            <ModalGerenciarPeriodo 
-                open={modalOpen}
-                onOpenChange={setModalOpen}
-                periodo={periodoSelecionado}
-                vereadores={vereadores}
-                onSave={handleSavePeriodo}
-            />
+            {isAdmin && (
+                <ModalGerenciarPeriodo 
+                    open={modalOpen}
+                    onOpenChange={setModalOpen}
+                    periodo={periodoSelecionado}
+                    vereadores={vereadores}
+                    onSave={handleSavePeriodo}
+                />
+            )}
         </AppLayout>
     );
 }

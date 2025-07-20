@@ -1,3 +1,5 @@
+// src/components/AppLayout.tsx
+
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";
 import { AppSidebar } from "./AppSidebar";
@@ -21,17 +23,14 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
         <main className={cn(
-          "flex-1 transition-all duration-300",
+          // Classes Estáticas: aplicadas sempre
+          "flex-1 transition-all duration-300 p-6 md:p-8 ml-0",
 
-          // **MELHORIA 1: Padding Responsivo (Correto!)**
-          // Define um padding menor para telas pequenas (p-6) e um maior
-          // para telas a partir do breakpoint 'md' (p-8).
-          "p-6 md:p-8",
+          // **A CORREÇÃO PRINCIPAL ESTÁ AQUI**
+          // Permite que o container encolha, ativando o overflow do filho.
+          "min-w-0", 
 
-          // **MELHORIA 2: Margem Responsiva para o Sidebar (Correto!)**
-          // Garante que no mobile a margem é zero, pois o sidebar é um overlay.
-          "ml-0", 
-          
+          // Classes Condicionais: baseadas no estado 'isCollapsed'
           // Aplica a margem correta no desktop, ajustando-se se o
           // menu está recolhido (ml-20) ou expandido (ml-64).
           isCollapsed ? "md:ml-20" : "md:ml-64"

@@ -42,6 +42,7 @@ export const ModalConviteUsuario = ({ isOpen, onClose, agente, onConviteEnviado 
       const { error } = await supabase.functions.invoke('convidar-usuario', {
         body: {
           agente_publico_id: agente.id,
+          nome: agente.nome_completo,
           email: email,
           permissao: permissao,
         },

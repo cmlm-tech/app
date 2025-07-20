@@ -7,7 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import RotaProtegida from "@/components/RotaProtegida";
 import RotaPublica from "@/components/RotaPublica";
 
-// Importação das páginas
+// --- PÁGINAS EXISTENTES ---
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Entrar from "./pages/Entrar";
@@ -18,8 +18,6 @@ import Materias from "./pages/documentos/Materias";
 import Atas from "./pages/documentos/Atas";
 import AgentesPublicos from "./pages/plenario/AgentesPublicos";
 import Vereadores from "./pages/plenario/Vereadores";
-import MesaDiretoraPlenario from "./pages/plenario/MesaDiretora";
-import ComissoesPlenario from "./pages/plenario/Comissoes";
 import SessoesLeg from "./pages/atividade-legislativa/Sessoes";
 import Pautas from "./pages/atividade-legislativa/Pautas";
 import Legislaturas from "./pages/atividade-legislativa/Legislaturas";
@@ -28,6 +26,17 @@ import DetalheLegislatura from "./pages/atividade-legislativa/DetalheLegislatura
 import DetalheComissao from "./pages/plenario/comissoes/[id]";
 import Painel from "./pages/Painel";
 import MeuPerfil from "./pages/MeuPerfil";
+
+// --- PÁGINAS ANTIGAS (serão removidas ou reaproveitadas) ---
+import MesaDiretoraPlenario from "./pages/plenario/MesaDiretora"; // ANTIGA
+import ComissoesPlenario from "./pages/plenario/Comissoes";     // ANTIGA
+
+// ===================================================================
+// PASSO 1: Importe os novos componentes de página que você irá criar
+// ===================================================================
+import MesaDiretoraLegislatura from "./pages/atividade-legislativa/MesaDiretoraLegislatura";
+import ComissoesLegislatura from "./pages/atividade-legislativa/ComissoesLegislatura";
+
 
 const queryClient = new QueryClient();
 
@@ -51,19 +60,39 @@ const App = () => (
             <Route path="/painel" element={<RotaProtegida><Painel /></RotaProtegida>} />            
             <Route path="/documentos/materias" element={<RotaProtegida><Materias /></RotaProtegida>} />
             <Route path="/documentos/atas" element={<RotaProtegida><Atas /></RotaProtegida>} />
+            
+            {/* Rota para o futuro módulo /plenario como arquivo */}
             <Route path="/plenario/agentes-publicos" element={<RotaProtegida><AgentesPublicos /></RotaProtegida>} />
-            <Route path="/plenario/vereadores" element={<RotaProtegida><Vereadores /></RotaProtegida>} />          
+            <Route path="/plenario/vereadores" element={<RotaProtegida><Vereadores /></RotaProtegida>} />   
+
+            {/*
+              Estas rotas antigas serão mantidas por enquanto para não quebrar nada.
+              Após a migração dos links, elas poderão ser removidas.
+            */}
             <Route path="/plenario/mesa-diretora" element={<RotaProtegida><MesaDiretoraPlenario /></RotaProtegida>} />
             <Route path="/plenario/comissoes" element={<RotaProtegida><ComissoesPlenario /></RotaProtegida>} />
             <Route path="/plenario/comissoes/:id" element={<RotaProtegida><DetalheComissao /></RotaProtegida>} />
+
+            {/* --- MÓDULO DE ATIVIDADE LEGISLATIVA --- */}
             <Route path="/atividade-legislativa/sessoes" element={<RotaProtegida><SessoesLeg /></RotaProtegida>} />
             <Route path="/atividade-legislativa/pautas" element={<RotaProtegida><Pautas /></RotaProtegida>} />
             <Route path="/atividade-legislativa/pautas/:pautaId" element={<RotaProtegida><GerenciarPauta /></RotaProtegida>} />
             <Route path="/atividade-legislativa/legislaturas" element={<RotaProtegida><Legislaturas /></RotaProtegida>} />
-            
-            {/* LINHA CORRIGIDA AQUI */}
             <Route path="/atividade-legislativa/legislaturas/:legislaturaNumero" element={<RotaProtegida><DetalheLegislatura /></RotaProtegida>} />
             
+            {/* ==============================================================================================
+              PASSO 2: Adicione as novas rotas aninhadas para a Mesa Diretora e Comissões
+              Elas pertencem ao contexto de uma legislatura e período específicos.
+             ============================================================================================== */}
+            <Route 
+              path="/atividade-legislativa/legislaturas/:legislaturaNumero/periodos/:periodoId/mesa-diretora" 
+              element={<RotaProtegida><MesaDiretoraLegislatura /></RotaProtegida>} 
+            />
+            <Route 
+              path="/atividade-legislativa/legislaturas/:legislaturaNumero/periodos/:periodoId/comissoes" 
+              element={<RotaProtegida><ComissoesLegislatura /></RotaProtegida>} 
+            />
+
             <Route path="/configuracoes" element={<RotaProtegida><Configuracoes /></RotaProtegida>} />
             <Route path="/perfil" element={<RotaProtegida><MeuPerfil /></RotaProtegida>} />
 

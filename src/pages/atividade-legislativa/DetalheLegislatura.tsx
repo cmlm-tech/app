@@ -8,9 +8,9 @@ import { supabase } from '@/lib/supabaseClient';
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Database } from "@/lib/database.types";
-import { useAuth } from '@/contexts/AuthContext'; // ALTERAÇÃO 1: Importar useAuth
+import { useAuth } from '@/contexts/AuthContext';
 
-// Tipos derivados dos tipos gerados pelo Supabase
+// Tipos
 type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
 type PeriodoRow = Database['public']['Tables']['periodossessao']['Row'];
 type AgentePublicoRow = Database['public']['Tables']['agentespublicos']['Row'];
@@ -21,16 +21,16 @@ type LegislaturaComPeriodos = LegislaturaRow & {
 export default function DetalheLegislatura() {
     const { legislaturaNumero } = useParams<{ legislaturaNumero: string }>();
     const { toast } = useToast();
-    const { user } = useAuth(); // ALTERAÇÃO 2: Obter o usuário logado
+    const { user } = useAuth();
 
     const [legislatura, setLegislatura] = useState<LegislaturaComPeriodos | null>(null);
     const [vereadores, setVereadores] = useState<AgentePublicoRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoRow | null>(null);
-    const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null); // ALTERAÇÃO 3: Estado para permissão
+    const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null);
 
-    const isAdmin = permissaoLogado?.toLowerCase() === 'admin'; // ALTERAÇÃO 4: Variável helper
+    const isAdmin = permissaoLogado?.toLowerCase() === 'admin';
 
     const fetchData = useCallback(async (numero: number) => {
         try {
@@ -68,7 +68,6 @@ export default function DetalheLegislatura() {
         const carregarDados = async () => {
             setLoading(true);
 
-            // ALTERAÇÃO 5: Buscar a permissão do usuário logado
             if (user) {
                 const { data: perfil } = await supabase
                     .from('usuarios')
@@ -90,7 +89,6 @@ export default function DetalheLegislatura() {
         carregarDados();
     }, [legislaturaNumero, fetchData, user]);
     
-    // O resto do arquivo continua igual...
     const handleGerenciarClick = (periodo: PeriodoRow) => {
         setPeriodoSelecionado(periodo);
         setModalOpen(true);
@@ -126,7 +124,6 @@ export default function DetalheLegislatura() {
                 </BreadcrumbList>
             </Breadcrumb>
             
-            {/* ALTERAÇÃO 6: Renderização condicional do subtítulo */}
             <div className="mb-6">
                 <h1 className="text-3xl font-bold">Legislatura {anoInicio} - {anoFim}</h1>
                 <p className="text-gray-600">
@@ -145,8 +142,9 @@ export default function DetalheLegislatura() {
                             key={periodo.id} 
                             periodo={periodo} 
                             presidente={presidente}
-                            // ALTERAÇÃO 7: Passar a prop 'onGerenciar' apenas se for admin
                             onGerenciar={isAdmin ? () => handleGerenciarClick(periodo) : undefined}
+                            // ALTERAÇÃO FINAL APLICADA:
+                            legislaturaNumero={legislatura.numero}
                         />
                     );
                 })}

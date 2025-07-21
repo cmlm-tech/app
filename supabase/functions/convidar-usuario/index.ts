@@ -28,7 +28,7 @@ serve(async (req) => {
 
     // 3. Validação para garantir que um mesmo agente não seja convidado duas vezes.
     const { data: usuarioExistente } = await supabaseAdmin
-      .from('Usuarios')
+      .from('usuarios')
       .select('id')
       .eq('agente_publico_id', agente_publico_id)
       .single()
@@ -56,7 +56,7 @@ serve(async (req) => {
 
     // 6. Cria o registro na sua tabela 'Usuarios' para ligar o perfil ao login.
     const { error: erroCriacaoUsuario } = await supabaseAdmin
-      .from('Usuarios')
+      .from('usuarios')
       .insert({
         id: novoUsuario.user.id,
         email: email,

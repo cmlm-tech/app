@@ -232,13 +232,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "documentos_criado_por_usuario_id_fkey"
-            columns: ["criado_por_usuario_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios_sem_rls"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "documentos_tipo_documento_id_fkey"
             columns: ["tipo_documento_id"]
             isOneToOne: false
@@ -1095,13 +1088,6 @@ export type Database = {
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "tramitacoes_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios_sem_rls"
-            referencedColumns: ["id"]
-          },
         ]
       }
       usuarios: {
@@ -1161,35 +1147,7 @@ export type Database = {
       }
     }
     Views: {
-      usuarios_sem_rls: {
-        Row: {
-          agente_publico_id: number | null
-          email: string | null
-          id: string | null
-          permissao: Database["public"]["Enums"]["permissao_usuario"] | null
-        }
-        Insert: {
-          agente_publico_id?: number | null
-          email?: string | null
-          id?: string | null
-          permissao?: Database["public"]["Enums"]["permissao_usuario"] | null
-        }
-        Update: {
-          agente_publico_id?: number | null
-          email?: string | null
-          id?: string | null
-          permissao?: Database["public"]["Enums"]["permissao_usuario"] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "usuarios_agente_publico_id_fkey"
-            columns: ["agente_publico_id"]
-            isOneToOne: true
-            referencedRelation: "agentespublicos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       create_legislatura_with_periods: {

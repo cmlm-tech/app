@@ -43,8 +43,15 @@ const RedefinirSenha = () => {
         password: newPassword
       });
 
-      if (error) {
-        setFormError(error.message);
+      if (error) {        
+        // Verifica a mensagem de erro específica do Supabase
+        if (error.message === "New password should be different from the old password") {
+          // Define mensagem traduzida e mais direta
+          setFormError("A nova senha deve ser diferente da anterior.");
+        } else {
+          // Para outros erros, mostra uma mensagem genérica ou traduzir outras também
+          setFormError("Ocorreu um erro inesperado. Tente novamente.");
+        }        
       } else {
         // Mostrar mensagem de sucesso
         toast({

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Database } from "@/lib/database.types";
 import { useAuth } from '@/contexts/AuthContext';
+import { CorpoLegislativo } from "@/components/legislaturas/CorpoLegislativo";
 
 // Tipos
 type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
@@ -133,6 +134,8 @@ export default function DetalheLegislatura() {
                     }
                 </p>
             </div>
+
+            <CorpoLegislativo vereadores={vereadores} />
 
             <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
                 {legislatura.periodos.map(periodo => {

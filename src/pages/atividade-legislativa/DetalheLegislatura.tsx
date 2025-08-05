@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { Database } from "@/lib/database.types";
 import { useAuth } from '@/contexts/AuthContext';
 import { CorpoLegislativo } from "@/components/legislaturas/CorpoLegislativo";
+import { ModalAdicionarVereador } from "@/components/legislaturas/ModalAdicionarVereador";
 
 // Tipos
 type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
@@ -27,7 +28,8 @@ export default function DetalheLegislatura() {
     const [legislatura, setLegislatura] = useState<LegislaturaComPeriodos | null>(null);
     const [vereadores, setVereadores] = useState<AgentePublicoRow[]>([]);
     const [loading, setLoading] = useState(true);
-    const [modalOpen, setModalOpen] = useState(false);
+    const [modalPeriodoOpen, setModalPeriodoOpen] = useState(false);
+    const [modalVereadorOpen, setModalVereadorOpen] = useState(false);
     const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoRow | null>(null);
     const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null);
 
@@ -92,7 +94,7 @@ export default function DetalheLegislatura() {
     
     const handleGerenciarClick = (periodo: PeriodoRow) => {
         setPeriodoSelecionado(periodo);
-        setModalOpen(true);
+        setModalPeriodoOpen(true);
     };
 
     const handleSavePeriodo = async (data: { presidenteId: string }) => {
@@ -106,7 +108,11 @@ export default function DetalheLegislatura() {
         } catch(error: any) {
              toast({ title: "Erro", description: error.message, variant: "destructive" });
         }
-        setModalOpen(false);
+        setModalPeriodoOpen(false);
+    };
+
+    const handleAdicionarVereadorSave = (novoVereador: AgentePublicoRow) => {
+        setVereadores(prev => [...prev, novoVereador].sort((a, b) => a.nome_completo.localeCompare(b.nome_completo)));
     };
 
     if (loading) return <AppLayout><div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
@@ -135,7 +141,11 @@ export default function DetalheLegislatura() {
                 </p>
             </div>
 
-            <CorpoLegislativo vereadores={vereadores} />
+            <CorpoLegislativo 
+                vereadores={vereadores} 
+                isAdmin={isAdmin}
+                onAdicionarClick={() => setModalVereadorOpen(true)}
+            />
 
             <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
                 {legislatura.periodos.map(periodo => {
@@ -154,13 +164,22 @@ export default function DetalheLegislatura() {
             </div>
 
             {isAdmin && (
-                <ModalGerenciarPeriodo 
-                    open={modalOpen}
-                    onOpenChange={setModalOpen}
-                    periodo={periodoSelecionado}
-                    vereadores={vereadores}
-                    onSave={handleSavePeriodo}
-                />
+                <>
+                    <ModalGerenciarPeriodo 
+                        open={modalPeriodoOpen}
+                        onOpenChange={setModalPeriodoOpen}
+                        periodo={periodoSelecionado}
+                        vereadores={vereadores}
+                        onSave={handleSavePeriodo}
+                    />
+                    <ModalAdicionarVereador
+                        open={modalVereadorOpen}
+                        onOpenChange={setModalVereadorOpen}
+                        legislaturaId={legislatura.id}
+                        vereadoresAtuais={vereadores}
+                        onSave={handleAdicionarVereadorSave}
+                    />
+                </>
             )}
         </AppLayout>
     );

@@ -10,9 +10,10 @@ interface CorpoLegislativoProps {
   vereadores: Vereador[];
   isAdmin: boolean;
   onAdicionarClick: () => void;
+  onRemove: (vereador: Vereador) => void;
 }
 
-export function CorpoLegislativo({ vereadores, isAdmin, onAdicionarClick }: CorpoLegislativoProps) {
+export function CorpoLegislativo({ vereadores, isAdmin, onAdicionarClick, onRemove }: CorpoLegislativoProps) {
   return (
     <Accordion type="single" collapsible className="w-full mb-6" defaultValue="item-1">
       <AccordionItem value="item-1">
@@ -31,7 +32,7 @@ export function CorpoLegislativo({ vereadores, isAdmin, onAdicionarClick }: Corp
           {vereadores.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-4">
               {vereadores.map(vereador => (
-                <CardVereador key={vereador.id} vereador={vereador} />
+                <CardVereador key={vereador.id} vereador={vereador} isAdmin={isAdmin} onRemove={() => onRemove(vereador)} />
               ))}
             </div>
           ) : (

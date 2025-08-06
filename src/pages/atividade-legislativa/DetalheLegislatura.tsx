@@ -11,6 +11,7 @@ import { Database } from "@/lib/database.types";
 import { useAuth } from '@/contexts/AuthContext';
 import { CorpoLegislativo } from "@/components/legislaturas/CorpoLegislativo";
 import { ModalAdicionarVereador } from "@/components/legislaturas/ModalAdicionarVereador";
+import { ModalConfirmarRemocaoVereador } from '@/components/legislaturas/ModalConfirmarRemocaoVereador';
 
 // Tipos
 type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
@@ -30,6 +31,8 @@ export default function DetalheLegislatura() {
     const [loading, setLoading] = useState(true);
     const [modalPeriodoOpen, setModalPeriodoOpen] = useState(false);
     const [modalVereadorOpen, setModalVereadorOpen] = useState(false);
+    const [modalRemocaoOpen, setModalRemocaoOpen] = useState(false);
+    const [vereadorSelecionado, setVereadorSelecionado] = useState<AgentePublicoRow | null>(null);
     const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoRow | null>(null);
     const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null);
 
@@ -115,6 +118,32 @@ export default function DetalheLegislatura() {
         setVereadores(prev => [...prev, novoVereador].sort((a, b) => a.nome_completo.localeCompare(b.nome_completo)));
     };
 
+    const handleOpenModalRemocao = (vereador: AgentePublicoRow) => {
+        setVereadorSelecionado(vereador);
+        setModalRemocaoOpen(true);
+    };
+
+    const handleConfirmarRemocao = async () => {
+        if (!vereadorSelecionado || !legislatura) return;
+
+        try {
+            const { error } = await supabase
+                .from('legislaturavereadores')
+                .delete()
+                .match({ legislatura_id: legislatura.id, agente_publico_id: vereadorSelecionado.id });
+
+            if (error) throw error;
+
+            setVereadores(prev => prev.filter(v => v.id !== vereadorSelecionado.id));
+            toast({ title: "Sucesso", description: `Vínculo de ${vereadorSelecionado.nome_completo} removido com sucesso.` });
+        } catch (error: any) {
+            toast({ title: "Erro", description: error.message, variant: "destructive" });
+        }
+
+        setModalRemocaoOpen(false);
+        setVereadorSelecionado(null);
+    };
+
     if (loading) return <AppLayout><div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
     if (!legislatura) return <AppLayout><div className="text-center py-10"><h1>Legislatura não encontrada</h1></div></AppLayout>;
     
@@ -145,6 +174,7 @@ export default function DetalheLegislatura() {
                 vereadores={vereadores} 
                 isAdmin={isAdmin}
                 onAdicionarClick={() => setModalVereadorOpen(true)}
+                onRemove={handleOpenModalRemocao}
             />
 
             <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
@@ -178,6 +208,12 @@ export default function DetalheLegislatura() {
                         legislaturaId={legislatura.id}
                         vereadoresAtuais={vereadores}
                         onSave={handleAdicionarVereadorSave}
+                    />
+                    <ModalConfirmarRemocaoVereador
+                        isOpen={modalRemocaoOpen}
+                        onOpenChange={setModalRemocaoOpen}
+                        onConfirm={handleConfirmarRemocao}
+                        vereadorNome={vereadorSelecionado?.nome_completo || ''}
                     />
                 </>
             )}

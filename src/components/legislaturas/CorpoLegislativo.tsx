@@ -1,16 +1,14 @@
+import { VereadorComCondicao } from "@/pages/atividade-legislativa/DetalheLegislatura";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { CardVereador } from "@/components/vereadores/CardVereador";
-import { Database } from "@/lib/database.types";
 import { PlusCircle } from "lucide-react";
 
-type Vereador = Database['public']['Tables']['agentespublicos']['Row'];
-
 interface CorpoLegislativoProps {
-  vereadores: Vereador[];
+  vereadores: VereadorComCondicao[];
   isAdmin: boolean;
   onAdicionarClick: () => void;
-  onRemove: (vereador: Vereador) => void;
+  onRemove: (vereador: VereadorComCondicao) => void;
 }
 
 export function CorpoLegislativo({ vereadores, isAdmin, onAdicionarClick, onRemove }: CorpoLegislativoProps) {

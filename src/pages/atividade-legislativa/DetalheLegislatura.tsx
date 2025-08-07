@@ -17,6 +17,10 @@ import { ModalConfirmarRemocaoVereador } from '@/components/legislaturas/ModalCo
 type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
 type PeriodoRow = Database['public']['Tables']['periodossessao']['Row'];
 type AgentePublicoRow = Database['public']['Tables']['agentespublicos']['Row'];
+export type VereadorComCondicao = AgentePublicoRow & {
+  condicao: Database['public']['Tables']['legislaturavereadores']['Row']['condicao'];
+  nome_parlamentar: string | null;
+};
 type LegislaturaComPeriodos = LegislaturaRow & {
   periodos: PeriodoRow[];
 };
@@ -27,12 +31,12 @@ export default function DetalheLegislatura() {
     const { user } = useAuth();
 
     const [legislatura, setLegislatura] = useState<LegislaturaComPeriodos | null>(null);
-    const [vereadores, setVereadores] = useState<AgentePublicoRow[]>([]);
+    const [vereadores, setVereadores] = useState<VereadorComCondicao[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalPeriodoOpen, setModalPeriodoOpen] = useState(false);
     const [modalVereadorOpen, setModalVereadorOpen] = useState(false);
     const [modalRemocaoOpen, setModalRemocaoOpen] = useState(false);
-    const [vereadorSelecionado, setVereadorSelecionado] = useState<AgentePublicoRow | null>(null);
+    const [vereadorSelecionado, setVereadorSelecionado] = useState<VereadorComCondicao | null>(null);
     const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoRow | null>(null);
     const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null);
 
@@ -47,22 +51,20 @@ export default function DetalheLegislatura() {
             
             const [periodosResult, verResult] = await Promise.all([
                 supabase.from('periodossessao').select('*').eq('legislatura_id', legislaturaId),
-                supabase.from('legislaturavereadores').select('agente_publico_id').eq('legislatura_id', legislaturaId)
+                supabase.from('legislaturavereadores').select('condicao, agentespublicos:agente_publico_id (*, vereadores:vereadores!inner(nome_parlamentar))').eq('legislatura_id', legislaturaId)
             ]);
 
             if (periodosResult.error) throw periodosResult.error;
             if (verResult.error) throw verResult.error;
 
-            const vereadorIds = verResult.data.map(v => v.agente_publico_id);
-            let vereadoresData: AgentePublicoRow[] = [];
-            if (vereadorIds.length > 0) {
-              const { data, error } = await supabase.from('agentespublicos').select('*').in('id', vereadorIds);
-              if (error) throw error;
-              vereadoresData = data || [];
-            }
+            const dadosVereadores = verResult.data.map(item => ({
+              ...(item.agentespublicos as AgentePublicoRow),
+              condicao: item.condicao,
+              nome_parlamentar: item.agentespublicos?.vereadores?.nome_parlamentar || null
+            }));
             
             setLegislatura({ ...legData, periodos: periodosResult.data || [] });
-            setVereadores(vereadoresData);
+            setVereadores(dadosVereadores);
 
         } catch (error: any) {
             toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -114,7 +116,7 @@ export default function DetalheLegislatura() {
         setModalPeriodoOpen(false);
     };
 
-    const handleAdicionarVereadorSave = (novoVereador: AgentePublicoRow) => {
+    const handleAdicionarVereadorSave = (novoVereador: VereadorComCondicao) => {
         setVereadores(prev => [...prev, novoVereador].sort((a, b) => a.nome_completo.localeCompare(b.nome_completo)));
     };
 

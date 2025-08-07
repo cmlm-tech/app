@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          query?: string
+          variables?: Json
+          operationName?: string
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -20,6 +40,7 @@ export type Database = {
           foto_url: string | null
           id: number
           nome_completo: string
+          status_agente: string
           tipo: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Insert: {
@@ -27,6 +48,7 @@ export type Database = {
           foto_url?: string | null
           id?: number
           nome_completo: string
+          status_agente?: string
           tipo: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Update: {
@@ -34,6 +56,7 @@ export type Database = {
           foto_url?: string | null
           id?: number
           nome_completo?: string
+          status_agente?: string
           tipo?: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Relationships: []
@@ -353,7 +376,6 @@ export type Database = {
           descricao: string | null
           id: number
           numero: number
-          numero_vagas_vereadores: number
           slug: string | null
         }
         Insert: {
@@ -362,7 +384,6 @@ export type Database = {
           descricao?: string | null
           id?: number
           numero: number
-          numero_vagas_vereadores: number
           slug?: string | null
         }
         Update: {
@@ -371,7 +392,6 @@ export type Database = {
           descricao?: string | null
           id?: number
           numero?: number
-          numero_vagas_vereadores?: number
           slug?: string | null
         }
         Relationships: []
@@ -621,6 +641,7 @@ export type Database = {
           id: number
           legislatura_id: number
           numero: number
+          presidente_id: number | null
         }
         Insert: {
           data_fim: string
@@ -629,6 +650,7 @@ export type Database = {
           id?: number
           legislatura_id: number
           numero: number
+          presidente_id?: number | null
         }
         Update: {
           data_fim?: string
@@ -637,6 +659,7 @@ export type Database = {
           id?: number
           legislatura_id?: number
           numero?: number
+          presidente_id?: number | null
         }
         Relationships: [
           {
@@ -644,6 +667,13 @@ export type Database = {
             columns: ["legislatura_id"]
             isOneToOne: false
             referencedRelation: "legislaturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodossessao_presidente_id_fkey"
+            columns: ["presidente_id"]
+            isOneToOne: false
+            referencedRelation: "agentespublicos"
             referencedColumns: ["id"]
           },
         ]
@@ -1150,25 +1180,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_legislatura_with_periods: {
-        Args:
-          | {
-              p_numero: number
-              p_descricao: string
-              p_data_inicio: string
-              p_data_fim: string
-              p_numero_vagas_vereadores: number
-            }
-          | {
-              p_numero: number
-              p_slug: string
-              p_descricao: string
-              p_data_inicio: string
-              p_data_fim: string
-              p_numero_vagas_vereadores: number
-            }
-        Returns: number
-      }
       get_agentes_publicos_com_status: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1198,22 +1209,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      upsert_agente_publico: {
-        Args: {
-          p_id: number
-          p_nome_completo: string
-          p_cpf: string
-          p_foto_url: string
-          p_tipo: Database["public"]["Enums"]["tipo_agente_publico"]
-          p_nome_parlamentar?: string
-          p_perfil?: string
-          p_cargo?: string
-          p_tipo_vinculo?: Database["public"]["Enums"]["tipo_vinculo_funcionario"]
-          p_data_admissao?: string
-          p_data_exoneracao?: string
-        }
-        Returns: number
-      }
     }
     Enums: {
       cargo_comissao: "Presidente" | "Membro" | "Relator"
@@ -1230,12 +1225,7 @@ export type Database = {
         | "Subscritor"
         | "Relator"
         | "Autor"
-      permissao_usuario:
-        | "Admin"
-        | "Assessoria"
-        | "Secretaria"
-        | "Vereador"
-        | "Inativo"
+      permissao_usuario: "Admin" | "Assessoria" | "Secretaria" | "Vereador"
       status_documento: "Rascunho" | "Protocolado" | "Tramitando" | "Arquivado"
       status_presenca: "Presente" | "Ausente" | "Ausente com Justificativa"
       status_sessao: "Agendada" | "Em Andamento" | "Realizada" | "Cancelada"
@@ -1281,25 +1271,21 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -1317,16 +1303,14 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -1342,16 +1326,14 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -1367,16 +1349,14 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -1384,21 +1364,22 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof Database
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       cargo_comissao: ["Presidente", "Membro", "Relator"],
@@ -1417,13 +1398,7 @@ export const Constants = {
         "Relator",
         "Autor",
       ],
-      permissao_usuario: [
-        "Admin",
-        "Assessoria",
-        "Secretaria",
-        "Vereador",
-        "Inativo",
-      ],
+      permissao_usuario: ["Admin", "Assessoria", "Secretaria", "Vereador"],
       status_documento: ["Rascunho", "Protocolado", "Tramitando", "Arquivado"],
       status_presenca: ["Presente", "Ausente", "Ausente com Justificativa"],
       status_sessao: ["Agendada", "Em Andamento", "Realizada", "Cancelada"],
@@ -1463,3 +1438,4 @@ export const Constants = {
     },
   },
 } as const
+

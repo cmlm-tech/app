@@ -40,9 +40,17 @@ import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AgentePublicoRow } from './types';
 import { Database } from '@/lib/database.types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'; // Importar Select components
 
 type LegislaturaVereadorInsert = Database['public']['Tables']['legislaturavereadores']['Insert'];
 type CondicaoVereador = Database['public']['Enums']['condicao_vereador'];
+type PartidoPolitico = Database['public']['Enums']['partidos_politicos']; // Novo tipo para Partido
 
 interface ModalAdicionarVereadorProps {
   open: boolean;
@@ -58,6 +66,9 @@ const formSchema = z.object({
   }),
   condicao: z.enum(['Titular', 'Suplente'], {
     required_error: 'Selecione a condição.',
+  }),
+  partido: z.enum(['MDB', 'PDT', 'PSD'], { // Adicionar validação para o partido
+    required_error: 'Selecione o partido.',
   }),
 });
 
@@ -78,6 +89,7 @@ export function ModalAdicionarVereador({
     resolver: zodResolver(formSchema),
     defaultValues: {
       condicao: 'Titular',
+      partido: undefined, // Definir valor padrão para partido
     },
   });
 
@@ -107,7 +119,7 @@ export function ModalAdicionarVereador({
         }
       };
       fetchVereadores();
-      form.reset({ condicao: 'Titular' });
+      form.reset({ condicao: 'Titular', partido: undefined }); // Resetar partido também
     }
   }, [open, vereadoresAtuais, toast, form]);
 
@@ -118,6 +130,7 @@ export function ModalAdicionarVereador({
         legislatura_id: legislaturaId,
         agente_publico_id: values.agente_publico_id,
         condicao: values.condicao as CondicaoVereador,
+        partido: values.partido as PartidoPolitico, // Incluir partido
       };
 
       const { error } = await supabase.from('legislaturavereadores').insert(insertData);
@@ -150,13 +163,15 @@ export function ModalAdicionarVereador({
     return vereadoresElegiveis.find(v => v.id === id);
   }, [form, vereadoresElegiveis]);
 
+  const partidos: PartidoPolitico[] = ['MDB', 'PDT', 'PSD']; // Lista de partidos
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Adicionar Vereador ao Corpo Legislativo</DialogTitle>
           <DialogDescription>
-            Selecione um vereador e sua condição (Titular ou Suplente) para adicioná-lo a esta legislatura.
+            Selecione um vereador, sua condição (Titular ou Suplente) e o partido para adicioná-lo a esta legislatura.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -245,6 +260,30 @@ export function ModalAdicionarVereador({
                       </FormItem>
                     </RadioGroup>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="partido"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Partido</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o partido" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {partidos.map(partido => (
+                        <SelectItem key={partido} value={partido}>
+                          {partido}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

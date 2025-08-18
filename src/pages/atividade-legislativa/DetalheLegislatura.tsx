@@ -51,7 +51,7 @@ export default function DetalheLegislatura() {
             
             const [periodosResult, verResult] = await Promise.all([
                 supabase.from('periodossessao').select('*').eq('legislatura_id', legislaturaId),
-                supabase.from('legislaturavereadores').select('condicao, agentespublicos:agente_publico_id (*, vereadores:vereadores!inner(nome_parlamentar))').eq('legislatura_id', legislaturaId)
+                supabase.from('legislaturavereadores').select('condicao, agentespublicos:agente_publico_id (*, vereadores:vereadores!inner(nome_parlamentar))').eq('legislatura_id', legislaturaId).order('nome_completo', { referencedTable: 'agentespublicos', ascending: true })
             ]);
 
             if (periodosResult.error) throw periodosResult.error;
@@ -64,7 +64,15 @@ export default function DetalheLegislatura() {
             }));
             
             setLegislatura({ ...legData, periodos: periodosResult.data || [] });
-            setVereadores(dadosVereadores);
+            
+            
+            // Garante a ordenação no front-end após receber os dados.
+            const vereadoresOrdenados = dadosVereadores.sort((a, b) => {
+                const nomeA = a.nome_parlamentar || a.nome_completo;
+                const nomeB = b.nome_parlamentar || b.nome_completo;
+                return nomeA.localeCompare(nomeB);
+            });
+            setVereadores(vereadoresOrdenados);            
 
         } catch (error: any) {
             toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -115,10 +123,17 @@ export default function DetalheLegislatura() {
         }
         setModalPeriodoOpen(false);
     };
-
+    
+    // Garante que a ordenação seja mantida ao adicionar um novo vereador.
     const handleAdicionarVereadorSave = (novoVereador: VereadorComCondicao) => {
-        setVereadores(prev => [...prev, novoVereador].sort((a, b) => a.nome_completo.localeCompare(b.nome_completo)));
-    };
+        setVereadores(prev => 
+            [...prev, novoVereador].sort((a, b) => {
+                const nomeA = a.nome_parlamentar || a.nome_completo;
+                const nomeB = b.nome_parlamentar || b.nome_completo;
+                return nomeA.localeCompare(nomeB);
+            })
+        );
+    };    
 
     const handleOpenModalRemocao = (vereador: AgentePublicoRow) => {
         setVereadorSelecionado(vereador);
@@ -188,7 +203,6 @@ export default function DetalheLegislatura() {
                             periodo={periodo} 
                             presidente={presidente}
                             onGerenciar={isAdmin ? () => handleGerenciarClick(periodo) : undefined}
-                            // ALTERAÇÃO FINAL APLICADA:
                             legislaturaNumero={legislatura.numero}
                         />
                     );

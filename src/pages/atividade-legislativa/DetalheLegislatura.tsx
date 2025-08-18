@@ -12,14 +12,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CorpoLegislativo } from "@/components/legislaturas/CorpoLegislativo";
 import { ModalAdicionarVereador } from "@/components/legislaturas/ModalAdicionarVereador";
 import { ModalConfirmarRemocaoVereador } from '@/components/legislaturas/ModalConfirmarRemocaoVereador';
+import { ComposicaoAtual } from "@/components/legislaturas/ComposicaoAtual";
 
 // Tipos
 type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
 type PeriodoRow = Database['public']['Tables']['periodossessao']['Row'];
 type AgentePublicoRow = Database['public']['Tables']['agentespublicos']['Row'];
+type LegislaturaVereadorRow = Database['public']['Tables']['legislaturavereadores']['Row'];
+
 export type VereadorComCondicao = AgentePublicoRow & {
-  condicao: Database['public']['Tables']['legislaturavereadores']['Row']['condicao'];
+  condicao: LegislaturaVereadorRow['condicao'];
+  data_posse: LegislaturaVereadorRow['data_posse'];
+  data_afastamento: LegislaturaVereadorRow['data_afastamento'];
   nome_parlamentar: string | null;
+  id: LegislaturaVereadorRow['id'];
+  vereadores: AgentePublicoRow
 };
 type LegislaturaComPeriodos = LegislaturaRow & {
   periodos: PeriodoRow[];
@@ -51,7 +58,7 @@ export default function DetalheLegislatura() {
             
             const [periodosResult, verResult] = await Promise.all([
                 supabase.from('periodossessao').select('*').eq('legislatura_id', legislaturaId),
-                supabase.from('legislaturavereadores').select('condicao, agentespublicos:agente_publico_id (*, vereadores:vereadores!inner(nome_parlamentar))').eq('legislatura_id', legislaturaId).order('nome_completo', { referencedTable: 'agentespublicos', ascending: true })
+                supabase.from('legislaturavereadores').select('id, condicao, data_posse, data_afastamento, agentespublicos:agente_publico_id (*, vereadores:vereadores!inner(nome_parlamentar))').eq('legislatura_id', legislaturaId).order('nome_completo', { referencedTable: 'agentespublicos', ascending: true })
             ]);
 
             if (periodosResult.error) throw periodosResult.error;
@@ -59,8 +66,12 @@ export default function DetalheLegislatura() {
 
             const dadosVereadores = verResult.data.map(item => ({
               ...(item.agentespublicos as AgentePublicoRow),
+              id: item.id,
               condicao: item.condicao,
-              nome_parlamentar: item.agentespublicos?.vereadores?.nome_parlamentar || null
+              data_posse: item.data_posse,
+              data_afastamento: item.data_afastamento,
+              nome_parlamentar: item.agentespublicos?.vereadores?.nome_parlamentar || null,
+              vereadores: item.agentespublicos as AgentePublicoRow
             }));
             
             setLegislatura({ ...legData, periodos: periodosResult.data || [] });
@@ -124,19 +135,8 @@ export default function DetalheLegislatura() {
         setModalPeriodoOpen(false);
     };
     
-    // Garante que a ordenação seja mantida ao adicionar um novo vereador.
-    const handleAdicionarVereadorSave = (novoVereador: VereadorComCondicao) => {
-        setVereadores(prev => 
-            [...prev, novoVereador].sort((a, b) => {
-                const nomeA = a.nome_parlamentar || a.nome_completo;
-                const nomeB = b.nome_parlamentar || b.nome_completo;
-                return nomeA.localeCompare(nomeB);
-            })
-        );
-    };    
-
     const handleOpenModalRemocao = (vereador: AgentePublicoRow) => {
-        setVereadorSelecionado(vereador);
+        setVereadorSelecionado(vereador as VereadorComCondicao);
         setModalRemocaoOpen(true);
     };
 
@@ -167,6 +167,26 @@ export default function DetalheLegislatura() {
     const anoInicio = new Date(legislatura.data_inicio).getFullYear();
     const anoFim = new Date(legislatura.data_fim).getFullYear();
 
+    const now = new Date();
+
+    const emExercicio = vereadores.filter(v => {
+        const dataAfastamento = v.data_afastamento ? new Date(v.data_afastamento) : null;
+        const dataPosse = v.data_posse ? new Date(v.data_posse) : null;
+
+        if (v.condicao === 'Titular' && (!dataAfastamento || dataAfastamento > now)) {
+            return true;
+        }
+        if (v.condicao === 'Suplente' && dataPosse && dataPosse <= now && (!dataAfastamento || dataAfastamento > now)) {
+            return true;
+        }
+        return false;
+    });
+
+    const licenciados = vereadores.filter(v => {
+        const dataAfastamento = v.data_afastamento ? new Date(v.data_afastamento) : null;
+        return v.condicao === 'Titular' && dataAfastamento && dataAfastamento <= now;
+    });
+
     return (
         <AppLayout>
             <Breadcrumb className="mb-4">
@@ -194,7 +214,9 @@ export default function DetalheLegislatura() {
                 onRemove={handleOpenModalRemocao}
             />
 
-            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+            <ComposicaoAtual emExercicio={emExercicio} licenciados={licenciados} />
+
+            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mt-8">
                 {legislatura.periodos.map(periodo => {
                     const presidente = undefined;
                     return (
@@ -223,7 +245,7 @@ export default function DetalheLegislatura() {
                         onOpenChange={setModalVereadorOpen}
                         legislaturaId={legislatura.id}
                         vereadoresAtuais={vereadores}
-                        onSave={handleAdicionarVereadorSave}
+                        onSuccess={() => fetchData(parseInt(legislaturaNumero!, 10))}
                     />
                     <ModalConfirmarRemocaoVereador
                         isOpen={modalRemocaoOpen}

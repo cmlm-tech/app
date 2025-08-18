@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
@@ -57,7 +56,7 @@ interface ModalAdicionarVereadorProps {
   onOpenChange: (open: boolean) => void;
   legislaturaId: number;
   vereadoresAtuais: AgentePublicoRow[];
-  onSave: (novoVereador: AgentePublicoRow) => void;
+  onSuccess: () => void;
 }
 
 const formSchema = z.object({
@@ -77,7 +76,7 @@ export function ModalAdicionarVereador({
   onOpenChange,
   legislaturaId,
   vereadoresAtuais,
-  onSave,
+  onSuccess,
 }: ModalAdicionarVereadorProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -137,10 +136,7 @@ export function ModalAdicionarVereador({
 
       if (error) throw error;
 
-      const vereadorAdicionado = vereadoresElegiveis.find(v => v.id === values.agente_publico_id);
-      if (vereadorAdicionado) {
-        onSave(vereadorAdicionado);
-      }
+      onSuccess();
 
       toast({
         title: 'Sucesso!',

@@ -14,7 +14,7 @@ export function ComposicaoAtual({
   return (
     <Accordion type="single" collapsible className="w-full mb-6" defaultValue="item-1">
       <AccordionItem value="item-1">
-        <AccordionTrigger className="text-xl font-semibold">
+        <AccordionTrigger className="text-xl font-semibold justify-start gap-2">
           Composição Atual da Legislatura
         </AccordionTrigger>
         <AccordionContent>

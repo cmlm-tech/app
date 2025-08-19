@@ -1,4 +1,4 @@
-import { VereadorComCondicao } from "@/pages/atividade-legislativa/DetalheLegislatura";
+import { VereadorComCondicao } from "./types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { CardVereador } from "@/components/vereadores/CardVereador";

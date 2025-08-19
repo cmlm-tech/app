@@ -13,24 +13,7 @@ import { CorpoLegislativo } from "@/components/legislaturas/CorpoLegislativo";
 import { ModalAdicionarVereador } from "@/components/legislaturas/ModalAdicionarVereador";
 import { ModalConfirmarRemocaoVereador } from '@/components/legislaturas/ModalConfirmarRemocaoVereador';
 import { ComposicaoAtual } from "@/components/legislaturas/ComposicaoAtual";
-
-// Tipos
-type LegislaturaRow = Database['public']['Tables']['legislaturas']['Row'];
-type PeriodoRow = Database['public']['Tables']['periodossessao']['Row'];
-type AgentePublicoRow = Database['public']['Tables']['agentespublicos']['Row'];
-type LegislaturaVereadorRow = Database['public']['Tables']['legislaturavereadores']['Row'];
-
-export type VereadorComCondicao = AgentePublicoRow & {
-  condicao: LegislaturaVereadorRow['condicao'];
-  data_posse: LegislaturaVereadorRow['data_posse'];
-  data_afastamento: LegislaturaVereadorRow['data_afastamento'];
-  nome_parlamentar: string | null;
-  id: LegislaturaVereadorRow['id'];
-  vereadores: AgentePublicoRow
-};
-type LegislaturaComPeriodos = LegislaturaRow & {
-  periodos: PeriodoRow[];
-};
+import { VereadorComCondicao, LegislaturaComPeriodos, PeriodoRow, AgentePublicoRow } from "@/components/legislaturas/types";
 
 export default function DetalheLegislatura() {
     const { legislaturaNumero } = useParams<{ legislaturaNumero: string }>();

@@ -2,6 +2,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { useState, useEffect, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PeriodoCard } from "@/components/legislaturas/PeriodoCard";
 import { ModalGerenciarPeriodo } from "@/components/legislaturas/ModalGerenciarPeriodo";
 import { supabase } from '@/lib/supabaseClient';
@@ -199,20 +200,27 @@ export default function DetalheLegislatura() {
 
             <ComposicaoAtual emExercicio={emExercicio} licenciados={licenciados} />
 
-            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mt-8">
-                {legislatura.periodos.map(periodo => {
-                    const presidente = undefined;
-                    return (
-                        <PeriodoCard 
-                            key={periodo.id} 
-                            periodo={periodo} 
-                            presidente={presidente}
-                            onGerenciar={isAdmin ? () => handleGerenciarClick(periodo) : undefined}
-                            legislaturaNumero={legislatura.numero}
-                        />
-                    );
-                })}
-            </div>
+            <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
+                <AccordionItem value="item-1">
+                    <AccordionTrigger className="text-xl font-bold">Período Legislativo por Ano</AccordionTrigger>
+                    <AccordionContent>
+                        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mt-8">
+                            {legislatura.periodos.map(periodo => {
+                                const presidente = undefined;
+                                return (
+                                    <PeriodoCard 
+                                        key={periodo.id} 
+                                        periodo={periodo} 
+                                        presidente={presidente}
+                                        onGerenciar={isAdmin ? () => handleGerenciarClick(periodo) : undefined}
+                                        legislaturaNumero={legislatura.numero}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
 
             {isAdmin && (
                 <>

@@ -200,9 +200,9 @@ export default function DetalheLegislatura() {
 
             <ComposicaoAtual emExercicio={emExercicio} licenciados={licenciados} />
 
-            <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
+            <Accordion type="single" collapsible defaultValue="item-1">
                 <AccordionItem value="item-1">
-                    <AccordionTrigger className="text-xl font-bold">Período Legislativo por Ano</AccordionTrigger>
+                    <AccordionTrigger className="text-xl font-semibold justify-start gap-2">Período Legislativo por Ano</AccordionTrigger>
                     <AccordionContent>
                         <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mt-8">
                             {legislatura.periodos.map(periodo => {

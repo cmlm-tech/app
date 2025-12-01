@@ -5,12 +5,11 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Gavel, Calendar } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const nextSessionDate = "Segunda-feira, 16 de Junho de 2025, às 19:00";
 const countdown = "Faltam 1 dia e 5 horas";
 const pautaId = "123";
-const userName = "Ana Silva";
-const todayText = "domingo, 15 de junho de 2025";
 
 const pendencias = [
   { id: "PL15", titulo: "Projeto de Lei nº 15/2025", status: "Aguardando parecer da Comissão de Justiça", link: "/documentos/materias/15" },
@@ -29,6 +28,17 @@ const atividadeRecente = [
 // ... (array 'atalhos' não utilizado no JSX, pode ser removido se não for usado em outro lugar)
 
 export default function Painel() {
+  const { user } = useAuth();
+
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário';
+
+  const todayText = new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date());
+
   return (
     <AppLayout>
       {/* Cabeçalho */}
@@ -41,7 +51,7 @@ export default function Painel() {
           Bem-vindo(a) de volta, <span className="font-semibold">{userName}</span>! Hoje é {todayText}.
         </p>
       </div>
-      
+
       {/* Linha de cards de KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {/* ALTERAÇÃO: Layout interno dos cards responsivo (flex-col sm:flex-row) */}

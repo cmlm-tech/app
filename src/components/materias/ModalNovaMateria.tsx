@@ -107,63 +107,65 @@ export default function ModalNovaMateria({ aberto, onClose, onProtocolar }: Prop
           </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 pt-4">
+        <form onSubmit={handleSubmit} className="space-y-3 pt-2">
 
-          {/* LINHA 1: Classificação Básica */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Tipo de Matéria</label>
+          {/* LINHA 1: Classificação Básica e Autor */}
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-4">
+              <label className="block text-xs font-semibold text-gray-700 mb-0.5">Tipo de Matéria</label>
               <Select value={tipo} onValueChange={val => setTipo(val as TipoMateria)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {tipos.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {tipos.map(t => <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Data de Entrada</label>
-              <Input value={dataProtocolo.toLocaleDateString()} readOnly className="bg-gray-50 text-gray-500" />
+            <div className="col-span-3">
+              <label className="block text-xs font-semibold text-gray-700 mb-0.5">Data</label>
+              <Input value={dataProtocolo.toLocaleDateString()} readOnly className="bg-gray-50 text-gray-500 h-8 text-xs" />
             </div>
-          </div>
-
-          {/* LINHA 2: Autoria (Fundamental) */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Autor / Gabinete</label>
-            <Select value={autor} onValueChange={setAutor}>
-              <SelectTrigger className={!autor ? "border-indigo-200 bg-indigo-50" : ""}>
-                <SelectValue placeholder="Selecione o responsável..." />
-              </SelectTrigger>
-              <SelectContent>
-                {autoresExemplo.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="col-span-5">
+              <label className="block text-xs font-semibold text-gray-700 mb-0.5">Autor / Gabinete</label>
+              <Select value={autor} onValueChange={setAutor}>
+                <SelectTrigger className={`h-8 text-xs ${!autor ? "border-indigo-200 bg-indigo-50" : ""}`}>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {autoresExemplo.map(a => <SelectItem key={a} value={a} className="text-xs">{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* BLOCO CONDICIONAL: Destinatário */}
           {precisaDestinatario && (
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="bg-slate-200 text-slate-600 text-xs px-2 py-0.5 rounded font-bold uppercase">Destinatário</span>
-                <span className="text-xs text-gray-400">(Quem receberá o documento)</span>
+            <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="bg-slate-200 text-slate-600 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">Destinatário</span>
+                <span className="text-[10px] text-gray-400">(Quem receberá o documento)</span>
               </div>
-              <div>
-                <Input value={destinatario} onChange={e => setDestinatario(e.target.value)} placeholder="Nome Completo (Ex: Sr. Prefeito...)" className="bg-white" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input value={cargo} onChange={e => setCargo(e.target.value)} placeholder="Cargo (Ex: Secretário)" className="bg-white" />
-                <Input value={orgao} onChange={e => setOrgao(e.target.value)} placeholder="Órgão (Ex: Secretaria de Saúde)" className="bg-white" />
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-12">
+                  <Input value={destinatario} onChange={e => setDestinatario(e.target.value)} placeholder="Nome Completo" className="bg-white h-8 text-xs" />
+                </div>
+                <div className="col-span-6">
+                  <Input value={cargo} onChange={e => setCargo(e.target.value)} placeholder="Cargo" className="bg-white h-8 text-xs" />
+                </div>
+                <div className="col-span-6">
+                  <Input value={orgao} onChange={e => setOrgao(e.target.value)} placeholder="Órgão" className="bg-white h-8 text-xs" />
+                </div>
               </div>
             </div>
           )}
 
           {/* LINHA 3: Instrução para a IA */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1 flex justify-between">
+            <label className="block text-xs font-semibold text-gray-700 mb-0.5 flex justify-between">
               <span>Instruções para Redação (IA)</span>
-              <span className="text-xs font-normal text-gray-500">Seja claro no objetivo</span>
+              <span className="text-[10px] font-normal text-gray-500">Seja claro no objetivo</span>
             </label>
             <Textarea
-              className="min-h-[120px] text-base resize-y"
+              className="min-h-[80px] text-sm resize-none"
               required
               value={instrucaoIA}
               onChange={e => setInstrucaoIA(e.target.value)}
@@ -173,24 +175,24 @@ export default function ModalNovaMateria({ aberto, onClose, onProtocolar }: Prop
 
           {/* LINHA 4: Material de Apoio (Opcional) */}
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1 flex items-center gap-1">
+            <label className="block text-xs font-medium text-gray-600 mb-0.5 flex items-center gap-1">
               <Paperclip className="w-3 h-3" /> Material de Apoio (Opcional)
             </label>
-            <Input type="file" className="text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" multiple onChange={e => setAnexos([...e.target.files ? Array.from(e.target.files) : []])} />
-            <p className="text-[10px] text-gray-400 mt-1">Anexe fotos ou rascunhos que ajudem a IA (ainda não implementado leitura de img, apenas guarda referência).</p>
+            <Input type="file" className="h-8 text-xs file:mr-2 file:py-0.5 file:px-2 file:text-[10px]" multiple onChange={e => setAnexos([...e.target.files ? Array.from(e.target.files) : []])} />
           </div>
 
           {/* RODAPÉ */}
-          <DialogFooter className="pt-4 border-t mt-2">
+          <DialogFooter className="pt-2 border-t mt-1">
             <DialogClose asChild>
-              <Button type="button" variant="ghost">Cancelar</Button>
+              <Button type="button" variant="ghost" size="sm" className="h-8 text-xs">Cancelar</Button>
             </DialogClose>
 
             <Button
               type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all hover:scale-[1.02]"
+              size="sm"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all hover:scale-[1.02] h-8 text-xs"
             >
-              <Wand2 className="mr-2 h-4 w-4 animate-pulse" />
+              <Wand2 className="mr-2 h-3 w-3 animate-pulse" />
               Criar e Gerar Minuta
             </Button>
           </DialogFooter>

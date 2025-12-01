@@ -6,7 +6,8 @@ export type StatusMateria =
   | "Aguardando votação"
   | "Aprovado"
   | "Rejeitado"
-  | "Arquivado";
+  | "Arquivado"
+  | "Rascunho";
 
 export type TipoMateria =
   | "Projeto de Lei"
@@ -23,4 +24,7 @@ export interface Materia {
   autor: string;
   dataProtocolo: Date;
   status: StatusMateria;
+  destinatario?: string;
+  cargo?: string;
+  orgao?: string;
 }

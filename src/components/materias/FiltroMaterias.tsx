@@ -11,12 +11,12 @@ interface Props {
   setTipo: (val: string) => void;
   status: string;
   setStatus: (val: string) => void;
-  periodo: {inicio: Date|null; fim: Date|null};
-  setPeriodo: (val: {inicio: Date|null; fim: Date|null}) => void;
+  periodo: { inicio: Date | null; fim: Date | null };
+  setPeriodo: (val: { inicio: Date | null; fim: Date | null }) => void;
 }
 
 const tipos: TipoMateria[] = ["Todos", "Projeto de Lei", "Ofício", "Requerimento", "Moção"];
-const statusList: StatusMateria[] = ["Todos", "Protocolado", "Em análise", "Aguardando votação", "Aprovado", "Rejeitado", "Arquivado"];
+const statusList: StatusMateria[] = ["Todos", "Rascunho", "Protocolado", "Em análise", "Aguardando votação", "Aprovado", "Rejeitado", "Arquivado"];
 
 export default function FiltroMaterias({
   busca, setBusca,

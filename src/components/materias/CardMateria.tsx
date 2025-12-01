@@ -22,7 +22,8 @@ const statusColors: Record<string, string> = {
   "Aguardando votação": "bg-blue-100 text-blue-700",
   "Rejeitado": "bg-red-100 text-red-700",
   "Arquivado": "bg-gray-200 text-gray-500",
-  "Protocolado": "bg-gray-100 text-gray-800"
+  "Protocolado": "bg-gray-100 text-gray-800",
+  "Rascunho": "bg-purple-100 text-purple-700"
 };
 
 export const CardMateria = ({ materia }: CardMateriaProps) => {
@@ -39,25 +40,25 @@ export const CardMateria = ({ materia }: CardMateriaProps) => {
         <div className="text-xs text-gray-500 mt-2">Autor: {materia.autor}</div>
         <div className="text-xs text-gray-500">Data: {materia.dataProtocolo.toLocaleDateString()}</div>
         <div className="mt-4">
-            <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", statusColors[materia.status] || "bg-gray-200 text-gray-600")}>
-                {materia.status}
-            </span>
+          <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", statusColors[materia.status] || "bg-gray-200 text-gray-600")}>
+            {materia.status}
+          </span>
         </div>
       </CardContent>
       <CardFooter className="flex justify-end">
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Abrir menu</span>
-                    <MoreVertical className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuItem><Eye className="mr-2 h-4 w-4" /> Visualizar</DropdownMenuItem>
-                <DropdownMenuItem><Pencil className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>
-                <DropdownMenuItem><Download className="mr-2 h-4 w-4" /> Baixar</DropdownMenuItem>
-                <DropdownMenuItem><History className="mr-2 h-4 w-4" /> Histórico</DropdownMenuItem>
-            </DropdownMenuContent>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Abrir menu</span>
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem><Eye className="mr-2 h-4 w-4" /> Visualizar</DropdownMenuItem>
+            <DropdownMenuItem><Pencil className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>
+            <DropdownMenuItem><Download className="mr-2 h-4 w-4" /> Baixar</DropdownMenuItem>
+            <DropdownMenuItem><History className="mr-2 h-4 w-4" /> Histórico</DropdownMenuItem>
+          </DropdownMenuContent>
         </DropdownMenu>
       </CardFooter>
     </Card>

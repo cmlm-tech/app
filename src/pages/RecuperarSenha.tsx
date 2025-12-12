@@ -21,7 +21,7 @@ const RecuperarSenha = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://cmlm.tech/redefinir-senha'
+        redirectTo: `${window.location.origin}/redefinir-senha`
       });
 
       if (error) {

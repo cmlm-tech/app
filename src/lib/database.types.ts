@@ -225,6 +225,7 @@ export type Database = {
           id: number
           status: Database["public"]["Enums"]["status_documento"] | null
           tipo_documento_id: number
+          numero_protocolo_geral: number | null
         }
         Insert: {
           ano: number
@@ -235,6 +236,7 @@ export type Database = {
           id?: number
           status?: Database["public"]["Enums"]["status_documento"] | null
           tipo_documento_id: number
+          numero_protocolo_geral?: number | null
         }
         Update: {
           ano?: number
@@ -245,6 +247,7 @@ export type Database = {
           id?: number
           status?: Database["public"]["Enums"]["status_documento"] | null
           tipo_documento_id?: number
+          numero_protocolo_geral?: number | null
         }
         Relationships: [
           {
@@ -1180,6 +1183,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aprovar_e_numerar_materia: {
+        Args: {
+          p_documento_id: number
+          p_usuario_aprovador_id: string
+        }
+        Returns: {
+          sucesso: boolean
+          numero_gerado: number
+          mensagem: string
+        }
+      }
       get_agentes_publicos_com_status: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1208,6 +1222,27 @@ export type Database = {
       is_staff: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      protocolar_materia: {
+        Args: {
+          p_tipo_documento_id: number
+          p_ano: number
+          p_data_protocolo: string
+          p_autor_id: number
+          p_autor_type: string
+          p_texto_resumo: string
+          p_usuario_id: string
+          p_arquivo_url?: string | null
+          p_observacao_tramitacao?: string | null
+          p_destinatario_nome?: string | null
+          p_destinatario_cargo?: string | null
+          p_destinatario_orgao?: string | null
+        }
+        Returns: {
+          documento_id: number
+          protocolo_geral: number
+          mensagem: string
+        }
       }
     }
     Enums: {
@@ -1438,4 +1473,3 @@ export const Constants = {
     },
   },
 } as const
-

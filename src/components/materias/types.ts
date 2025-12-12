@@ -1,4 +1,3 @@
-
 export type StatusMateria =
   | "Todos"
   | "Protocolado"
@@ -7,7 +6,8 @@ export type StatusMateria =
   | "Aprovado"
   | "Rejeitado"
   | "Arquivado"
-  | "Rascunho";
+  | "Rascunho"
+  | "Aguardando Deliberação"; 
 
 export type TipoMateria =
   | "Projeto de Lei"
@@ -27,4 +27,11 @@ export interface Materia {
   destinatario?: string;
   cargo?: string;
   orgao?: string;
+}
+
+// --- tipar o retorno da Procedure SQL ---
+export interface RetornoProtocolo {
+  documento_id: number;
+  protocolo_geral: number;
+  mensagem: string;
 }

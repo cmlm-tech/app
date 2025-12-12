@@ -158,7 +158,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       onClose();
 
       console.log("7. Navegando...");
-      navigate(`/painel/materias/${dadosProtocolo.documento_id}/editar`);
+      navigate("/documentos/materias");
 
     } catch (error: any) {
       console.error("ERRO GERAL:", error);

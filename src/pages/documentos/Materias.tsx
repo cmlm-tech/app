@@ -1,53 +1,100 @@
 
 import { AppLayout } from "@/components/AppLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import FiltroMaterias from "@/components/materias/FiltroMaterias";
 import TabelaMaterias from "@/components/materias/TabelaMaterias";
 import ModalNovaMateria from "@/components/materias/ModalNovaMateria";
-import { Materia } from "@/components/materias/types";
-
-// Matérias mock (seria trocado por API/backend)
-const MOCK_MATERIAS: Materia[] = [
-  {
-    id: "1",
-    protocolo: "PL 15/2025",
-    tipo: "Projeto de Lei",
-    ementa: "Dispõe sobre a criação do programa municipal de educação tecnológica.",
-    autor: "Vereador João Silva",
-    dataProtocolo: new Date("2025-06-10"),
-    status: "Aprovado"
-  },
-  {
-    id: "2",
-    protocolo: "REQ 22/2025",
-    tipo: "Requerimento",
-    ementa: "Solicita informações sobre obras em andamento.",
-    autor: "Vereadora Maria Souza",
-    dataProtocolo: new Date("2025-06-14"),
-    status: "Em análise"
-  },
-  {
-    id: "3",
-    protocolo: "MO 04/2024",
-    tipo: "Moção",
-    ementa: "Moção de aplausos ao grupo musical local.",
-    autor: "Comissão de Cultura",
-    dataProtocolo: new Date("2024-12-08"),
-    status: "Aguardando votação"
-  }
-];
+import { Materia, StatusMateria, TipoMateria } from "@/components/materias/types";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function Materias() {
   const [modalAberto, setModalAberto] = useState(false);
-  const [materias, setMaterias] = useState<Materia[]>(MOCK_MATERIAS);
+  const [materias, setMaterias] = useState<Materia[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState("Todos");
   const [status, setStatus] = useState("Todos");
-  const [periodo, setPeriodo] = useState<{inicio: Date|null; fim: Date|null}>({inicio: null, fim: null});
+  const [periodo, setPeriodo] = useState<{ inicio: Date | null; fim: Date | null }>({ inicio: null, fim: null });
 
-  // Filtrar matérias
+  useEffect(() => {
+    fetchMaterias();
+  }, []);
+
+  async function fetchMaterias() {
+    setIsLoading(true);
+    try {
+      // 1. Buscar Agentes (para mapear manualmente pois não há FK)
+      const { data: agentes } = await supabase
+        .from('agentespublicos')
+        .select('id, nome_completo');
+
+      const agentesMap = new Map((agentes || []).map((a: any) => [a.id, a.nome_completo]));
+
+      // 2. Buscar Documentos
+      const { data, error } = await supabase
+        .from('documentos')
+        .select(`
+          id,
+          ano,
+          numero_protocolo_geral,
+          data_protocolo,
+          status,
+          tiposdedocumento ( nome ),
+          documentoautores ( autor_id, papel ),
+          oficios ( assunto ),
+          projetosdelei ( ementa ),
+          requerimentos ( justificativa ),
+          mocoes ( ementa ),
+          indicacoes ( ementa )
+        `)
+        .order('data_protocolo', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        // Mapear dados do banco para o formato da interface
+        const mappedMaterias: Materia[] = data.map((doc: any) => {
+          // Determinar ementa/resumo baseado no tipo
+          let resumo = "";
+          if (doc.oficios?.[0]) resumo = doc.oficios[0].assunto;
+          else if (doc.projetosdelei?.[0]) resumo = doc.projetosdelei[0].ementa;
+          else if (doc.requerimentos?.[0]) resumo = doc.requerimentos[0].justificativa;
+          else if (doc.mocoes?.[0]) resumo = doc.mocoes[0].ementa;
+          else if (doc.indicacoes?.[0]) resumo = doc.indicacoes[0].ementa;
+
+          // Nome do Autor (Buscar no Map)
+          const autorId = doc.documentoautores?.[0]?.autor_id;
+          const nomeAutor = autorId ? agentesMap.get(autorId) || "Desconhecido" : "Sem Autor";
+
+          // Nome do Tipo (com fallback)
+          const nomeTipo = doc.tiposdedocumento?.nome || "Documento";
+
+          // Formatar Protocolo (Ex: PL 01/2024 ou Geral)
+          const protocoloStr = `${nomeTipo.substring(0, 3).toUpperCase()} ${doc.numero_protocolo_geral}/${doc.ano}`;
+
+          return {
+            id: doc.id.toString(),
+            protocolo: protocoloStr,
+            tipo: nomeTipo as TipoMateria,
+            ementa: resumo || "Sem descrição",
+            autor: nomeAutor,
+            dataProtocolo: new Date(doc.data_protocolo),
+            status: doc.status as StatusMateria,
+          };
+        });
+        setMaterias(mappedMaterias);
+      }
+    } catch (err: any) {
+      console.error("Erro ao buscar matérias:", err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Filtrar matérias (Client-side por enquanto, ideal seria server-side mas ok para MVP)
   const materiasFiltradas = materias.filter((m) => {
     const buscaOk =
       busca === "" ||
@@ -61,19 +108,7 @@ export default function Materias() {
       (!periodo.fim || m.dataProtocolo <= periodo.fim);
 
     return buscaOk && tipoOk && statusOk && periodoOk;
-  }).sort((a, b) => b.dataProtocolo.getTime() - a.dataProtocolo.getTime());
-
-  // Simula cadastro
-  function handleProtocolar(nova: Omit<Materia, "id">) {
-    setMaterias((mats) => [
-      {
-        ...nova,
-        id: String(Math.random() * 100000)
-      },
-      ...mats
-    ]);
-    setModalAberto(false);
-  }
+  });
 
   return (
     <AppLayout>
@@ -108,14 +143,20 @@ export default function Materias() {
         </div>
         {/* Tabela */}
         <div className="rounded-lg bg-white shadow p-4">
-          <TabelaMaterias materias={materiasFiltradas} />
+          {isLoading ? (
+            <div className="flex justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-gov-blue-600" />
+            </div>
+          ) : (
+            <TabelaMaterias materias={materiasFiltradas} />
+          )}
         </div>
       </div>
-      {/* Modal */}
+      {/* Modal - ao protocolar com sucesso, recarrega a lista */}
       <ModalNovaMateria
         aberto={modalAberto}
         onClose={() => setModalAberto(false)}
-        onProtocolar={handleProtocolar}
+        onSucesso={fetchMaterias} // Recarrega a lista ao voltar
       />
     </AppLayout>
   );

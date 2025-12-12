@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { Wand2, Paperclip, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
@@ -11,12 +11,13 @@ import { TipoMateria, RetornoProtocolo } from "./types";
 
 const tiposCriacao: TipoMateria[] = ["Projeto de Lei", "Ofício", "Requerimento", "Moção"];
 
-const autoresExemplo = [
-  { id: 1, nome: "Vereador João Silva" },
-  { id: 2, nome: "Vereadora Ivete Moreira" },
-  { id: 3, nome: "Comissão de Justiça" },
-  { id: 4, nome: "Mesa Diretora" }
-];
+// Removido autoresExemplo fixo para usar do banco
+
+interface Autor {
+  id: number;
+  nome: string;
+  cargo?: string;
+}
 
 interface Props {
   aberto: boolean;
@@ -37,8 +38,33 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
   const [cargo, setCargo] = useState("");
   const [orgao, setOrgao] = useState("");
 
+  // Estado para armazenar os autores vindos do banco
+  const [autores, setAutores] = useState<Autor[]>([]);
+
   const dataProtocolo = new Date();
   const precisaDestinatario = tipo === "Ofício" || tipo === "Requerimento";
+
+  // Buscar autores ao abrir o modal
+  useEffect(() => {
+    if (aberto) {
+      buscarAutores();
+    }
+  }, [aberto]);
+
+  async function buscarAutores() {
+    try {
+      const { data, error } = await supabase
+        .from('agentespublicos')
+        .select('id, nome:nome_completo, cargo:tipo')
+        .eq('tipo', 'Vereador')
+        .order('nome_completo');
+
+      if (error) throw error;
+      if (data) setAutores(data);
+    } catch (err) {
+      console.error("Erro ao buscar autores:", err);
+    }
+  }
 
   const getTipoId = (t: string) => {
     switch (t) {
@@ -84,7 +110,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado.");
 
-      const nomeAutor = autoresExemplo.find(a => a.id.toString() === autorId)?.nome;
+      const nomeAutor = autores.find(a => a.id.toString() === autorId)?.nome;
 
       console.log("3. Chamando RPC no Banco...");
       setStatusMsg("Reservando numeração...");
@@ -180,7 +206,11 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {autoresExemplo.map(a => <SelectItem key={a.id} value={a.id.toString()} className="text-xs">{a.nome}</SelectItem>)}
+                  {autores.map(a => (
+                    <SelectItem key={a.id} value={a.id.toString()} className="text-xs">
+                      {a.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

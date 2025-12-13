@@ -262,8 +262,9 @@ const Index = () => {
 
             <div className="space-y-24">
               {/* Fase 1 */}
+              {/* Fase 1 */}
               <div className="relative flex flex-col md:flex-row items-center justify-between group">
-                <div className="order-1 md:w-5/12 text-left md:text-right animate-fade-in [animation-delay:100ms]">
+                <div className="order-2 md:order-1 md:w-5/12 text-center md:text-right mt-4 md:mt-0 animate-fade-in [animation-delay:100ms]">
                   <h4 className="text-2xl font-montserrat font-bold text-gov-blue-900 mb-3 group-hover:text-gov-blue-600 transition-colors">
                     Lançamento e Acesso Interno
                   </h4>
@@ -276,18 +277,18 @@ const Index = () => {
                   <h1 className="mx-auto font-semibold text-lg text-gov-blue-600">1</h1>
                 </div>
 
-                <div className="order-1 md:w-5/12 md:opacity-0" />
+                <div className="order-1 md:w-5/12 md:opacity-0 hidden md:block" />
               </div>
 
               {/* Fase 2 */}
               <div className="relative flex flex-col md:flex-row items-center justify-between group">
-                <div className="order-1 md:w-5/12 md:opacity-0" />
+                <div className="order-1 md:w-5/12 md:opacity-0 hidden md:block" />
 
                 <div className="z-20 flex items-center order-1 bg-white shadow-xl w-16 h-16 rounded-full border-4 border-gov-blue-500 group-hover:scale-110 transition-transform duration-300">
                   <h1 className="mx-auto font-semibold text-lg text-gov-blue-600">2</h1>
                 </div>
 
-                <div className="order-1 md:w-5/12 text-left animate-fade-in [animation-delay:300ms]">
+                <div className="order-2 md:order-1 md:w-5/12 text-center text-left mt-4 md:mt-0 animate-fade-in [animation-delay:300ms]">
                   <h4 className="text-2xl font-montserrat font-bold text-gov-blue-900 mb-3 group-hover:text-gov-blue-600 transition-colors">
                     Módulo Legislativo e Vereadores
                   </h4>
@@ -299,7 +300,7 @@ const Index = () => {
 
               {/* Fase 3 */}
               <div className="relative flex flex-col md:flex-row items-center justify-between group">
-                <div className="order-1 md:w-5/12 text-left md:text-right animate-fade-in [animation-delay:500ms]">
+                <div className="order-2 md:order-1 md:w-5/12 text-center md:text-right mt-4 md:mt-0 animate-fade-in [animation-delay:500ms]">
                   <h4 className="text-2xl font-montserrat font-bold text-gov-blue-900 mb-3 group-hover:text-gov-blue-600 transition-colors">
                     Portal da Transparência Integrado
                   </h4>
@@ -312,7 +313,7 @@ const Index = () => {
                   <h1 className="mx-auto font-semibold text-lg text-gov-blue-600">3</h1>
                 </div>
 
-                <div className="order-1 md:w-5/12 md:opacity-0" />
+                <div className="order-1 md:w-5/12 md:opacity-0 hidden md:block" />
               </div>
             </div>
           </div>

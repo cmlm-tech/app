@@ -43,9 +43,10 @@ const Index = () => {
                 className={`${isScrolled
                   ? 'bg-gov-blue-800 hover:bg-gov-blue-900 text-white'
                   : 'bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm'
-                  } px-6 py-2 rounded-full font-medium transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}
+                  } p-2 md:px-6 md:py-2 rounded-full font-medium transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5`}
               >
-                Acesso ao Sistema
+                <LogIn className="h-5 w-5 md:mr-2" />
+                <span className="hidden md:inline">Acesso ao Sistema</span>
               </Button>
             </RouterLink>
           </div>
@@ -78,10 +79,18 @@ const Index = () => {
             <span className="text-sm font-medium tracking-wider uppercase text-blue-100">Inovação na Gestão Pública</span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-montserrat font-bold mb-8 text-balance leading-tight tracking-tight animate-fade-in [animation-delay:200ms]">
-            Modernizando o <br />
+          <h1 className="text-5xl md:text-7xl font-montserrat font-bold mb-8 leading-tight tracking-tight animate-fade-in [animation-delay:200ms]">
+            Modernizando
+            <br className="md:hidden" />
+            <span className="hidden md:inline"> </span>
+            o
+            <span className="md:hidden"> </span>
+            <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">
-              Poder Legislativo
+              Poder
+              <br className="md:hidden" />
+              <span className="hidden md:inline"> </span>
+              Legislativo
             </span>
           </h1>
 

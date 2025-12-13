@@ -21,7 +21,7 @@ const statusColors: Record<string, string> = {
 };
 
 function linkToMateria(id: string) {
-  return `/documentos/materias/${id}`;
+  return `/documentos/materias/${id}/editar`;
 }
 
 export default function TabelaMaterias({ materias }: Props) {
@@ -64,7 +64,7 @@ export default function TabelaMaterias({ materias }: Props) {
                 </TableCell>
                 <TableCell className="flex gap-2 justify-end">
                   <button title="Visualizar" className="hover:text-gov-blue-900"><Eye size={18} /></button>
-                  <button title="Editar" className="hover:text-yellow-700"><Pencil size={18} /></button>
+                  <a href={linkToMateria(mat.id)} title="Editar" className="hover:text-yellow-700 text-gray-600"><Pencil size={18} /></a>
                   <button title="Baixar anexo" className="hover:text-green-700"><Download size={18} /></button>
                   <button title="Histórico" className="hover:text-gray-700"><History size={18} /></button>
                 </TableCell>

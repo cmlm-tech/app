@@ -31,7 +31,7 @@ export const CardMateria = ({ materia }: CardMateriaProps) => {
     <Card>
       <CardHeader>
         <CardTitle className="text-base font-semibold text-gov-blue-700 hover:underline">
-          <a href={`/documentos/materias/${materia.id}`}>{materia.protocolo}</a>
+          <a href={`/documentos/materias/${materia.id}/editar`}>{materia.protocolo}</a>
         </CardTitle>
         <div className="text-sm text-gray-500">{materia.tipo}</div>
       </CardHeader>
@@ -55,7 +55,7 @@ export const CardMateria = ({ materia }: CardMateriaProps) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem><Eye className="mr-2 h-4 w-4" /> Visualizar</DropdownMenuItem>
-            <DropdownMenuItem><Pencil className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>
+            <DropdownMenuItem asChild><a href={`/documentos/materias/${materia.id}/editar`} className="flex items-center cursor-pointer"><Pencil className="mr-2 h-4 w-4" /> Editar</a></DropdownMenuItem>
             <DropdownMenuItem><Download className="mr-2 h-4 w-4" /> Baixar</DropdownMenuItem>
             <DropdownMenuItem><History className="mr-2 h-4 w-4" /> Histórico</DropdownMenuItem>
           </DropdownMenuContent>

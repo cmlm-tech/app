@@ -15,6 +15,7 @@ import RecuperarSenha from "./pages/RecuperarSenha";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import Configuracoes from "./pages/Configuracoes";
 import Materias from "./pages/documentos/Materias";
+import EditarMateria from "@/pages/documentos/EditarMateria";
 import Atas from "./pages/documentos/Atas";
 import AgentesPublicos from "./pages/plenario/AgentesPublicos";
 import Vereadores from "./pages/plenario/Vereadores";
@@ -57,13 +58,14 @@ const App = () => (
             <Route path="/redefinir-senha" element={<RedefinirSenha />} />
 
             {/* --- ROTAS PROTEGIDAS --- */}
-            <Route path="/painel" element={<RotaProtegida><Painel /></RotaProtegida>} />            
+            <Route path="/painel" element={<RotaProtegida><Painel /></RotaProtegida>} />
             <Route path="/documentos/materias" element={<RotaProtegida><Materias /></RotaProtegida>} />
+            <Route path="/documentos/materias/:id/editar" element={<RotaProtegida><EditarMateria /></RotaProtegida>} />
             <Route path="/documentos/atas" element={<RotaProtegida><Atas /></RotaProtegida>} />
-            
+
             {/* Rota para o futuro módulo /plenario como arquivo */}
             <Route path="/plenario/agentes-publicos" element={<RotaProtegida><AgentesPublicos /></RotaProtegida>} />
-            <Route path="/plenario/vereadores" element={<RotaProtegida><Vereadores /></RotaProtegida>} />   
+            <Route path="/plenario/vereadores" element={<RotaProtegida><Vereadores /></RotaProtegida>} />
 
             {/*
               Estas rotas antigas serão mantidas por enquanto para não quebrar nada.
@@ -79,18 +81,18 @@ const App = () => (
             <Route path="/atividade-legislativa/pautas/:pautaId" element={<RotaProtegida><GerenciarPauta /></RotaProtegida>} />
             <Route path="/atividade-legislativa/legislaturas" element={<RotaProtegida><Legislaturas /></RotaProtegida>} />
             <Route path="/atividade-legislativa/legislaturas/:legislaturaNumero" element={<RotaProtegida><DetalheLegislatura /></RotaProtegida>} />
-            
+
             {/* ==============================================================================================
               PASSO 2: Adicione as novas rotas aninhadas para a Mesa Diretora e Comissões
               Elas pertencem ao contexto de uma legislatura e período específicos.
              ============================================================================================== */}
-            <Route 
-              path="/atividade-legislativa/legislaturas/:legislaturaNumero/periodos/:periodoId/mesa-diretora" 
-              element={<RotaProtegida><MesaDiretoraLegislatura /></RotaProtegida>} 
+            <Route
+              path="/atividade-legislativa/legislaturas/:legislaturaNumero/periodos/:periodoId/mesa-diretora"
+              element={<RotaProtegida><MesaDiretoraLegislatura /></RotaProtegida>}
             />
-            <Route 
-              path="/atividade-legislativa/legislaturas/:legislaturaNumero/periodos/:periodoId/comissoes" 
-              element={<RotaProtegida><ComissoesLegislatura /></RotaProtegida>} 
+            <Route
+              path="/atividade-legislativa/legislaturas/:legislaturaNumero/periodos/:periodoId/comissoes"
+              element={<RotaProtegida><ComissoesLegislatura /></RotaProtegida>}
             />
 
             <Route path="/configuracoes" element={<RotaProtegida><Configuracoes /></RotaProtegida>} />

@@ -42,9 +42,9 @@ const RecuperarSenha = () => {
       <div
         className="absolute inset-0 z-0 bg-fixed"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80')`,
+          backgroundImage: `url('https://itjlzbnrdileuapsqwwe.supabase.co/storage/v1/object/public/assets/background_home_final.jpg')`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundPosition: 'top',
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-br from-gov-blue-900/95 via-gov-blue-800/90 to-blue-900/80 z-10" />

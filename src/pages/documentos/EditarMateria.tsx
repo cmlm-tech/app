@@ -192,7 +192,7 @@ export default function EditarMateria() {
                         </Button>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-800">
-                                {doc.tiposdedocumento?.nome} {doc.numero_protocolo_geral}/{doc.ano}
+                                {doc.tiposdedocumento?.nome} {doc.ano}.{doc.numero_protocolo_geral.toString().padStart(7, '0')}
                             </h1>
                             <p className="text-sm text-gray-500">
                                 Autor: {autorNome || "Carregando..."} • Status: <span className="font-semibold text-indigo-600">{doc.status}</span>
@@ -240,7 +240,7 @@ export default function EditarMateria() {
                             <CardContent className="space-y-4">
                                 <div>
                                     <label className="text-xs font-semibold text-slate-500">Protocolo Geral</label>
-                                    <Input readOnly value={doc.numero_protocolo_geral} className="bg-slate-50" />
+                                    <Input readOnly value={`${doc.ano}.${doc.numero_protocolo_geral.toString().padStart(7, '0')}`} className="bg-slate-50" />
                                 </div>
                                 <div>
                                     <label className="text-xs font-semibold text-slate-500">Autor</label>

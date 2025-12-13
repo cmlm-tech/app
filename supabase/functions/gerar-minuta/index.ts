@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 // Importando o SDK do Google via CDN (esm.sh) para funcionar no Deno
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai"
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.12.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,14 +20,14 @@ serve(async (req) => {
     // 1. Configuração do Gemini
     const apiKey = Deno.env.get('GOOGLE_API_KEY')
     if (!apiKey) throw new Error("GOOGLE_API_KEY não configurada")
-    
+
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) // ou "gemini-1.5-pro"
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }) // ou "gemini-1.5-pro"
 
     // 2. Construção do Prompt
     // O Gemini aceita System Instruction separada, mas para simplificar via SDK, 
     // vamos montar um prompt estruturado que funciona muito bem.
-    
+
     const promptSistema = `
       Você é um Assistente Legislativo Sênior especialista em Redação Oficial Brasileira.
       Sua tarefa é redigir a MINUTA INICIAL de um documento legislativo.
@@ -40,7 +40,7 @@ serve(async (req) => {
     `
 
     let promptUsuario = ""
-    
+
     if (tipo === 'Ofício') {
       promptUsuario = `
         ESCREVA UM OFÍCIO.
@@ -89,47 +89,47 @@ serve(async (req) => {
     )
 
     let tabelaDestino = ''
-    let colunaTexto = '' 
+    let colunaTexto = ''
 
     switch (tipo) {
-      case 'Ofício': 
-        tabelaDestino = 'Oficios'; 
+      case 'Ofício':
+        tabelaDestino = 'Oficios';
         colunaTexto = 'corpo_texto';
         break;
-      case 'Projeto de Lei': 
-        tabelaDestino = 'ProjetosDeLei'; 
-        colunaTexto = 'corpo_texto'; 
+      case 'Projeto de Lei':
+        tabelaDestino = 'ProjetosDeLei';
+        colunaTexto = 'corpo_texto';
         break;
-      case 'Requerimento': 
-        tabelaDestino = 'Requerimentos'; 
+      case 'Requerimento':
+        tabelaDestino = 'Requerimentos';
         colunaTexto = 'justificativa'; // Ajuste conforme seu banco
         break;
-      case 'Moção': 
-        tabelaDestino = 'Mocoes'; 
-        colunaTexto = 'justificativa'; 
+      case 'Moção':
+        tabelaDestino = 'Mocoes';
+        colunaTexto = 'justificativa';
         break;
       default:
         // Fallback genérico se tiver outros tipos
-        tabelaDestino = 'Oficios'; 
+        tabelaDestino = 'Oficios';
         colunaTexto = 'corpo_texto';
     }
 
     // Verifica se a tabela/coluna foi definida antes de tentar update
     if (tabelaDestino && colunaTexto) {
-        const { error: dbError } = await supabase
+      const { error: dbError } = await supabase
         .from(tabelaDestino)
-        .update({ [colunaTexto]: textoGerado }) 
+        .update({ [colunaTexto]: textoGerado })
         .eq('documento_id', documento_id)
 
-        if (dbError) throw dbError
+      if (dbError) throw dbError
     }
 
     // 5. Retorno
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         texto: textoGerado,
-        mensagem: "Minuta gerada com Gemini!" 
+        mensagem: "Minuta gerada com Gemini!"
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

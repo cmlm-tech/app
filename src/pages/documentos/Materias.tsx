@@ -72,8 +72,8 @@ export default function Materias() {
           // Nome do Tipo (com fallback)
           const nomeTipo = doc.tiposdedocumento?.nome || "Documento";
 
-          // Formatar Protocolo (Ex: PL 01/2024 ou Geral)
-          const protocoloStr = `${nomeTipo.substring(0, 3).toUpperCase()} ${doc.numero_protocolo_geral}/${doc.ano}`;
+          // Formatar Protocolo (Ex: 2025.0000001) requested format
+          const protocoloStr = `${doc.ano}.${doc.numero_protocolo_geral.toString().padStart(7, '0')}`;
 
           return {
             id: doc.id.toString(),

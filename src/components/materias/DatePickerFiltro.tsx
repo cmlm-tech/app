@@ -6,17 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Props {
-  value: {inicio: Date|null; fim: Date|null};
-  onChange: (v: {inicio: Date|null; fim: Date|null}) => void;
+  value: { inicio: Date | null; fim: Date | null };
+  onChange: (v: { inicio: Date | null; fim: Date | null }) => void;
 }
 
 export default function DatePickerFiltro({ value, onChange }: Props) {
   const [open, setOpen] = React.useState(false);
 
-  function handleSelect(range: { from?: Date; to?: Date }) {
-    onChange({ inicio: range.from || null, fim: range.to || null });
+  function handleSelect(range: { from?: Date; to?: Date } | undefined) { // Fixed optional type
+    onChange({ inicio: range?.from || null, fim: range?.to || null });
   }
 
   let label = "Período";
@@ -38,17 +39,18 @@ export default function DatePickerFiltro({ value, onChange }: Props) {
       <PopoverContent className="w-auto p-0 z-50" align="start">
         <Calendar
           mode="range"
-          selected={{from: value.inicio ?? undefined, to: value.fim ?? undefined }}
+          selected={{ from: value.inicio ?? undefined, to: value.fim ?? undefined }}
           onSelect={handleSelect}
-          className="p-3 pointer-events-auto"
+          className="p-3 pointer-events-auto" // removed z-50 as it might conflict or be redundant
           initialFocus
+          locale={ptBR}
         />
         <div className="flex gap-2 justify-end px-3 pb-2">
           <Button
             type="button"
             size="sm"
             variant="ghost"
-            onClick={() => { onChange({inicio:null,fim:null}); setOpen(false); }}
+            onClick={() => { onChange({ inicio: null, fim: null }); setOpen(false); }}
           >
             Limpar
           </Button>

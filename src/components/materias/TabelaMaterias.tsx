@@ -1,8 +1,13 @@
 
+import { useState } from "react";
+import { pdf } from '@react-pdf/renderer';
+import { DocumentoPDF } from "@/components/documentos/DocumentoPDF";
+import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
-import { Eye, Pencil, Download, History } from "lucide-react";
+import { Eye, Pencil, Download, History, Loader2 } from "lucide-react";
 import { Materia } from "./types";
 import { cn } from "@/lib/utils";
 import { CardMateria } from "./CardMateria";
@@ -25,6 +30,73 @@ function linkToMateria(id: string) {
 }
 
 export default function TabelaMaterias({ materias }: Props) {
+  const { toast } = useToast();
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  async function handleVisualizarPDF(mat: Materia) {
+    setLoadingId(mat.id);
+    try {
+      // 1. Fetch details (Text + Official Number)
+      let tabelaFilha = "";
+      let colunaTexto = "";
+      let colunaNumero = "";
+
+      if (mat.tipo === "Ofício") {
+        tabelaFilha = "oficios"; colunaTexto = "corpo_texto"; colunaNumero = "numero_oficio";
+      } else if (mat.tipo === "Projeto de Lei") {
+        tabelaFilha = "projetosdelei"; colunaTexto = "corpo_texto"; colunaNumero = "numero_lei";
+      } else if (mat.tipo === "Requerimento") {
+        tabelaFilha = "requerimentos"; colunaTexto = "corpo_texto"; colunaNumero = "numero_requerimento"; // Check actual column later if fails
+      }
+
+      if (!tabelaFilha) {
+        toast({ title: "Erro", description: "Tipo de documento não suporta visualização.", variant: "destructive" });
+        setLoadingId(null);
+        return;
+      }
+
+      // Fetch child data
+      const { data: childData, error } = await supabase
+        .from(tabelaFilha as any)
+        .select('*')
+        .eq('documento_id', Number(mat.id))
+        .single();
+
+      if (error) throw error;
+
+      // Fetch Main doc for Protocol General Number and Year (if needed more precision than 'mat')
+      // We use 'mat' for speed, but 'ano' and exact protocol number might be safer from DB.
+      // Assuming 'mat.protocolo' string format is "ANO.NUMERO".
+      const [anoStr, numStr] = mat.protocolo.split('.');
+
+      const numeroOficial = childData[colunaNumero]
+        ? `${mat.tipo} nº ${childData[colunaNumero].toString().padStart(3, '0')}/${anoStr}`
+        : "Sem Numeração Oficial";
+
+      // Generate PDF
+      const blob = await pdf(
+        <DocumentoPDF
+          tipo={mat.tipo}
+          ano={Number(anoStr)}
+          numero={numeroOficial}
+          protocolo={Number(numStr)}
+          dataProtocolo={mat.dataProtocolo.toISOString()}
+          texto={childData[colunaTexto] || ""}
+          autor={mat.autor}
+        />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Erro", description: "Falha ao gerar PDF. Tente editar e salvar novamente.", variant: "destructive" });
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
   return (
     <div>
       <div className="hidden md:block">
@@ -63,7 +135,14 @@ export default function TabelaMaterias({ materias }: Props) {
                   </span>
                 </TableCell>
                 <TableCell className="flex gap-2 justify-end">
-                  <button title="Visualizar" className="hover:text-gov-blue-900"><Eye size={18} /></button>
+                  <button
+                    title="Visualizar PDF"
+                    className="hover:text-gov-blue-900 disabled:opacity-50"
+                    onClick={() => handleVisualizarPDF(mat)}
+                    disabled={loadingId === mat.id}
+                  >
+                    {loadingId === mat.id ? <Loader2 size={18} className="animate-spin" /> : <Eye size={18} />}
+                  </button>
                   <a href={linkToMateria(mat.id)} title="Editar" className="hover:text-yellow-700 text-gray-600"><Pencil size={18} /></a>
                   <button title="Baixar anexo" className="hover:text-green-700"><Download size={18} /></button>
                   <button title="Histórico" className="hover:text-gray-700"><History size={18} /></button>

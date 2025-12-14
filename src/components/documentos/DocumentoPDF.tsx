@@ -1,80 +1,92 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
-// Register fonts if needed (standard Helvetica is default and reliable)
-// Font.register({ family: 'Roboto', src: '...' });
+// Dica: Para fontes mais próximas do oficial (Times New Roman ou Arial),
+// você pode registrar fontes externas aqui. O padrão Helvetica é o mais próximo de Arial.
 
 const styles = StyleSheet.create({
     page: {
-        paddingTop: 60, // 3cm ~ 85px, assuming 72dpi. 60 is safer for default.
-        paddingBottom: 60,
-        paddingLeft: 80, // 3cm
-        paddingRight: 60, // 2cm
+        paddingTop: 40,
+        paddingBottom: 40,
+        paddingLeft: 60, // Margem esquerda padrão ABNT (~2.5 a 3cm)
+        paddingRight: 40, // Margem direita (~1.5 a 2cm)
         fontFamily: 'Helvetica',
         fontSize: 12,
-        lineHeight: 1.5,
+        lineHeight: 1.3, // Um pouco mais compacto que 1.5 para ofícios
     },
-    header: {
-        marginBottom: 40,
-        textAlign: 'center',
+    // --- Cabeçalho ---
+    headerContainer: {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        marginBottom: 20,
+        borderBottomWidth: 1, // Opcional: linha separadora visual
+        borderBottomColor: '#ccc',
+        paddingBottom: 10,
     },
     brasao: {
         width: 60,
         height: 60,
-        marginBottom: 10,
-        // Add a placeholder color or load an actual image if URL is stable
-        backgroundColor: '#f0f0f0',
-    },
-    headerText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-    },
-    subHeaderText: {
-        fontSize: 12,
-        fontWeight: 'normal',
-        textTransform: 'uppercase',
-    },
-    titleSection: {
-        marginBottom: 30,
-        textAlign: 'center',
-    },
-    title: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
         marginBottom: 5,
+        objectFit: 'contain',
     },
-    subtitle: {
+    headerTitle: {
+        fontSize: 14,
+        fontWeight: 'bold', // Helvetica-Bold
+        textAlign: 'center',
+        textTransform: 'uppercase',
+    },
+    headerSubtitle: {
         fontSize: 12,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+    headerAddress: {
+        fontSize: 9,
+        textAlign: 'center',
         color: '#333',
     },
-    protocolInfo: {
-        fontSize: 10,
+    // --- Corpo do Ofício ---
+    dateLocation: {
         textAlign: 'right',
+        marginTop: 10,
         marginBottom: 20,
-        color: '#666',
+        fontSize: 12,
+    },
+    documentNumber: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        textTransform: 'uppercase',
+    },
+    recipientBlock: {
+        marginBottom: 25,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+    },
+    recipientText: {
+        fontSize: 12,
     },
     content: {
         textAlign: 'justify',
-        marginBottom: 50,
-        minHeight: 200,
+        textIndent: 30, // Recuo de parágrafo
+        marginBottom: 30,
+        minHeight: 100,
     },
+    // --- Rodapé / Assinatura ---
     footer: {
-        marginTop: 'auto', // Push to bottom
-        textAlign: 'center',
+        marginTop: 40,
         width: '100%',
+        alignItems: 'center',
     },
     signatureLine: {
         borderTopWidth: 1,
         borderTopColor: '#000',
         width: '60%',
-        alignSelf: 'center',
         marginBottom: 5,
-        marginTop: 50,
     },
     signatureName: {
         fontSize: 12,
@@ -82,70 +94,101 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     signatureRole: {
-        fontSize: 10,
-    },
-    dateLocation: {
-        marginTop: 30,
-        textAlign: 'right',
-        fontSize: 12,
+        fontSize: 11,
+        fontStyle: 'italic', // Simulando itálico se a fonte suportar, ou normal
     }
 });
 
 interface DocumentoPDFProps {
-    tipo: string;
+    tipo: string; // Ex: "Ofício"
     ano: number;
-    numero: string; // The official formatted number
-    protocolo: number;
-    dataProtocolo: string;
-    texto: string;
-    autor: string;
+    numero: string; // Ex: "05/2025"
+    dataExtenso: string; // Ex: "Lavras da Mangabeira - Ceará, 14 de Janeiro de 2025."
+    texto: string; // O corpo do texto (HTML stripado ou texto puro)
+    autor: string; // Nome do Vereador(a)
+    autorCargo?: string; // Ex: "Vereadora"
+    destinatarioNome: string; // Ex: "Thiago Sobreira Augusto Lima"
+    destinatarioCargo: string; // Ex: "Secretário Municipal de Esporte..."
 }
 
-export function DocumentoPDF({ tipo, ano, numero, protocolo, dataProtocolo, texto, autor }: DocumentoPDFProps) {
+export function DocumentoPDF({
+    tipo,
+    // ano, // Se já vier formatado no 'numero', não precisa isolado
+    numero,
+    dataExtenso,
+    texto,
+    autor,
+    autorCargo = "Vereador(a)",
+    destinatarioNome,
+    destinatarioCargo
+}: DocumentoPDFProps) {
 
-    // Basic HTML stripper for now since react-pdf text is raw strings
-    const cleanText = texto.replace(/<[^>]+>/g, '\n').replace(/&nbsp;/g, ' ');
-
-    const currentDate = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+    // Limpeza simples de tags HTML caso venha de um Rich Text Editor
+    const cleanText = texto.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
 
     return (
         <Document>
             <Page size="A4" style={styles.page}>
 
-                {/* Header */}
-                <View style={styles.header}>
-                    {/* Placeholder for official Coat of Arms (Brasão) */}
-                    {/* <Image src="/path/to/brasao.png" style={styles.brasao} /> */}
-                    <Text style={styles.headerText}>Estado de Goiás</Text>
-                    <Text style={styles.subHeaderText}>Câmara Municipal de [Nome da Cidade]</Text>
+                {/* --- CABEÇALHO --- */}
+                <View style={styles.headerContainer}>
+                    {/* TODO: Substitua a URL abaixo pelo caminho público do brasão de Lavras da Mangabeira.
+                       Se estiver usando Next.js, pode ser algo na pasta public como "/brasao-lavras.png"
+                       ou uma URL remota.
+                    */}
+                    {/* <Image src="/logo_camara.png" style={styles.brasao} /> */}
+
+                    <Text style={styles.headerTitle}>CÂMARA MUNICIPAL DE</Text>
+                    <Text style={styles.headerSubtitle}>LAVRAS DA MANGABEIRA - CE</Text>
+
+                    <Text style={styles.headerAddress}>
+                        Rua Monsenhor Meceno, S/N, Centro, Lavras da Mangabeira - CE{'\n'}
+                        CEP: 63.300-000 | CNPJ: 12.464.996/0001-75
+                    </Text>
                 </View>
 
-                {/* Protocol Metadata (Optional, visible for internal tracking) */}
-                <View style={styles.protocolInfo}>
-                    <Text>Prot. Geral: {ano}.{protocolo.toString().padStart(6, '0')}</Text>
+                {/* --- DATA E LOCAL --- */}
+                <View style={styles.dateLocation}>
+                    <Text>{dataExtenso}</Text>
                 </View>
 
-                {/* Official Title */}
-                <View style={styles.titleSection}>
-                    <Text style={styles.title}>{numero}</Text>
+                {/* --- NÚMERO DO DOCUMENTO --- */}
+                <View>
+                    <Text style={styles.documentNumber}>
+                        {tipo} Nº {numero}
+                    </Text>
                 </View>
 
-                {/* Content Body */}
+                {/* --- DESTINATÁRIO --- */}
+                <View style={styles.recipientBlock}>
+                    <Text style={styles.recipientText}>Ao Ilmo. Sr.</Text>
+                    <Text style={{ ...styles.recipientText, fontWeight: 'bold' }}>{destinatarioNome}</Text>
+                    <Text style={styles.recipientText}>DD. {destinatarioCargo}</Text>
+                    <Text style={styles.recipientText}>Nesta</Text>
+                </View>
+
+                {/* --- CORPO DO TEXTO --- */}
                 <View style={styles.content}>
+                    {/* Dica: Se o texto tiver quebras de linha (\n), o componente Text
+                       geralmente renderiza corretamente. Se forem parágrafos distintos,
+                       pode ser necessário fazer um .split('\n').map(...) 
+                    */}
                     <Text>{cleanText}</Text>
                 </View>
 
-                {/* Date */}
-                <View style={styles.dateLocation}>
-                    <Text>[Cidade], {currentDate}.</Text>
+                {/* --- FECHAMENTO PADRÃO --- */}
+                <View style={{ marginBottom: 40 }}>
+                    <Text>Na oportunidade apresentamos protestos de estima e consideração.</Text>
+                    <Text style={{ marginTop: 15 }}>Atenciosamente,</Text>
                 </View>
 
-                {/* Signature */}
+                {/* --- ASSINATURA --- */}
                 <View style={styles.footer}>
                     <View style={styles.signatureLine} />
                     <Text style={styles.signatureName}>{autor}</Text>
-                    <Text style={styles.signatureRole}>Vereador(a) - Autor(a)</Text>
+                    <Text style={styles.signatureRole}>{autorCargo}</Text>
                 </View>
+
             </Page>
         </Document>
     );

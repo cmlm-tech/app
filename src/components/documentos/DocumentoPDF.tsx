@@ -100,28 +100,39 @@ const styles = StyleSheet.create({
 });
 
 interface DocumentoPDFProps {
-    tipo: string; // Ex: "Ofício"
+    tipo: string;
     ano: number;
-    numero: string; // Ex: "05/2025"
-    dataExtenso: string; // Ex: "Lavras da Mangabeira - Ceará, 14 de Janeiro de 2025."
-    texto: string; // O corpo do texto (HTML stripado ou texto puro)
-    autor: string; // Nome do Vereador(a)
-    autorCargo?: string; // Ex: "Vereadora"
-    destinatarioNome: string; // Ex: "Thiago Sobreira Augusto Lima"
-    destinatarioCargo: string; // Ex: "Secretário Municipal de Esporte..."
+    numero: string;
+    protocolo: number;
+    dataProtocolo: string; // Data ISO
+    texto: string;
+    autor: string;
+    autorCargo?: string;
+    destinatarioNome?: string;
+    destinatarioCargo?: string;
 }
 
 export function DocumentoPDF({
     tipo,
-    // ano, // Se já vier formatado no 'numero', não precisa isolado
     numero,
-    dataExtenso,
+    protocolo,
+    dataProtocolo,
     texto,
     autor,
     autorCargo = "Vereador(a)",
     destinatarioNome,
     destinatarioCargo
 }: DocumentoPDFProps) {
+
+    // Helper para formatar data
+    const dataFormatada = new Date(dataProtocolo).toLocaleDateString('pt-BR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+
+    // Lavras da Mangabeira - CE, [Data]
+    const dataExtenso = `Lavras da Mangabeira - CE, ${dataFormatada}`;
 
     // Limpeza simples de tags HTML caso venha de um Rich Text Editor
     const cleanText = texto.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
@@ -132,10 +143,7 @@ export function DocumentoPDF({
 
                 {/* --- CABEÇALHO --- */}
                 <View style={styles.headerContainer}>
-                    {/* TODO: Substitua a URL abaixo pelo caminho público do brasão de Lavras da Mangabeira.
-                       Se estiver usando Next.js, pode ser algo na pasta public como "/brasao-lavras.png"
-                       ou uma URL remota.
-                    */}
+                    {/* TODO: Substitua a URL abaixo pelo caminho público do brasão de Lavras da Mangabeira. */}
                     {/* <Image src="/logo_camara.png" style={styles.brasao} /> */}
 
                     <Text style={styles.headerTitle}>CÂMARA MUNICIPAL DE</Text>
@@ -157,15 +165,21 @@ export function DocumentoPDF({
                     <Text style={styles.documentNumber}>
                         {tipo} Nº {numero}
                     </Text>
+                    {/* Display Protocolo explicitly if needed, or keep hidden/internal */}
+                    <Text style={{ fontSize: 10, color: '#666', marginBottom: 10 }}>
+                        Protocolo Geral: {protocolo}/{new Date(dataProtocolo).getFullYear()}
+                    </Text>
                 </View>
 
-                {/* --- DESTINATÁRIO --- */}
-                <View style={styles.recipientBlock}>
-                    <Text style={styles.recipientText}>Ao Ilmo. Sr.</Text>
-                    <Text style={{ ...styles.recipientText, fontWeight: 'bold' }}>{destinatarioNome}</Text>
-                    <Text style={styles.recipientText}>DD. {destinatarioCargo}</Text>
-                    <Text style={styles.recipientText}>Nesta</Text>
-                </View>
+                {/* --- DESTINATÁRIO (Opcional) --- */}
+                {destinatarioNome && (
+                    <View style={styles.recipientBlock}>
+                        <Text style={styles.recipientText}>Ao Ilmo. Sr.</Text>
+                        <Text style={{ ...styles.recipientText, fontWeight: 'bold' }}>{destinatarioNome}</Text>
+                        {destinatarioCargo && <Text style={styles.recipientText}>DD. {destinatarioCargo}</Text>}
+                        <Text style={styles.recipientText}>Nesta</Text>
+                    </View>
+                )}
 
                 {/* --- CORPO DO TEXTO --- */}
                 <View style={styles.content}>

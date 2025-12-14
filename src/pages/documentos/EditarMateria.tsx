@@ -31,6 +31,8 @@ export default function EditarMateria() {
     const [corpoTexto, setCorpoTexto] = useState("");
     const [autorNome, setAutorNome] = useState("");
 
+    const [autorId, setAutorId] = useState<number | null>(null);
+
     // Metadata fields that might be editable
     const [ementa, setEmenta] = useState("");
 
@@ -108,6 +110,7 @@ export default function EditarMateria() {
                 .single();
 
             if (authData?.autor_id) {
+                setAutorId(authData.autor_id); // Saving ID for numbering logic
                 const { data: agenteData } = await supabase
                     .from("agentespublicos")
                     .select("nome_completo")
@@ -152,6 +155,113 @@ export default function EditarMateria() {
         } catch (err: any) {
             console.error(err);
             toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function handleGerarNumero() {
+        if (!doc) return;
+
+        // Validation: Verify if essential fields are filled
+        if (!corpoTexto.trim()) {
+            toast({ title: "Dados incompletos", description: "O corpo do texto não pode estar vazio.", variant: "destructive" });
+            return;
+        }
+        if (!ementa.trim()) {
+            toast({ title: "Dados incompletos", description: "O resumo/ementa não pode estar vazio.", variant: "destructive" });
+            return;
+        }
+        // Specific check for Ofício
+        const tipoNome = (doc.tiposdedocumento as any)?.nome;
+        if (tipoNome === "Ofício" && !autorId) {
+            toast({ title: "Erro de Autor", description: "Autor não identificado. Não é possível gerar numeração para Ofício.", variant: "destructive" });
+            return;
+        }
+
+        setSaving(true);
+        try {
+            let novoNumero = 0;
+
+            if (tipoNome === "Ofício") {
+                if (!autorId) throw new Error("Autor não identificado para gerar numeração de Ofício.");
+
+                // 1. Buscar último número DESTE AUTOR no ANO
+                // Preciso fazer join manual aqui pq Supabase client side não faz join complexo em filter facil
+                // Estratégia: Buscar todos os oficios deste ano, filtrar pelo autor.
+                // Melhor: Buscar documentoautores filtrado por autor, join com documentos ano, join com oficios.
+                // Simplificação Client-Side:
+                // Passo A: Pegar IDs dos documentos deste autor neste ano
+                const { data: docsAutor, error: errDocs } = await supabase
+                    .from('documentos')
+                    .select(`
+                        id,
+                        documentoautores!inner(autor_id)
+                    `)
+                    .eq('ano', doc.ano)
+                    .eq('documentoautores.autor_id', autorId);
+
+                if (errDocs) throw errDocs;
+
+                const docIds = docsAutor.map(d => d.id);
+
+                // Passo B: Pegar max numero_oficio destes docs
+                if (docIds.length > 0) {
+                    const { data: maxOficio, error: errMax } = await supabase
+                        .from('oficios')
+                        .select('numero_oficio')
+                        .in('documento_id', docIds)
+                        .order('numero_oficio', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    // Se não achou (pode retornar erro se vazio ou null), ignora
+                    if (maxOficio && maxOficio.numero_oficio) novoNumero = maxOficio.numero_oficio;
+                }
+
+                novoNumero += 1; // Incrementa
+
+                // Atualizar
+                const { error: upErr } = await supabase.from('oficios').update({ numero_oficio: novoNumero }).eq('documento_id', doc.id);
+                if (upErr) throw upErr;
+
+            } else if (tipoNome === "Projeto de Lei") {
+                // Global por ano
+                const { data: docsAno, error: errDocs } = await supabase
+                    .from('documentos')
+                    .select('id')
+                    .eq('ano', doc.ano);
+
+                if (errDocs) throw errDocs;
+                const docIds = docsAno.map(d => d.id);
+
+                if (docIds.length > 0) {
+                    const { data: maxPL } = await supabase
+                        .from('projetosdelei')
+                        .select('numero_lei') // Verifique se é numero_lei ou numero_projeto no schema real
+                        .in('documento_id', docIds)
+                        .order('numero_lei', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    if (maxPL && maxPL.numero_lei) novoNumero = maxPL.numero_lei;
+                }
+                novoNumero += 1;
+
+                const { error: upErr } = await supabase.from('projetosdelei').update({ numero_lei: novoNumero }).eq('documento_id', doc.id);
+                if (upErr) throw upErr;
+            } else {
+                throw new Error("Geração automática não suportada para este tipo.");
+            }
+
+            toast({ title: "Oficializado!", description: `${tipoNome} recebeu o número ${novoNumero}/${doc.ano}.`, className: "bg-blue-600 text-white" });
+
+            // Recarregar dados para mostrar na tela
+            carregarDados(doc.id.toString());
+
+        } catch (err: any) {
+            console.error(err);
+            toast({ title: "Erro na numeração", description: err.message, variant: "destructive" });
         } finally {
             setSaving(false);
         }
@@ -209,6 +319,11 @@ export default function EditarMateria() {
         </AppLayout>
     );
 
+    // UI Logic for official number display
+    const labelNumeroOficial = (doc as any).numero_oficial
+        ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial}/${doc.ano}`
+        : "Aguardando geração...";
+
     return (
         <AppLayout>
             <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -262,6 +377,23 @@ export default function EditarMateria() {
 
                     {/* Sidebar (Metadata) */}
                     <div className="space-y-6">
+                        {/* Box de Numeração Oficial (Destaque) */}
+                        <Card className="border-indigo-100 bg-indigo-50/50 shadow-sm border-2">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-bold text-indigo-900">Numeração Oficial</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-lg font-mono font-bold text-indigo-700 mb-2">
+                                    {(doc as any).numero_oficial ? labelNumeroOficial : "---"}
+                                </div>
+                                {!(doc as any).numero_oficial && (
+                                    <Button size="sm" onClick={handleGerarNumero} disabled={saving} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                                        {saving ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : null}
+                                        Gerar Número
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
                         <Card className="border-slate-200 shadow-sm">
                             <CardHeader>
                                 <CardTitle className="text-sm font-semibold text-gray-700">Detalhes</CardTitle>

@@ -71,15 +71,15 @@ export default function EditarMateria() {
             if (tipoNome === "Ofício") {
                 tabelaFilha = "oficios";
                 colunaTexto = "corpo_texto";
-                colunaEmenta = "contexto"; // Assuming 'contexto' stores the summary
+                colunaEmenta = "assunto";
             } else if (tipoNome === "Projeto de Lei") {
                 tabelaFilha = "projetosdelei";
                 colunaTexto = "corpo_texto";
                 colunaEmenta = "ementa";
             } else if (tipoNome === "Requerimento") {
                 tabelaFilha = "requerimentos";
-                colunaTexto = "justificativa";
-                colunaEmenta = "ementa"; // Check schema if needed
+                colunaTexto = "corpo_texto"; // Changed from justificativa to decouple
+                colunaEmenta = "justificativa"; // Used as summary
             } // Add others as needed
 
             if (tabelaFilha) {
@@ -130,18 +130,16 @@ export default function EditarMateria() {
         if (!doc) return;
         setSaving(true);
         try {
-            // Identify table again
             const tipoNome = (doc.tiposdedocumento as any)?.nome;
             let tabelaFilha = "";
             let colunaTexto = "";
 
             if (tipoNome === "Ofício") { tabelaFilha = "oficios"; colunaTexto = "corpo_texto"; }
             else if (tipoNome === "Projeto de Lei") { tabelaFilha = "projetosdelei"; colunaTexto = "corpo_texto"; }
-            else if (tipoNome === "Requerimento") { tabelaFilha = "requerimentos"; colunaTexto = "justificativa"; }
+            else if (tipoNome === "Requerimento") { tabelaFilha = "requerimentos"; colunaTexto = "corpo_texto"; }
 
             if (!tabelaFilha) throw new Error("Tipo de documento não suporta edição de texto ainda.");
 
-            // Update
             const { error } = await supabase
                 .from(tabelaFilha as any)
                 .update({ [colunaTexto]: corpoTexto })
@@ -154,6 +152,37 @@ export default function EditarMateria() {
         } catch (err: any) {
             console.error(err);
             toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function handleSalvarEmenta() {
+        if (!doc) return;
+        setSaving(true); // Re-using saving state for simplicity, could split
+        try {
+            const tipoNome = (doc.tiposdedocumento as any)?.nome;
+            let tabelaFilha = "";
+            let colunaEmenta = "";
+
+            if (tipoNome === "Ofício") { tabelaFilha = "oficios"; colunaEmenta = "assunto"; }
+            else if (tipoNome === "Projeto de Lei") { tabelaFilha = "projetosdelei"; colunaEmenta = "ementa"; }
+            else if (tipoNome === "Requerimento") { tabelaFilha = "requerimentos"; colunaEmenta = "justificativa"; }
+
+            if (!tabelaFilha) throw new Error("Tipo de documento não suporta edição de resumo ainda.");
+
+            const { error } = await supabase
+                .from(tabelaFilha as any)
+                .update({ [colunaEmenta]: ementa }) // using 'ementa' state variable
+                .eq("documento_id", doc.id);
+
+            if (error) throw error;
+
+            toast({ title: "Resumo Atualizado!", description: "O campo foi salvo com sucesso.", className: "bg-green-600 text-white" });
+
+        } catch (err: any) {
+            console.error(err);
+            toast({ title: "Erro ao salvar resumo", description: err.message, variant: "destructive" });
         } finally {
             setSaving(false);
         }
@@ -264,8 +293,8 @@ export default function EditarMateria() {
                                     className="min-h-[120px] text-sm"
                                     placeholder="Resumo do pedido..."
                                 />
-                                <Button variant="ghost" size="sm" className="w-full mt-2 text-xs text-indigo-600">
-                                    Atualizar Resumo (Em breve)
+                                <Button variant="ghost" size="sm" className="w-full mt-2 text-xs text-indigo-600" onClick={handleSalvarEmenta} disabled={saving}>
+                                    {saving ? "Salvando..." : "Atualizar Resumo"}
                                 </Button>
                             </CardContent>
                         </Card>

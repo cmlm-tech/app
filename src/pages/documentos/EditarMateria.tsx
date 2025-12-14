@@ -200,6 +200,16 @@ export default function EditarMateria() {
     async function handleGerarNumero() {
         if (!doc) return;
 
+        // IMPORTANT: Prevent regenerating if number already exists
+        if ((doc as any).numero_oficial) {
+            toast({
+                title: "Número já existe",
+                description: `Este documento já possui o número ${(doc as any).numero_oficial}. Não é possível regerar.`,
+                variant: "destructive"
+            });
+            return;
+        }
+
         // Validation: Verify if essential fields are filled
         if (!corpoTexto.trim()) {
             toast({ title: "Dados incompletos", description: "O corpo do texto não pode estar vazio.", variant: "destructive" });
@@ -223,6 +233,11 @@ export default function EditarMateria() {
             if (tipoNome === "Ofício") {
                 if (!autorId) throw new Error("Autor não identificado para gerar numeração de Ofício.");
 
+                console.log("🔍 DEBUG - Gerando numeração para Ofício:");
+                console.log("  - Autor ID:", autorId);
+                console.log("  - Ano:", doc.ano);
+                console.log("  - Documento ID atual:", doc.id);
+
                 // 1. Buscar último número DESTE AUTOR no ANO
                 // Preciso fazer join manual aqui pq Supabase client side não faz join complexo em filter facil
                 // Estratégia: Buscar todos os oficios deste ano, filtrar pelo autor.
@@ -238,29 +253,63 @@ export default function EditarMateria() {
                     .eq('ano', doc.ano)
                     .eq('documentoautores.autor_id', autorId);
 
+                console.log("  - Documentos do autor encontrados:", docsAutor);
+                console.log("  - Erro na busca de docs:", errDocs);
+
                 if (errDocs) throw errDocs;
 
                 const docIds = docsAutor.map(d => d.id);
+                console.log("  - IDs dos documentos:", docIds);
 
-                // Passo B: Pegar max numero_oficio destes docs
+                // Passo B: Pegar max numero_oficio destes docs (EXCLUINDO o documento atual!)
                 if (docIds.length > 0) {
-                    const { data: maxOficio, error: errMax } = await supabase
-                        .from('oficios')
-                        .select('numero_oficio')
-                        .in('documento_id', docIds)
-                        .order('numero_oficio', { ascending: false })
-                        .limit(1)
-                        .single();
+                    // IMPORTANTE: Filtrar o documento atual para não considerar o próprio número
+                    const docIdsFiltrados = docIds.filter(id => id !== doc.id);
+                    console.log("  - IDs filtrados (sem o atual):", docIdsFiltrados);
 
-                    // Se não achou (pode retornar erro se vazio ou null), ignora
-                    if (maxOficio && maxOficio.numero_oficio) novoNumero = maxOficio.numero_oficio;
+                    if (docIdsFiltrados.length > 0) {
+                        // Use maybeSingle() instead of single() to handle empty results gracefully
+                        const { data: oficiosList, error: errList } = await supabase
+                            .from('oficios')
+                            .select('numero_oficio, documento_id')
+                            .in('documento_id', docIdsFiltrados)
+                            .not('numero_oficio', 'is', null) // Only get non-null numbers
+                            .order('numero_oficio', { ascending: false });
+
+                        console.log("  - Lista de ofícios encontrados:", oficiosList);
+                        console.log("  - Erro na busca de ofícios:", errList);
+
+                        if (errList) {
+                            console.error("  - ❌ ERRO ao buscar ofícios:", errList);
+                        }
+
+                        // Get the maximum number from the list
+                        if (oficiosList && oficiosList.length > 0) {
+                            novoNumero = oficiosList[0].numero_oficio;
+                            console.log("  - 📊 Maior número encontrado na lista:", novoNumero);
+                        } else {
+                            console.log("  - ℹ️ Nenhum ofício anterior encontrado, começando do 0");
+                        }
+                    } else {
+                        console.log("  - ℹ️ Apenas o documento atual existe, começando do 0");
+                    }
+                } else {
+                    console.log("  - ℹ️ Nenhum documento do autor neste ano, começando do 0");
                 }
 
+                console.log("  - Número antes do incremento:", novoNumero);
                 novoNumero += 1; // Incrementa
+                console.log("  - ✅ NOVO NÚMERO GERADO:", novoNumero);
 
                 // Atualizar
+                console.log("  - 💾 Salvando número", novoNumero, "no documento", doc.id);
                 const { error: upErr } = await supabase.from('oficios').update({ numero_oficio: novoNumero }).eq('documento_id', doc.id);
-                if (upErr) throw upErr;
+                if (upErr) {
+                    console.error("  - ❌ ERRO ao salvar número:", upErr);
+                    throw upErr;
+                }
+                console.log("  - ✅ Número salvo com sucesso no banco de dados!");
+
 
             } else if (tipoNome === "Projeto de Lei") {
                 // Global por ano

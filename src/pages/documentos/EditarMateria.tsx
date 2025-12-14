@@ -98,6 +98,10 @@ export default function EditarMateria() {
                 if (childData) {
                     setCorpoTexto(childData[colunaTexto] || "");
                     setEmenta(childData[colunaEmenta] || childData['contexto'] || "");
+
+                    // Capture official number if exists
+                    if (childData['numero_oficio']) (docData as any).numero_oficial = childData['numero_oficio'];
+                    if (childData['numero_lei']) (docData as any).numero_oficial = childData['numero_lei'];
                 }
             }
 
@@ -256,8 +260,11 @@ export default function EditarMateria() {
 
             toast({ title: "Oficializado!", description: `${tipoNome} recebeu o número ${novoNumero}/${doc.ano}.`, className: "bg-blue-600 text-white" });
 
-            // Recarregar dados para mostrar na tela
-            carregarDados(doc.id.toString());
+            // Update local state immediately (No reload needed)
+            setDoc((prev: any) => ({
+                ...prev,
+                numero_oficial: novoNumero
+            }));
 
         } catch (err: any) {
             console.error(err);
@@ -321,7 +328,7 @@ export default function EditarMateria() {
 
     // UI Logic for official number display
     const labelNumeroOficial = (doc as any).numero_oficial
-        ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial}/${doc.ano}`
+        ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial.toString().padStart(3, '0')}/${doc.ano} - ${autorNome}`
         : "Aguardando geração...";
 
     return (

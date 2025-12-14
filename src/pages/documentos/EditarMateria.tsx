@@ -1,4 +1,5 @@
-
+import { pdf } from '@react-pdf/renderer';
+import { DocumentoPDF } from "@/components/documentos/DocumentoPDF";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
@@ -7,16 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ArrowLeft, Save } from "lucide-react";
+import { Loader2, ArrowLeft, Save, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface DocumentoDetalhes {
     id: number;
     numero_protocolo_geral: number;
     ano: number;
-    tiposdedocumento: { nome: string } | null; // Join relation
+    tiposdedocumento: { nome: string } | null;
     status: string;
-    autor: { nome: string } | null; // Manual fetch/map needed or join if view
+    autor: { nome: string } | null;
     data_protocolo: string;
 }
 
@@ -27,6 +28,7 @@ export default function EditarMateria() {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [generatingPDF, setGeneratingPDF] = useState(false); // PDF State
     const [doc, setDoc] = useState<DocumentoDetalhes | null>(null);
     const [corpoTexto, setCorpoTexto] = useState("");
     const [autorNome, setAutorNome] = useState("");
@@ -35,6 +37,37 @@ export default function EditarMateria() {
 
     // Metadata fields that might be editable
     const [ementa, setEmenta] = useState("");
+
+    async function handleGerarPDF() {
+        if (!doc) return;
+        setGeneratingPDF(true);
+        try {
+            const numeroOficial = (doc as any).numero_oficial
+                ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial.toString().padStart(3, '0')}/${doc.ano}`
+                : "Sem Numeração";
+
+            const blob = await pdf(
+                <DocumentoPDF
+                    tipo={doc.tiposdedocumento?.nome || "Documento"}
+                    ano={doc.ano}
+                    numero={numeroOficial}
+                    protocolo={doc.numero_protocolo_geral}
+                    dataProtocolo={doc.data_protocolo}
+                    texto={corpoTexto}
+                    autor={autorNome}
+                />
+            ).toBlob();
+
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+
+        } catch (err) {
+            console.error(err);
+            toast({ title: "Erro", description: "Falha ao gerar PDF.", variant: "destructive" });
+        } finally {
+            setGeneratingPDF(false);
+        }
+    }
 
     useEffect(() => {
         if (id) carregarDados(id);
@@ -48,12 +81,12 @@ export default function EditarMateria() {
             const { data: docData, error: docError } = await supabase
                 .from("documentos")
                 .select(`
-          id, 
-          numero_protocolo_geral, 
-          ano, 
-          status,
-          data_protocolo,
-          tiposdedocumento ( nome )
+        id,
+        numero_protocolo_geral,
+        ano,
+        status,
+        data_protocolo,
+        tiposdedocumento ( nome )
         `)
                 .eq("id", Number(docId))
                 .single();
@@ -199,9 +232,9 @@ export default function EditarMateria() {
                 const { data: docsAutor, error: errDocs } = await supabase
                     .from('documentos')
                     .select(`
-                        id,
-                        documentoautores!inner(autor_id)
-                    `)
+        id,
+        documentoautores!inner(autor_id)
+        `)
                     .eq('ano', doc.ano)
                     .eq('documentoautores.autor_id', autorId);
 
@@ -351,6 +384,10 @@ export default function EditarMateria() {
                         </div>
                     </div>
                     <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleGerarPDF} disabled={generatingPDF}>
+                            {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
+                            Visualizar Oficial
+                        </Button>
                         <Button onClick={handleSalvar} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700">
                             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                             Salvar Alterações

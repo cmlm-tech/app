@@ -19,9 +19,18 @@ export default function Materias() {
   const [status, setStatus] = useState("Todos");
   const [periodo, setPeriodo] = useState<{ inicio: Date | null; fim: Date | null }>({ inicio: null, fim: null });
 
+  // Paginação State
+  const [pagina, setPagina] = useState(1);
+  const itensPorPagina = 10;
+
   useEffect(() => {
     fetchMaterias();
   }, []);
+
+  // Resetar página ao filtrar
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, tipo, status, periodo]);
 
   async function fetchMaterias() {
     setIsLoading(true);
@@ -94,7 +103,7 @@ export default function Materias() {
     }
   }
 
-  // Filtrar matérias (Client-side por enquanto, ideal seria server-side mas ok para MVP)
+  // Filtrar matérias
   const materiasFiltradas = materias.filter((m) => {
     const buscaOk =
       busca === "" ||
@@ -109,6 +118,12 @@ export default function Materias() {
 
     return buscaOk && tipoOk && statusOk && periodoOk;
   });
+
+  // Lógica de Paginação
+  const totalPaginas = Math.ceil(materiasFiltradas.length / itensPorPagina);
+  const inicio = (pagina - 1) * itensPorPagina;
+  const fim = inicio + itensPorPagina;
+  const materiasPaginadas = materiasFiltradas.slice(inicio, fim);
 
   return (
     <AppLayout>
@@ -141,14 +156,47 @@ export default function Materias() {
             setPeriodo={setPeriodo}
           />
         </div>
-        {/* Tabela */}
-        <div className="rounded-lg bg-white shadow p-4">
+
+        {/* Tabela e Paginação */}
+        <div className="rounded-lg bg-white shadow p-4 flex flex-col gap-4">
           {isLoading ? (
             <div className="flex justify-center p-8">
               <Loader2 className="h-8 w-8 animate-spin text-gov-blue-600" />
             </div>
           ) : (
-            <TabelaMaterias materias={materiasFiltradas} />
+            <>
+              <TabelaMaterias materias={materiasPaginadas} />
+
+              {/* Controles de Paginação */}
+              {materiasFiltradas.length > 0 && (
+                <div className="flex items-center justify-between border-t pt-4">
+                  <div className="text-sm text-gray-500">
+                    Mostrando {inicio + 1} até {Math.min(fim, materiasFiltradas.length)} de {materiasFiltradas.length} resultados
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPagina(p => Math.max(1, p - 1))}
+                      disabled={pagina === 1}
+                    >
+                      Anterior
+                    </Button>
+                    <div className="flex items-center px-4 font-medium text-sm">
+                      Página {pagina} de {totalPaginas}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                      disabled={pagina === totalPaginas}
+                    >
+                      Próximo
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

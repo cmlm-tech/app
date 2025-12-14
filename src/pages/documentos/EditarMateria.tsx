@@ -269,7 +269,7 @@ export default function EditarMateria() {
                             <CardContent className="space-y-4">
                                 <div>
                                     <label className="text-xs font-semibold text-slate-500">Protocolo Geral</label>
-                                    <Input readOnly value={`${doc.ano}.${doc.numero_protocolo_geral.toString().padStart(7, '0')}`} className="bg-slate-50" />
+                                    <Input disabled value={`${doc.ano}.${doc.numero_protocolo_geral.toString().padStart(7, '0')}`} className="bg-slate-100 opacity-100 font-medium text-slate-700" />
                                 </div>
                                 <div>
                                     <label className="text-xs font-semibold text-slate-500">Autor</label>

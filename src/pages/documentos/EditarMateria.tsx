@@ -220,9 +220,17 @@ export default function EditarMateria() {
             toast({ title: "Dados incompletos", description: "O resumo/ementa não pode estar vazio.", variant: "destructive" });
             return;
         }
-        // Specific check for Ofício
+        // Get and normalize document type BEFORE validations
         const tipoNome = (doc.tiposdedocumento as any)?.nome;
-        if (tipoNome === "Ofício" && !autorId) {
+        const tipoNormalizado = tipoNome?.trim().toLowerCase();
+
+        // Check document type with flexible matching
+        const isOficio = tipoNormalizado?.includes('oficio') || tipoNormalizado?.includes('ofício');
+        const isProjetoLei = tipoNormalizado?.includes('projeto') && tipoNormalizado?.includes('lei');
+        const isRequerimento = tipoNormalizado?.includes('requerimento');
+
+        // Specific check for Ofício
+        if (isOficio && !autorId) {
             toast({ title: "Erro de Autor", description: "Autor não identificado. Não é possível gerar numeração para Ofício.", variant: "destructive" });
             return;
         }
@@ -231,7 +239,7 @@ export default function EditarMateria() {
         try {
             let novoNumero = 0;
 
-            if (tipoNome === "Ofício") {
+            if (isOficio) {
                 if (!autorId) throw new Error("Autor não identificado para gerar numeração de Ofício.");
 
 
@@ -297,7 +305,7 @@ export default function EditarMateria() {
                 }
 
 
-            } else if (tipoNome === "Projeto de Lei") {
+            } else if (isProjetoLei) {
                 // Global por ano (não filtrado por autor)
                 const { data: docsAno, error: errDocs } = await supabase
                     .from('documentos')
@@ -329,7 +337,7 @@ export default function EditarMateria() {
                     throw upErr;
                 }
 
-            } else if (tipoNome === "Requerimento") {
+            } else if (isRequerimento) {
                 // Global por ano (não filtrado por autor)
                 const { data: docsAno, error: errDocs } = await supabase
                     .from('documentos')
@@ -362,7 +370,8 @@ export default function EditarMateria() {
                 }
 
             } else {
-                throw new Error("Geração automática não suportada para este tipo.");
+                console.error("❌ Tipo não reconhecido:", tipoNome);
+                throw new Error(`Geração automática não suportada para o tipo "${tipoNome}". Tipos válidos: Ofício, Projeto de Lei, Requerimento.`);
             }
 
             toast({ title: "Oficializado!", description: `${tipoNome} recebeu o número ${novoNumero}/${doc.ano}.`, className: "bg-blue-600 text-white" });

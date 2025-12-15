@@ -135,6 +135,7 @@ export default function EditarMateria() {
                     // Capture official number if exists
                     if (childData['numero_oficio']) (docData as any).numero_oficial = childData['numero_oficio'];
                     if (childData['numero_lei']) (docData as any).numero_oficial = childData['numero_lei'];
+                    if (childData['numero_requerimento']) (docData as any).numero_oficial = childData['numero_requerimento'];
                 }
             }
 
@@ -233,10 +234,7 @@ export default function EditarMateria() {
             if (tipoNome === "Ofício") {
                 if (!autorId) throw new Error("Autor não identificado para gerar numeração de Ofício.");
 
-                console.log("🔍 DEBUG - Gerando numeração para Ofício:");
-                console.log("  - Autor ID:", autorId);
-                console.log("  - Ano:", doc.ano);
-                console.log("  - Documento ID atual:", doc.id);
+
 
                 // 1. Buscar último número DESTE AUTOR no ANO
                 // Preciso fazer join manual aqui pq Supabase client side não faz join complexo em filter facil
@@ -253,19 +251,18 @@ export default function EditarMateria() {
                     .eq('ano', doc.ano)
                     .eq('documentoautores.autor_id', autorId);
 
-                console.log("  - Documentos do autor encontrados:", docsAutor);
-                console.log("  - Erro na busca de docs:", errDocs);
+
 
                 if (errDocs) throw errDocs;
 
                 const docIds = docsAutor.map(d => d.id);
-                console.log("  - IDs dos documentos:", docIds);
+
 
                 // Passo B: Pegar max numero_oficio destes docs (EXCLUINDO o documento atual!)
                 if (docIds.length > 0) {
                     // IMPORTANTE: Filtrar o documento atual para não considerar o próprio número
                     const docIdsFiltrados = docIds.filter(id => id !== doc.id);
-                    console.log("  - IDs filtrados (sem o atual):", docIdsFiltrados);
+
 
                     if (docIdsFiltrados.length > 0) {
                         // Use maybeSingle() instead of single() to handle empty results gracefully
@@ -276,66 +273,94 @@ export default function EditarMateria() {
                             .not('numero_oficio', 'is', null) // Only get non-null numbers
                             .order('numero_oficio', { ascending: false });
 
-                        console.log("  - Lista de ofícios encontrados:", oficiosList);
-                        console.log("  - Erro na busca de ofícios:", errList);
-
                         if (errList) {
-                            console.error("  - ❌ ERRO ao buscar ofícios:", errList);
+                            console.error("Erro ao buscar ofícios:", errList);
                         }
 
                         // Get the maximum number from the list
                         if (oficiosList && oficiosList.length > 0) {
                             novoNumero = oficiosList[0].numero_oficio;
-                            console.log("  - 📊 Maior número encontrado na lista:", novoNumero);
                         } else {
-                            console.log("  - ℹ️ Nenhum ofício anterior encontrado, começando do 0");
                         }
                     } else {
-                        console.log("  - ℹ️ Apenas o documento atual existe, começando do 0");
                     }
                 } else {
-                    console.log("  - ℹ️ Nenhum documento do autor neste ano, começando do 0");
                 }
 
-                console.log("  - Número antes do incremento:", novoNumero);
                 novoNumero += 1; // Incrementa
-                console.log("  - ✅ NOVO NÚMERO GERADO:", novoNumero);
 
                 // Atualizar
-                console.log("  - 💾 Salvando número", novoNumero, "no documento", doc.id);
                 const { error: upErr } = await supabase.from('oficios').update({ numero_oficio: novoNumero }).eq('documento_id', doc.id);
                 if (upErr) {
-                    console.error("  - ❌ ERRO ao salvar número:", upErr);
+                    console.error("Erro ao salvar número:", upErr);
                     throw upErr;
                 }
-                console.log("  - ✅ Número salvo com sucesso no banco de dados!");
 
 
             } else if (tipoNome === "Projeto de Lei") {
-                // Global por ano
+                // Global por ano (não filtrado por autor)
                 const { data: docsAno, error: errDocs } = await supabase
                     .from('documentos')
                     .select('id')
                     .eq('ano', doc.ano);
 
                 if (errDocs) throw errDocs;
-                const docIds = docsAno.map(d => d.id);
+
+                // Excluir o documento atual
+                const docIds = docsAno.map(d => d.id).filter(id => id !== doc.id);
 
                 if (docIds.length > 0) {
-                    const { data: maxPL } = await supabase
+                    const { data: projetosList } = await supabase
                         .from('projetosdelei')
-                        .select('numero_lei') // Verifique se é numero_lei ou numero_projeto no schema real
+                        .select('numero_lei')
                         .in('documento_id', docIds)
-                        .order('numero_lei', { ascending: false })
-                        .limit(1)
-                        .single();
+                        .not('numero_lei', 'is', null)
+                        .order('numero_lei', { ascending: false });
 
-                    if (maxPL && maxPL.numero_lei) novoNumero = maxPL.numero_lei;
+                    if (projetosList && projetosList.length > 0) {
+                        novoNumero = projetosList[0].numero_lei;
+                    }
                 }
                 novoNumero += 1;
 
                 const { error: upErr } = await supabase.from('projetosdelei').update({ numero_lei: novoNumero }).eq('documento_id', doc.id);
-                if (upErr) throw upErr;
+                if (upErr) {
+                    console.error("Erro ao salvar número:", upErr);
+                    throw upErr;
+                }
+
+            } else if (tipoNome === "Requerimento") {
+                // Global por ano (não filtrado por autor)
+                const { data: docsAno, error: errDocs } = await supabase
+                    .from('documentos')
+                    .select('id')
+                    .eq('ano', doc.ano);
+
+                if (errDocs) throw errDocs;
+
+                // Excluir o documento atual
+                const docIds = docsAno.map(d => d.id).filter(id => id !== doc.id);
+
+                if (docIds.length > 0) {
+                    const { data: requerimentosList } = await supabase
+                        .from('requerimentos')
+                        .select('numero_requerimento')
+                        .in('documento_id', docIds)
+                        .not('numero_requerimento', 'is', null)
+                        .order('numero_requerimento', { ascending: false });
+
+                    if (requerimentosList && requerimentosList.length > 0) {
+                        novoNumero = requerimentosList[0].numero_requerimento;
+                    }
+                }
+                novoNumero += 1;
+
+                const { error: upErr } = await supabase.from('requerimentos').update({ numero_requerimento: novoNumero }).eq('documento_id', doc.id);
+                if (upErr) {
+                    console.error("Erro ao salvar número:", upErr);
+                    throw upErr;
+                }
+
             } else {
                 throw new Error("Geração automática não suportada para este tipo.");
             }

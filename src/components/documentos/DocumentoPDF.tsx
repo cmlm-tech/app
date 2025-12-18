@@ -1,38 +1,30 @@
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 
-// Dica: Para fontes mais próximas do oficial (Times New Roman ou Arial),
-// você pode registrar fontes externas aqui. O padrão Helvetica é o mais próximo de Arial.
-
+// --- ESTILOS (Padrão Redação Oficial) ---
 const styles = StyleSheet.create({
     page: {
         paddingTop: 40,
         paddingBottom: 40,
-        paddingLeft: 60, // Margem esquerda padrão ABNT (~2.5 a 3cm)
-        paddingRight: 40, // Margem direita (~1.5 a 2cm)
-        fontFamily: 'Helvetica',
+        paddingLeft: 60, // Margem esquerda (~2.5cm)
+        paddingRight: 40, // Margem direita (~1.5cm)
+        fontFamily: 'Helvetica', // Padrão PDF (similar a Arial)
         fontSize: 12,
-        lineHeight: 1.3, // Um pouco mais compacto que 1.5 para ofícios
+        lineHeight: 1.5,
     },
-    // --- Cabeçalho ---
+    // Cabeçalho
     headerContainer: {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         marginBottom: 20,
-        borderBottomWidth: 1, // Opcional: linha separadora visual
+        borderBottomWidth: 1,
         borderBottomColor: '#ccc',
         paddingBottom: 10,
     },
-    brasao: {
-        width: 60,
-        height: 60,
-        marginBottom: 5,
-        objectFit: 'contain',
-    },
     headerTitle: {
         fontSize: 14,
-        fontWeight: 'bold', // Helvetica-Bold
+        fontWeight: 'bold',
         textAlign: 'center',
         textTransform: 'uppercase',
     },
@@ -44,43 +36,66 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     headerAddress: {
-        fontSize: 9,
+        fontSize: 10,
         textAlign: 'center',
         color: '#333',
     },
-    // --- Corpo do Ofício ---
+    // Data e Local
     dateLocation: {
         textAlign: 'right',
-        marginTop: 10,
-        marginBottom: 20,
+        marginTop: 5,
+        marginBottom: 15,
         fontSize: 12,
     },
-    documentNumber: {
+    // Número do Documento
+    documentNumberView: {
+        marginBottom: 20,
+        // Garante separação visual antes do endereçamento
+    },
+    documentNumberText: {
         fontSize: 12,
         fontWeight: 'bold',
-        marginBottom: 20,
         textTransform: 'uppercase',
+        textAlign: 'left',
     },
+    // --- BLOCO DO DESTINATÁRIO (Vertical / Quebra de Linha) ---
     recipientBlock: {
-        marginBottom: 25,
         display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
+        flexDirection: 'column', // Força um item abaixo do outro
+        alignItems: 'flex-start', // Alinha tudo à esquerda
+        marginBottom: 25, // Espaço antes do corpo do texto
+        gap: 2, // Pequeno espaçamento entre as linhas
     },
-    recipientText: {
+    recipientLine1: {
         fontSize: 12,
+        // Pronome de tratamento (Ex: Ao Exmo. Sr.)
     },
+    recipientLine2: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        // Nome em Negrito e Caixa Alta (Ex: FULANO DE TAL)
+    },
+    recipientLine3: {
+        fontSize: 12,
+        // Cargo e Órgão (Ex: Prefeito Municipal)
+    },
+    // Corpo do Texto
     content: {
         textAlign: 'justify',
-        textIndent: 30, // Recuo de parágrafo
         marginBottom: 30,
         minHeight: 100,
     },
-    // --- Rodapé / Assinatura ---
+    paragraph: {
+        marginBottom: 10,
+        textIndent: 30, // Recuo da primeira linha do parágrafo (3cm visual)
+    },
+    // Rodapé / Assinatura
     footer: {
-        marginTop: 40,
+        marginTop: 'auto', // Empurra para o fim da página
         width: '100%',
         alignItems: 'center',
+        paddingTop: 20,
     },
     signatureLine: {
         borderTopWidth: 1,
@@ -95,47 +110,53 @@ const styles = StyleSheet.create({
     },
     signatureRole: {
         fontSize: 11,
-        fontStyle: 'italic', // Simulando itálico se a fonte suportar, ou normal
+        fontStyle: 'italic',
     }
 });
 
 interface DocumentoPDFProps {
-    tipo: string;
-    ano: number;
-    numero: string;
-    protocolo: number;
-    dataProtocolo: string; // Data ISO
-    texto: string;
-    autor: string;
-    autorCargo?: string;
+    tipo: string;           // Ex: "Ofício"
+    numero: string;         // Ex: "022/2025" (será limpo se vier com texto extra)
+    dataProtocolo: string;  // Data ISO
+    texto: string;          // Corpo do texto gerado pela IA
+    autor: string;          // Nome do Vereador
+    autorCargo?: string;    // Cargo do Vereador
+    // Props do Destinatário
+    pronomeTratamento?: string; // Ex: "Ao Exmo. Sr."
     destinatarioNome?: string;
     destinatarioCargo?: string;
+    destinatarioOrgao?: string;
 }
 
 export function DocumentoPDF({
     tipo,
     numero,
-    protocolo,
     dataProtocolo,
     texto,
     autor,
     autorCargo = "Vereador(a)",
+    pronomeTratamento = "Ao Ilmo(a). Sr(a).", // Valor padrão
     destinatarioNome,
-    destinatarioCargo
+    destinatarioCargo,
+    destinatarioOrgao
 }: DocumentoPDFProps) {
 
-    // Helper para formatar data
-    const dataFormatada = new Date(dataProtocolo).toLocaleDateString('pt-BR', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
+    // 1. Formatar Data
+    const dataObj = new Date(dataProtocolo);
+    const dia = dataObj.getDate();
+    const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const mes = meses[dataObj.getMonth()];
+    const ano = dataObj.getFullYear();
+    const dataExtenso = `Lavras da Mangabeira - CE, ${dia} de ${mes} de ${ano}.`;
 
-    // Lavras da Mangabeira - CE, [Data]
-    const dataExtenso = `Lavras da Mangabeira - CE, ${dataFormatada}`;
+    // 2. Limpar Número (Evita "OFÍCIO Nº OFÍCIO Nº")
+    // Mantém apenas números, barras e hífens.
+    const numeroLimpo = numero ? numero.replace(/[^0-9/-]/g, '') : '____/____';
+    const tipoFormatado = tipo ? tipo.toUpperCase() : 'DOCUMENTO';
 
-    // Limpeza simples de tags HTML caso venha de um Rich Text Editor
-    const cleanText = texto.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
+    // 3. Processar Texto da IA (Quebra em parágrafos)
+    const cleanText = texto ? texto.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ') : '';
+    const paragrafos = cleanText.split('\n').filter(p => p.trim() !== '');
 
     return (
         <Document>
@@ -143,57 +164,65 @@ export function DocumentoPDF({
 
                 {/* --- CABEÇALHO --- */}
                 <View style={styles.headerContainer}>
-                    {/* TODO: Substitua a URL abaixo pelo caminho público do brasão de Lavras da Mangabeira. */}
-                    {/* <Image src="/logo_camara.png" style={styles.brasao} /> */}
-
+                    {/* <Image src="/logo.png" style={{width: 60, height: 60, marginBottom: 5}} /> */}
                     <Text style={styles.headerTitle}>CÂMARA MUNICIPAL DE</Text>
                     <Text style={styles.headerSubtitle}>LAVRAS DA MANGABEIRA - CE</Text>
-
                     <Text style={styles.headerAddress}>
                         Rua Monsenhor Meceno, S/N, Centro, Lavras da Mangabeira - CE{'\n'}
                         CEP: 63.300-000 | CNPJ: 12.464.996/0001-75
                     </Text>
                 </View>
 
-                {/* --- DATA E LOCAL --- */}
+                {/* --- DATA --- */}
                 <View style={styles.dateLocation}>
                     <Text>{dataExtenso}</Text>
                 </View>
 
                 {/* --- NÚMERO DO DOCUMENTO --- */}
-                <View>
-                    <Text style={styles.documentNumber}>
-                        {tipo} Nº {numero}
-                    </Text>
-                    {/* Display Protocolo explicitly if needed, or keep hidden/internal */}
-                    <Text style={{ fontSize: 10, color: '#666', marginBottom: 10 }}>
-                        Protocolo Geral: {protocolo}/{new Date(dataProtocolo).getFullYear()}
+                <View style={styles.documentNumberView}>
+                    <Text style={styles.documentNumberText}>
+                        {tipoFormatado} Nº {numeroLimpo}
                     </Text>
                 </View>
 
-                {/* --- DESTINATÁRIO (Opcional) --- */}
+                {/* --- DESTINATÁRIO (BLOCO VERTICAL) --- */}
+                {/* Renderiza linha por linha para garantir a quebra visual */}
                 {destinatarioNome && (
                     <View style={styles.recipientBlock}>
-                        <Text style={styles.recipientText}>Ao Ilmo. Sr.</Text>
-                        <Text style={{ ...styles.recipientText, fontWeight: 'bold' }}>{destinatarioNome}</Text>
-                        {destinatarioCargo && <Text style={styles.recipientText}>DD. {destinatarioCargo}</Text>}
-                        <Text style={styles.recipientText}>Nesta</Text>
+
+                        {/* Linha 1: Pronome */}
+                        <Text style={styles.recipientLine1}>
+                            {pronomeTratamento}
+                        </Text>
+
+                        {/* Linha 2: Nome */}
+                        <Text style={styles.recipientLine2}>
+                            {destinatarioNome}
+                        </Text>
+
+                        {/* Linha 3: Cargo */}
+                        {destinatarioCargo && (
+                            <Text style={styles.recipientLine3}>
+                                {destinatarioCargo}
+                            </Text>
+                        )}
+
+                        {/* Linha 4: Órgão */}
+                        {destinatarioOrgao && (
+                            <Text style={styles.recipientLine3}>
+                                {destinatarioOrgao}
+                            </Text>
+                        )}
                     </View>
                 )}
 
-                {/* --- CORPO DO TEXTO --- */}
+                {/* --- CORPO DO TEXTO (IA) --- */}
                 <View style={styles.content}>
-                    {/* Dica: Se o texto tiver quebras de linha (\n), o componente Text
-                       geralmente renderiza corretamente. Se forem parágrafos distintos,
-                       pode ser necessário fazer um .split('\n').map(...) 
-                    */}
-                    <Text>{cleanText}</Text>
-                </View>
-
-                {/* --- FECHAMENTO PADRÃO --- */}
-                <View style={{ marginBottom: 40 }}>
-                    <Text>Na oportunidade apresentamos protestos de estima e consideração.</Text>
-                    <Text style={{ marginTop: 15 }}>Atenciosamente,</Text>
+                    {paragrafos.map((paragrafo, index) => (
+                        <Text key={index} style={styles.paragraph}>
+                            {paragrafo}
+                        </Text>
+                    ))}
                 </View>
 
                 {/* --- ASSINATURA --- */}

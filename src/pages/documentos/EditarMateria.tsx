@@ -49,9 +49,7 @@ export default function EditarMateria() {
             const blob = await pdf(
                 <DocumentoPDF
                     tipo={doc.tiposdedocumento?.nome || "Documento"}
-                    ano={doc.ano}
                     numero={numeroOficial}
-                    protocolo={doc.numero_protocolo_geral}
                     dataProtocolo={doc.data_protocolo}
                     texto={corpoTexto}
                     autor={autorNome}
@@ -449,31 +447,33 @@ export default function EditarMateria() {
 
     return (
         <AppLayout>
-            <div className="p-6 max-w-5xl mx-auto space-y-6">
+            <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6 overflow-x-hidden">
 
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <Button variant="outline" size="icon" onClick={() => navigate("/documentos/materias")}>
                             <ArrowLeft className="w-4 h-4" />
                         </Button>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-800">
+                        <div className="min-w-0">
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-800 truncate">
                                 {doc.tiposdedocumento?.nome} {doc.ano}.{doc.numero_protocolo_geral.toString().padStart(7, '0')}
                             </h1>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 truncate">
                                 Autor: {autorNome || "Carregando..."} • Status: <span className="font-semibold text-indigo-600">{doc.status}</span>
                             </p>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleGerarPDF} disabled={generatingPDF}>
+                    <div className="flex gap-2 flex-wrap">
+                        <Button variant="outline" onClick={handleGerarPDF} disabled={generatingPDF} className="flex-1 sm:flex-none">
                             {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
-                            Visualizar Oficial
+                            <span className="hidden sm:inline">Visualizar Oficial</span>
+                            <span className="sm:hidden">PDF</span>
                         </Button>
-                        <Button onClick={handleSalvar} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700">
+                        <Button onClick={handleSalvar} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 flex-1 sm:flex-none">
                             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                            Salvar Alterações
+                            <span className="hidden sm:inline">Salvar Alterações</span>
+                            <span className="sm:hidden">Salvar</span>
                         </Button>
                     </div>
                 </div>

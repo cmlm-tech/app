@@ -1,128 +1,162 @@
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 
-// --- ESTILOS (Padrão Redação Oficial) ---
+// Registrar fonte Times-Roman (integrada ao react-pdf, similar ao Goudy Old Style)
+// react-pdf tem suporte limitado a fontes externas, usando fontes integradas por estabilidade
+
+// --- ESTILOS (Baseado na Imagem de Referência) ---
 const styles = StyleSheet.create({
     page: {
-        paddingTop: 40,
-        paddingBottom: 40,
-        paddingLeft: 60, // Margem esquerda (~2.5cm)
-        paddingRight: 40, // Margem direita (~1.5cm)
-        fontFamily: 'Helvetica', // Padrão PDF (similar a Arial)
+        paddingTop: 130,
+        paddingBottom: 50,
+        paddingLeft: 50,
+        paddingRight: 40,
+        fontFamily: 'Helvetica',
         fontSize: 12,
         lineHeight: 1.5,
     },
-    // Cabeçalho
+    // --- CABEÇALHO FIXO (repete em todas as páginas) ---
+    fixedHeader: {
+        position: 'absolute',
+        top: 20,
+        left: 50,
+        right: 40,
+    },
     headerContainer: {
-        display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
-        paddingBottom: 10,
+        justifyContent: 'center',
+        marginBottom: 10,
+        height: 80, // Altura fixa para alinhar logo e texto
+    },
+    logo: {
+        width: 70,
+        height: 70,
+        marginRight: 15,
+    },
+    headerTextColumn: {
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'flex-start', // Texto alinhado à esquerda dentro do bloco
     },
     headerTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        textAlign: 'center',
+        fontFamily: 'Times-Bold',
+        fontSize: 16,
         textTransform: 'uppercase',
+        color: '#333',
+        marginBottom: 2,
     },
     headerSubtitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        textAlign: 'center',
+        fontFamily: 'Times-Bold',
+        fontSize: 14,
         textTransform: 'uppercase',
+        color: '#444',
         marginBottom: 4,
     },
     headerAddress: {
-        fontSize: 10,
-        textAlign: 'center',
-        color: '#333',
+        fontFamily: 'Times-Italic',
+        fontSize: 9,
+        color: '#444',
     },
-    // Data e Local
+    // --- BARRAS COLORIDAS (Cabeçalho e Rodapé) ---
+    colorBarContainer: {
+        flexDirection: 'row',
+        height: 16,
+        width: '100%',
+        marginBottom: 25,
+    },
+    footerBarContainer: {
+        flexDirection: 'row',
+        height: 16,
+        width: '100%',
+        marginTop: 20,
+    },
+    barBlue: {
+        width: '45%',
+        height: 16,
+        backgroundColor: '#07077f',
+    },
+    barGold: {
+        width: '55%',
+        height: 16,
+        backgroundColor: '#fcbf05',
+    },
+
+    // --- CORPO DO DOCUMENTO ---
+
+    // Data
     dateLocation: {
-        textAlign: 'right',
-        marginTop: 5,
-        marginBottom: 15,
+        textAlign: 'left', // Na imagem parece alinhado à esquerda ou justificado
+        marginBottom: 20,
         fontSize: 12,
     },
-    // Número do Documento
-    documentNumberView: {
-        marginBottom: 20,
-        // Garante separação visual antes do endereçamento
-    },
+
+    // Número do Ofício
     documentNumberText: {
         fontSize: 12,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        textAlign: 'left',
+        marginBottom: 20,
     },
-    // --- BLOCO DO DESTINATÁRIO (Vertical / Quebra de Linha) ---
+
+    // Destinatário
     recipientBlock: {
-        display: 'flex',
-        flexDirection: 'column', // Força um item abaixo do outro
-        alignItems: 'flex-start', // Alinha tudo à esquerda
-        marginBottom: 25, // Espaço antes do corpo do texto
-        gap: 2, // Pequeno espaçamento entre as linhas
+        marginBottom: 20,
+        lineHeight: 1.4,
     },
-    recipientLine1: {
+    recipientText: {
         fontSize: 12,
-        // Pronome de tratamento (Ex: Ao Exmo. Sr.)
     },
-    recipientLine2: {
-        fontSize: 12,
+
+    // Assunto
+    subjectBlock: {
+        flexDirection: 'row',
+        marginBottom: 20,
+    },
+    subjectLabel: {
         fontWeight: 'bold',
-        textTransform: 'uppercase',
-        // Nome em Negrito e Caixa Alta (Ex: FULANO DE TAL)
+        marginRight: 4,
     },
-    recipientLine3: {
-        fontSize: 12,
-        // Cargo e Órgão (Ex: Prefeito Municipal)
-    },
-    // Corpo do Texto
-    content: {
-        textAlign: 'justify',
-        marginBottom: 30,
-        minHeight: 100,
+
+    // Texto
+    vocative: {
+        marginBottom: 15,
+        textIndent: 40,
     },
     paragraph: {
         marginBottom: 10,
-        textIndent: 30, // Recuo da primeira linha do parágrafo (3cm visual)
+        textIndent: 40, // Recuo de parágrafo da imagem
+        textAlign: 'justify',
     },
-    // Rodapé / Assinatura
-    footer: {
-        marginTop: 'auto', // Empurra para o fim da página
-        width: '100%',
+
+    // --- ASSINATURA ---
+    signatureContainer: {
+        marginTop: 40, // Espaço antes da assinatura
         alignItems: 'center',
-        paddingTop: 20,
-    },
-    signatureLine: {
-        borderTopWidth: 1,
-        borderTopColor: '#000',
-        width: '60%',
-        marginBottom: 5,
+        marginBottom: 10,
     },
     signatureName: {
-        fontSize: 12,
         fontWeight: 'bold',
-        textTransform: 'uppercase',
+        marginBottom: 2,
     },
     signatureRole: {
-        fontSize: 11,
-        fontStyle: 'italic',
-    }
+        fontWeight: 'bold',
+    },
+    // --- RODAPÉ FIXO (repete em todas as páginas) ---
+    fixedFooter: {
+        position: 'absolute',
+        bottom: 20,
+        left: 50,
+        right: 40,
+    },
 });
 
 interface DocumentoPDFProps {
-    tipo: string;           // Ex: "Ofício"
-    numero: string;         // Ex: "022/2025" (será limpo se vier com texto extra)
-    dataProtocolo: string;  // Data ISO
-    texto: string;          // Corpo do texto gerado pela IA
-    autor: string;          // Nome do Vereador
-    autorCargo?: string;    // Cargo do Vereador
-    // Props do Destinatário
-    pronomeTratamento?: string; // Ex: "Ao Exmo. Sr."
+    tipo: string;
+    numero: string;
+    dataProtocolo: string;
+    texto: string;
+    autor: string;
+    autorCargo?: string;
+    pronomeTratamento?: string;
     destinatarioNome?: string;
     destinatarioCargo?: string;
     destinatarioOrgao?: string;
@@ -135,26 +169,21 @@ export function DocumentoPDF({
     texto,
     autor,
     autorCargo = "Vereador(a)",
-    pronomeTratamento = "Ao Ilmo(a). Sr(a).", // Valor padrão
+    pronomeTratamento = "Ao Ilmo. Sr.",
     destinatarioNome,
     destinatarioCargo,
-    destinatarioOrgao
+    destinatarioOrgao,
 }: DocumentoPDFProps) {
-
-    // 1. Formatar Data
     const dataObj = new Date(dataProtocolo);
     const dia = dataObj.getDate();
     const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
     const mes = meses[dataObj.getMonth()];
     const ano = dataObj.getFullYear();
-    const dataExtenso = `Lavras da Mangabeira - CE, ${dia} de ${mes} de ${ano}.`;
+    const dataExtenso = `Lavras da Mangabeira – Ceará, ${dia} de ${mes} de ${ano}.`;
 
-    // 2. Limpar Número (Evita "OFÍCIO Nº OFÍCIO Nº")
-    // Mantém apenas números, barras e hífens.
-    const numeroLimpo = numero ? numero.replace(/[^0-9/-]/g, '') : '____/____';
-    const tipoFormatado = tipo ? tipo.toUpperCase() : 'DOCUMENTO';
+    // Limpar número (remove prefixos duplicados como "Ofício nº")
+    const numeroLimpo = numero ? numero.replace(/^(ofício|requerimento|projeto)\s*n[º°]?\s*/i, '').trim() : '';
 
-    // 3. Processar Texto da IA (Quebra em parágrafos)
     const cleanText = texto ? texto.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ') : '';
     const paragrafos = cleanText.split('\n').filter(p => p.trim() !== '');
 
@@ -162,74 +191,69 @@ export function DocumentoPDF({
         <Document>
             <Page size="A4" style={styles.page}>
 
-                {/* --- CABEÇALHO --- */}
-                <View style={styles.headerContainer}>
-                    {/* <Image src="/logo.png" style={{width: 60, height: 60, marginBottom: 5}} /> */}
-                    <Text style={styles.headerTitle}>CÂMARA MUNICIPAL DE</Text>
-                    <Text style={styles.headerSubtitle}>LAVRAS DA MANGABEIRA - CE</Text>
-                    <Text style={styles.headerAddress}>
-                        Rua Monsenhor Meceno, S/N, Centro, Lavras da Mangabeira - CE{'\n'}
-                        CEP: 63.300-000 | CNPJ: 12.464.996/0001-75
-                    </Text>
-                </View>
+                {/* CABEÇALHO FIXO (aparece em todas as páginas) */}
+                <View style={styles.fixedHeader} fixed>
+                    <View style={styles.headerContainer}>
+                        {/* Logo */}
+                        <Image src="/logo-camara.png" style={styles.logo} />
 
-                {/* --- DATA --- */}
-                <View style={styles.dateLocation}>
-                    <Text>{dataExtenso}</Text>
-                </View>
-
-                {/* --- NÚMERO DO DOCUMENTO --- */}
-                <View style={styles.documentNumberView}>
-                    <Text style={styles.documentNumberText}>
-                        {tipoFormatado} Nº {numeroLimpo}
-                    </Text>
-                </View>
-
-                {/* --- DESTINATÁRIO (BLOCO VERTICAL) --- */}
-                {/* Renderiza linha por linha para garantir a quebra visual */}
-                {destinatarioNome && (
-                    <View style={styles.recipientBlock}>
-
-                        {/* Linha 1: Pronome */}
-                        <Text style={styles.recipientLine1}>
-                            {pronomeTratamento}
-                        </Text>
-
-                        {/* Linha 2: Nome */}
-                        <Text style={styles.recipientLine2}>
-                            {destinatarioNome}
-                        </Text>
-
-                        {/* Linha 3: Cargo */}
-                        {destinatarioCargo && (
-                            <Text style={styles.recipientLine3}>
-                                {destinatarioCargo}
+                        {/* Texto (Direita do Logo) */}
+                        <View style={styles.headerTextColumn}>
+                            <Text style={styles.headerTitle}>CÂMARA MUNICIPAL DE</Text>
+                            <Text style={styles.headerSubtitle}>LAVRAS DA MANGABEIRA – CE</Text>
+                            <Text style={styles.headerAddress}>
+                                Rua Monsenhor Meceno, S/N, Centro, Lavras da Mangabeira - CE
                             </Text>
-                        )}
-
-                        {/* Linha 4: Órgão */}
-                        {destinatarioOrgao && (
-                            <Text style={styles.recipientLine3}>
-                                {destinatarioOrgao}
+                            <Text style={styles.headerAddress}>
+                                CEP: 63.300-000 | CNPJ: 12.464.996/0001-75
                             </Text>
-                        )}
+                        </View>
                     </View>
-                )}
 
-                {/* --- CORPO DO TEXTO (IA) --- */}
-                <View style={styles.content}>
-                    {paragrafos.map((paragrafo, index) => (
-                        <Text key={index} style={styles.paragraph}>
-                            {paragrafo}
-                        </Text>
+                    {/* BARRAS COLORIDAS SUPERIORES */}
+                    <View style={styles.colorBarContainer}>
+                        <View style={styles.barBlue} />
+                        <View style={styles.barGold} />
+                    </View>
+                </View>
+
+                {/* LOCAL E DATA */}
+                <Text style={styles.dateLocation}>
+                    {dataExtenso}
+                </Text>
+
+                {/* NÚMERO DO OFÍCIO */}
+                <Text style={styles.documentNumberText}>
+                    {tipo} Nº {numeroLimpo}
+                </Text>
+
+                {/* DESTINATÁRIO */}
+                <View style={styles.recipientBlock}>
+                    <Text style={styles.recipientText}>{pronomeTratamento}</Text>
+                    <Text style={styles.recipientText}>{destinatarioNome}</Text>
+                    {destinatarioCargo && <Text style={styles.recipientText}>{destinatarioCargo}</Text>}
+                    {destinatarioOrgao && <Text style={styles.recipientText}>{destinatarioOrgao}</Text>}
+                </View>
+
+                {/* CORPO DO TEXTO */}
+                <View>
+                    {paragrafos.map((p, i) => (
+                        <Text key={i} style={styles.paragraph}>{p}</Text>
                     ))}
                 </View>
 
-                {/* --- ASSINATURA --- */}
-                <View style={styles.footer}>
-                    <View style={styles.signatureLine} />
+                {/* ASSINATURA */}
+                <View style={styles.signatureContainer}>
                     <Text style={styles.signatureName}>{autor}</Text>
-                    <Text style={styles.signatureRole}>{autorCargo}</Text>
+                    <Text style={styles.signatureName}>{autorCargo}</Text>
+                </View>
+
+                {/* RODAPÉ FIXO (aparece em todas as páginas) */}
+                <View style={styles.fixedFooter} fixed>
+                    <View style={styles.footerBarContainer}>
+                        <View style={styles.barBlue} />
+                        <View style={styles.barGold} />
+                    </View>
                 </View>
 
             </Page>

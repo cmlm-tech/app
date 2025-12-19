@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { documento_id, tipo, contexto, autor_nome, destinatario, protocolo_geral } = await req.json()
+    const { documento_id, tipo, contexto, autor_nome, destinatario, protocolo_geral, tipo_mocao, homenageado } = await req.json()
 
     // 1. Verificar API Key
     const apiKey = Deno.env.get('GOOGLE_API_KEY')
@@ -80,6 +80,34 @@ REGRAS DE REDAÇÃO (O QUE FAZER):
         - Qualquer cabeçalho
         
         ✅ COMECE DIRETAMENTE COM: "Art. 1º..."
+      `
+    } else if (tipo === 'Moção') {
+      // Moção tem estrutura padronizada - Art. 2 e 3 são fixos
+      // tipo_mocao e homenageado já foram extraídos no início da função
+
+      promptUsuario = `
+        Você está redigindo uma MOÇÃO DE ${(tipo_mocao || 'APLAUSOS').toUpperCase()}.
+        
+        ESTRUTURA FIXA DE UMA MOÇÃO:
+        - Art. 1º - Concessão da moção (ÚNICO ARTIGO QUE VARIA)
+        - Art. 2º - Referência ao regimento (FIXO)
+        - Art. 3º - Vigência (FIXO)
+        
+        TAREFA: Escreva APENAS o Art. 1º de forma completa e elegante.
+        
+        HOMENAGEADO/DESTINATÁRIO: ${homenageado || 'Não informado'}
+        CONTEXTO/MOTIVO: ${contexto}
+        TIPO: Moção de ${tipo_mocao || 'Aplausos'}
+        
+        FORMATO DO ART. 1º:
+        "Art. 1º - Fica concedida Moção de [TIPO] a/ao [HOMENAGEADO], [MOTIVO ELABORADO]."
+        
+        EXEMPLO:
+        "Art. 1º - Fica concedida Moção de Aplausos aos jovens Samara Rodrigues de Macêdo e Robson Gomes Fernando, pelo nascimento de seu filho, Átila Ivanildo de Macêdo Gomes, ocorrido em 01 de setembro de 2025."
+        
+        ❌ NÃO ESCREVA Art. 2º nem Art. 3º (são fixos no sistema)
+        ❌ NÃO inclua cabeçalho, numeração ou autores
+        ✅ ESCREVA APENAS O Art. 1º COMPLETO
       `
     } else {
       promptUsuario = `

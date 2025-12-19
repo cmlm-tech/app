@@ -140,6 +140,17 @@ const styles = StyleSheet.create({
     signatureRole: {
         fontWeight: 'bold',
     },
+    // Multi-author signatures (two columns)
+    multiSignatureRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        marginTop: 40,
+        marginBottom: 10,
+    },
+    signatureColumn: {
+        width: '45%',
+        alignItems: 'center',
+    },
     // --- RODAPÉ FIXO (repete em todas as páginas) ---
     fixedFooter: {
         position: 'absolute',
@@ -160,6 +171,8 @@ interface DocumentoPDFProps {
     destinatarioNome?: string;
     destinatarioCargo?: string;
     destinatarioOrgao?: string;
+    ementa?: string; // Ementa para Moção
+    autores?: string[]; // Array de autores para Moção (múltiplos)
 }
 
 export function DocumentoPDF({
@@ -173,6 +186,8 @@ export function DocumentoPDF({
     destinatarioNome,
     destinatarioCargo,
     destinatarioOrgao,
+    ementa,
+    autores,
 }: DocumentoPDFProps) {
     const dataObj = new Date(dataProtocolo);
     const dia = dataObj.getDate();
@@ -181,8 +196,8 @@ export function DocumentoPDF({
     const ano = dataObj.getFullYear();
     const dataExtenso = `Lavras da Mangabeira – Ceará, ${dia} de ${mes} de ${ano}.`;
 
-    // Limpar número (remove prefixos duplicados como "Ofício nº")
-    const numeroLimpo = numero ? numero.replace(/^(ofício|requerimento|projeto)\s*n[º°]?\s*/i, '').trim() : '';
+    // Limpar número (remove prefixos duplicados como "Ofício nº", "Moção nº")
+    const numeroLimpo = numero ? numero.replace(/^(ofício|requerimento|projeto|moção)\s*n[º°]?\s*/i, '').trim() : '';
 
     const cleanText = texto ? texto.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ') : '';
     const paragrafos = cleanText.split('\n').filter(p => p.trim() !== '');
@@ -217,36 +232,100 @@ export function DocumentoPDF({
                     </View>
                 </View>
 
-                {/* LOCAL E DATA */}
-                <Text style={styles.dateLocation}>
-                    {dataExtenso}
-                </Text>
+                {/* CONTEÚDO CONDICIONAL POR TIPO */}
+                {tipo === "Moção" ? (
+                    // FORMATO ESPECÍFICO PARA MOÇÃO
+                    <>
+                        {/* TÍTULO: Projeto de Moção N° */}
+                        <Text style={styles.documentNumberText}>
+                            Projeto de Moção N° {numeroLimpo}
+                        </Text>
 
-                {/* NÚMERO DO OFÍCIO */}
-                <Text style={styles.documentNumberText}>
-                    {tipo} Nº {numeroLimpo}
-                </Text>
+                        {/* EMENTA */}
+                        {ementa && (
+                            <Text style={[styles.paragraph, { fontStyle: 'italic', marginBottom: 12 }]}>
+                                Concede moção e adota outras providências...
+                            </Text>
+                        )}
 
-                {/* DESTINATÁRIO */}
-                <View style={styles.recipientBlock}>
-                    <Text style={styles.recipientText}>{pronomeTratamento}</Text>
-                    <Text style={styles.recipientText}>{destinatarioNome}</Text>
-                    {destinatarioCargo && <Text style={styles.recipientText}>{destinatarioCargo}</Text>}
-                    {destinatarioOrgao && <Text style={styles.recipientText}>{destinatarioOrgao}</Text>}
-                </View>
+                        {/* TEXTO INTRODUTÓRIO FIXO */}
+                        <Text style={styles.paragraph}>
+                            A Câmara Municipal de Lavras da Mangabeira – Ceará, aprovou o seguinte Projeto de Moção:
+                        </Text>
 
-                {/* CORPO DO TEXTO */}
-                <View>
-                    {paragrafos.map((p, i) => (
-                        <Text key={i} style={styles.paragraph}>{p}</Text>
-                    ))}
-                </View>
+                        {/* ARTIGOS */}
+                        <View>
+                            {paragrafos.map((p, i) => (
+                                <Text key={i} style={styles.paragraph}>{p}</Text>
+                            ))}
 
-                {/* ASSINATURA */}
-                <View style={styles.signatureContainer}>
-                    <Text style={styles.signatureName}>{autor}</Text>
-                    <Text style={styles.signatureName}>{autorCargo}</Text>
-                </View>
+                            {/* Art. 2º e 3º fixos */}
+                            <Text style={styles.paragraph}>
+                                Art. 2º - A Moção acima é de conformidade com o Art. 110 do Regimento Interno da Câmara Municipal.
+                            </Text>
+                            <Text style={styles.paragraph}>
+                                Art. 3º - Esta Moção entra em vigor na data de sua publicação, ficando revogadas as disposições em contrário.
+                            </Text>
+                        </View>
+
+                        {/* LOCAL E DATA NO FINAL (diferente de Ofício) */}
+                        <Text style={[styles.paragraph, { marginTop: 20 }]}>
+                            Sala das Sessões da Câmara Municipal, em {dia} de {mes} de {ano}.
+                        </Text>
+                    </>
+                ) : (
+                    // FORMATO PADRÃO PARA OFÍCIO, PROJETO DE LEI, REQUERIMENTO
+                    <>
+                        {/* DATA NO INÍCIO */}
+                        <Text style={styles.dateLocation}>
+                            {dataExtenso}
+                        </Text>
+
+                        {/* NÚMERO DO DOCUMENTO */}
+                        <Text style={styles.documentNumberText}>
+                            {tipo} Nº {numeroLimpo}
+                        </Text>
+
+                        {/* DESTINATÁRIO */}
+                        <View style={styles.recipientBlock}>
+                            <Text style={styles.recipientText}>{pronomeTratamento}</Text>
+                            <Text style={styles.recipientText}>{destinatarioNome}</Text>
+                            {destinatarioCargo && <Text style={styles.recipientText}>{destinatarioCargo}</Text>}
+                            {destinatarioOrgao && <Text style={styles.recipientText}>{destinatarioOrgao}</Text>}
+                        </View>
+
+                        {/* CORPO DO TEXTO */}
+                        <View>
+                            {paragrafos.map((p, i) => (
+                                <Text key={i} style={styles.paragraph}>{p}</Text>
+                            ))}
+                        </View>
+                    </>
+                )}
+
+                {/* ASSINATURA - Condicional para múltiplos autores */}
+                {autores && autores.length > 0 ? (
+                    // Layout de duas colunas para múltiplos autores (Moção)
+                    // Agrupar autores em pares (2 por linha)
+                    <>
+                        {Array.from({ length: Math.ceil(autores.length / 2) }, (_, rowIndex) => (
+                            <View key={rowIndex} style={styles.multiSignatureRow}>
+                                {autores.slice(rowIndex * 2, rowIndex * 2 + 2).map((nomeAutor, colIndex) => (
+                                    <View key={colIndex} style={styles.signatureColumn}>
+                                        <Text style={styles.signatureName}>{nomeAutor}</Text>
+                                        <Text style={styles.signatureRole}>{autorCargo}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        ))}
+                    </>
+                ) : (
+                    // Layout simples para um autor
+                    <View style={styles.signatureContainer}>
+                        <Text style={styles.signatureName}>{autor}</Text>
+                        <Text style={styles.signatureName}>{autorCargo}</Text>
+                    </View>
+                )}
 
                 {/* RODAPÉ FIXO (aparece em todas as páginas) */}
                 <View style={styles.fixedFooter} fixed>

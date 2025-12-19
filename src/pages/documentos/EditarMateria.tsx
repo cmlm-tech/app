@@ -32,6 +32,7 @@ export default function EditarMateria() {
     const [doc, setDoc] = useState<DocumentoDetalhes | null>(null);
     const [corpoTexto, setCorpoTexto] = useState("");
     const [autorNome, setAutorNome] = useState("");
+    const [autoresArray, setAutoresArray] = useState<string[]>([]); // Array de nomes para Moção
 
     const [autorId, setAutorId] = useState<number | null>(null);
 
@@ -53,6 +54,8 @@ export default function EditarMateria() {
                     dataProtocolo={doc.data_protocolo}
                     texto={corpoTexto}
                     autor={autorNome}
+                    ementa={ementa}
+                    autores={autoresArray.length > 0 ? autoresArray : undefined}
                 />
             ).toBlob();
 
@@ -113,6 +116,10 @@ export default function EditarMateria() {
                 tabelaFilha = "requerimentos";
                 colunaTexto = "corpo_texto"; // Changed from justificativa to decouple
                 colunaEmenta = "justificativa"; // Used as summary
+            } else if (tipoNome === "Moção") {
+                tabelaFilha = "mocoes";
+                colunaTexto = "corpo_texto";
+                colunaEmenta = "ementa";
             } // Add others as needed
 
             if (tabelaFilha) {
@@ -134,25 +141,56 @@ export default function EditarMateria() {
                     if (childData['numero_oficio']) (docData as any).numero_oficial = childData['numero_oficio'];
                     if (childData['numero_lei']) (docData as any).numero_oficial = childData['numero_lei'];
                     if (childData['numero_requerimento']) (docData as any).numero_oficial = childData['numero_requerimento'];
+                    if (childData['numero_mocao']) (docData as any).numero_oficial = childData['numero_mocao'];
                 }
             }
 
-            // 3. Fetch Author (Manual mapping as done in Materias.tsx)
-            // First get author ID from documentoautores
-            const { data: authData } = await supabase
-                .from("documentoautores")
-                .select("autor_id")
-                .eq("documento_id", Number(docId))
-                .single();
+            // 3. Fetch Author(s) - For Moção, fetch ALL authors; for others, fetch single author
+            const docTipo = docData.tiposdedocumento?.nome;
 
-            if (authData?.autor_id) {
-                setAutorId(authData.autor_id); // Saving ID for numbering logic
-                const { data: agenteData } = await supabase
-                    .from("agentespublicos")
-                    .select("nome_completo")
-                    .eq("id", authData.autor_id)
+            if (docTipo === "Moção") {
+                // Fetch ALL authors for Moção
+                const { data: authorsData } = await supabase
+                    .from("documentoautores")
+                    .select("autor_id, papel")
+                    .eq("documento_id", Number(docId))
+                    .order('papel', { ascending: true }); // Principal first
+
+                if (authorsData && authorsData.length > 0) {
+                    // Set first author ID for numbering logic
+                    setAutorId(authorsData[0].autor_id);
+
+                    // Fetch all author names
+                    const authorIds = authorsData.map(a => a.autor_id);
+                    const { data: agentesData } = await supabase
+                        .from("agentespublicos")
+                        .select("id, nome_completo")
+                        .in("id", authorIds);
+
+                    if (agentesData) {
+                        // Store array for PDF and join for display
+                        const authorNamesArray = agentesData.map(a => a.nome_completo);
+                        setAutoresArray(authorNamesArray);
+                        setAutorNome(authorNamesArray.join(", "));
+                    }
+                }
+            } else {
+                // Single author for other document types
+                const { data: authData } = await supabase
+                    .from("documentoautores")
+                    .select("autor_id")
+                    .eq("documento_id", Number(docId))
                     .single();
-                if (agenteData) setAutorNome(agenteData.nome_completo);
+
+                if (authData?.autor_id) {
+                    setAutorId(authData.autor_id);
+                    const { data: agenteData } = await supabase
+                        .from("agentespublicos")
+                        .select("nome_completo")
+                        .eq("id", authData.autor_id)
+                        .single();
+                    if (agenteData) setAutorNome(agenteData.nome_completo);
+                }
             }
 
             setDoc(docData as any);
@@ -176,6 +214,7 @@ export default function EditarMateria() {
             if (tipoNome === "Ofício") { tabelaFilha = "oficios"; colunaTexto = "corpo_texto"; }
             else if (tipoNome === "Projeto de Lei") { tabelaFilha = "projetosdelei"; colunaTexto = "corpo_texto"; }
             else if (tipoNome === "Requerimento") { tabelaFilha = "requerimentos"; colunaTexto = "corpo_texto"; }
+            else if (tipoNome === "Moção") { tabelaFilha = "mocoes"; colunaTexto = "corpo_texto"; }
 
             if (!tabelaFilha) throw new Error("Tipo de documento não suporta edição de texto ainda.");
 
@@ -367,9 +406,41 @@ export default function EditarMateria() {
                     throw upErr;
                 }
 
+            } else if (tipoNome === "Moção") {
+                // Global por ano (numeração sequencial da Câmara)
+                const { data: docsAno, error: errDocs } = await supabase
+                    .from('documentos')
+                    .select('id')
+                    .eq('ano', doc.ano);
+
+                if (errDocs) throw errDocs;
+
+                // Excluir o documento atual
+                const docIds = docsAno.map(d => d.id).filter(id => id !== doc.id);
+
+                if (docIds.length > 0) {
+                    const { data: mocoesList } = await supabase
+                        .from('mocoes')
+                        .select('numero_mocao')
+                        .in('documento_id', docIds)
+                        .not('numero_mocao', 'is', null)
+                        .order('numero_mocao', { ascending: false });
+
+                    if (mocoesList && mocoesList.length > 0) {
+                        novoNumero = mocoesList[0].numero_mocao;
+                    }
+                }
+                novoNumero += 1;
+
+                const { error: upErr } = await supabase.from('mocoes').update({ numero_mocao: novoNumero }).eq('documento_id', doc.id);
+                if (upErr) {
+                    console.error("Erro ao salvar número:", upErr);
+                    throw upErr;
+                }
+
             } else {
                 console.error("❌ Tipo não reconhecido:", tipoNome);
-                throw new Error(`Geração automática não suportada para o tipo "${tipoNome}". Tipos válidos: Ofício, Projeto de Lei, Requerimento.`);
+                throw new Error(`Geração automática não suportada para o tipo "${tipoNome}". Tipos válidos: Ofício, Projeto de Lei, Requerimento, Moção.`);
             }
 
             toast({ title: "Oficializado!", description: `${tipoNome} recebeu o número ${novoNumero}/${doc.ano}.`, className: "bg-blue-600 text-white" });
@@ -399,6 +470,7 @@ export default function EditarMateria() {
             if (tipoNome === "Ofício") { tabelaFilha = "oficios"; colunaEmenta = "assunto"; }
             else if (tipoNome === "Projeto de Lei") { tabelaFilha = "projetosdelei"; colunaEmenta = "ementa"; }
             else if (tipoNome === "Requerimento") { tabelaFilha = "requerimentos"; colunaEmenta = "justificativa"; }
+            else if (tipoNome === "Moção") { tabelaFilha = "mocoes"; colunaEmenta = "ementa"; }
 
             if (!tabelaFilha) throw new Error("Tipo de documento não suporta edição de resumo ainda.");
 

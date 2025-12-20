@@ -3,16 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { FormEvent, useState, useEffect } from "react";
 import { Wand2, Paperclip, Loader2, X, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { TipoMateria, RetornoProtocolo } from "./types";
 
-const tiposCriacao: TipoMateria[] = ["Projeto de Lei", "Ofício", "Requerimento", "Moção"];
+const tiposCriacao: TipoMateria[] = ["Projeto de Lei", "Ofício", "Requerimento", "Moção", "Projeto de Decreto Legislativo"];
 
 // Tipos de Moção conforme ENUM do banco
 const tiposMocao = ["Aplausos", "Pesar", "Repúdio", "Solidariedade", "Protesto"] as const;
+
+// Tipos de Decreto Legislativo conforme ENUM do banco
+const tiposDecreto = ["Honraria", "Julgamento de Contas"] as const;
+const tiposHonraria = ["Título de Cidadania", "Medalha João Ludgero Sobreira", "Comenda Maria Sonia Sampaio Pinheiro"] as const;
+
+type TipoDecreto = typeof tiposDecreto[number];
+type TipoHonraria = typeof tiposHonraria[number];
 type TipoMocao = typeof tiposMocao[number];
 
 interface Autor {
@@ -29,6 +37,7 @@ interface Props {
 
 export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
 
@@ -49,9 +58,20 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
   const [autoresSelecionados, setAutoresSelecionados] = useState<Autor[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState(false);
 
+  // Estados específicos para Decreto Legislativo
+  const [tipoDecreto, setTipoDecreto] = useState<TipoDecreto>("Honraria");
+  const [tipoHonraria, setTipoHonraria] = useState<TipoHonraria>("Título de Cidadania");
+  const [homenageadoDecreto, setHomenageadoDecreto] = useState("");
+  const [nomeMedalhaComenda, setNomeMedalhaComenda] = useState("");
+  const [motivoHomenagem, setMotivoHomenagem] = useState("");
+  const [anoContas, setAnoContas] = useState("");
+  const [nomeGestor, setNomeGestor] = useState("");
+  const [honrariasCount, setHonrariasCount] = useState<number | null>(null);  // Contador de honrarias do autor
+
   const dataProtocolo = new Date();
   const precisaDestinatario = tipo === "Ofício" || tipo === "Requerimento";
   const isMocao = tipo === "Moção";
+  const isDecretoLegislativo = tipo === "Projeto de Decreto Legislativo";
 
   // Buscar autores ao abrir o modal
   useEffect(() => {
@@ -75,12 +95,75 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
     }
   }
 
+  // Buscar quantidade de honrarias do autor selecionado
+  async function buscarHonrariasDoAutor(autorIdSelecionado: string) {
+    if (!autorIdSelecionado || !isDecretoLegislativo || tipoDecreto !== 'Honraria') {
+      setHonrariasCount(null);
+      return;
+    }
+    try {
+      const anoAtual = new Date().getFullYear();
+
+      // Buscar IDs de decretos do tipo Honraria
+      const { data: honrarias } = await supabase
+        .from('projetosdedecretolegislativo')
+        .select('documento_id')
+        .eq('tipo_decreto', 'Honraria' as any);
+
+      const idsHonrarias = honrarias?.map(h => h.documento_id) || [];
+      console.log('Honrarias encontradas:', idsHonrarias);
+
+      if (idsHonrarias.length > 0) {
+        // Buscar documentos do autor via documentoautores
+        const { data: docsAutor } = await supabase
+          .from('documentoautores')
+          .select('documento_id')
+          .eq('autor_id', Number(autorIdSelecionado));
+
+        const idsDocsAutor = docsAutor?.map(d => d.documento_id) || [];
+        console.log('Docs do autor:', idsDocsAutor);
+
+        // Intersecc̃ao: documentos que s̃ao honrarias E do autor
+        const idsIntersecao = idsHonrarias.filter(id => idsDocsAutor.includes(id));
+
+        if (idsIntersecao.length > 0) {
+          // Contar quantos s̃ao do ano atual
+          const { count } = await supabase
+            .from('documentos')
+            .select('id', { count: 'exact', head: true })
+            .eq('ano', anoAtual)
+            .in('id', idsIntersecao as any);
+
+          console.log('Honrarias do autor no ano:', count);
+          setHonrariasCount(count || 0);
+        } else {
+          setHonrariasCount(0);
+        }
+      } else {
+        setHonrariasCount(0);
+      }
+    } catch (err) {
+      console.warn("Erro ao buscar honrarias:", err);
+      setHonrariasCount(null);
+    }
+  }
+
+  // Atualizar contador quando autor ou tipo mudar
+  useEffect(() => {
+    if (isDecretoLegislativo && tipoDecreto === 'Honraria' && autorId) {
+      buscarHonrariasDoAutor(autorId);
+    } else {
+      setHonrariasCount(null);
+    }
+  }, [autorId, tipoDecreto, isDecretoLegislativo]);
+
   const getTipoId = (t: string) => {
     switch (t) {
       case "Projeto de Lei": return 1;
       case "Ofício": return 2;
       case "Requerimento": return 3;
       case "Moção": return 4;
+      case "Projeto de Decreto Legislativo": return 6;  // ID será 6 após insert
       default: return 1;
     }
   };
@@ -90,6 +173,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       case "Projeto de Lei": return "Ex: Institui a Semana Municipal de Tecnologia nas escolas...";
       case "Ofício": return "Ex: Solicita visita técnica para avaliar a reforma...";
       case "Moção": return "Ex: Pelo nascimento de seu filho, ocorrido em 01/12/2025...";
+      case "Projeto de Decreto Legislativo": return "Preencha os campos acima (texto será gerado automaticamente)";
       default: return "Descreva o objetivo da matéria...";
     }
   }
@@ -122,6 +206,44 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
     setTipoMocao("Aplausos");
     setHomenageado("");
     setAutoresSelecionados([]);
+    // Decreto Legislativo
+    setTipoDecreto("Honraria");
+    setTipoHonraria("Título de Cidadania");
+    setHomenageadoDecreto("");
+    setNomeMedalhaComenda("");
+    setMotivoHomenagem("");
+    setAnoContas("");
+    setNomeGestor("");
+  }
+
+  // Gerar texto automático para Decreto Legislativo (templates fixos)
+  function gerarTextoDecretoLegislativo(): { ementa: string; artigos: string } {
+    let ementa = '';
+    let artigos = '';
+
+    if (tipoDecreto === 'Honraria') {
+      switch (tipoHonraria) {
+        case 'Título de Cidadania':
+          ementa = `CONCEDE O TÍTULO DE CIDADANIA LAVRENSE A ${homenageadoDecreto.toUpperCase()}, E DÁ OUTRAS PROVIDÊNCIAS.`;
+          artigos = `Art. 1º - Fica concedido o Título de Cidadania Lavrense a ${homenageadoDecreto}, em reconhecimento aos relevantes serviços prestados ao município de Lavras da Mangabeira.\n\nArt. 2º - O diploma correspondente será entregue em sessão solene da Câmara Municipal, em data a ser designada pela Mesa Diretora.\n\nArt. 3º - O presente Decreto Legislativo entra em vigor na data de sua publicação, revogadas as disposições em contrário.`;
+          break;
+
+        case 'Medalha João Ludgero Sobreira':
+          ementa = `CONCEDE MEDALHA JOÃO LUDGERO SOBREIRA A ${homenageadoDecreto.toUpperCase()}, E DÁ OUTRAS PROVIDÊNCIAS`;
+          artigos = `Art. 1º - Fica concedida a Medalha João Ludgero Sobreira, a ${homenageadoDecreto}, em reconhecimento aos relevantes serviços prestado ao Município de Lavras da Mangabeira.\n\nArt. 2º - O diploma correspondente será entregue em sessão solene da Câmara Municipal, em data a ser designada pela Mesa Diretora.\n\nArt. 3º - O presente Decreto Legislativo entra em vigor na data de sua publicação, revogadas as disposições em contrário.`;
+          break;
+
+        case 'Comenda Maria Sonia Sampaio Pinheiro':
+          ementa = `Concede a Comenda Maria Sonia Sampaio Pinheiro e dá outras providências.`;
+          artigos = `Art. 1º - Fica concedida a Comenda Maria Sonia Sampaio Pinheiro a ${homenageadoDecreto}, em razão de ${motivoHomenagem}.\n\nArt. 2º - Este Decreto Legislativo entra em vigor na data de sua publicação.`;
+          break;
+      }
+    } else if (tipoDecreto === 'Julgamento de Contas') {
+      ementa = `APROVA AS CONTAS DE GOVERNO DO EXERCÍCIO FINANCEIRO DE ${anoContas} E DÁ OUTRAS PROVIDÊNCIAS.`;
+      artigos = `Art. 1º - Ficam aprovadas as Contas da Prefeitura Municipal de Lavras da Mangabeira referentes ao Exercício Financeiro de ${anoContas}, de responsabilidade do ex-gestor ${nomeGestor}, conforme Parecer da Comissão de Finanças e Orçamento da Câmara Municipal, que não acolheu o Parecer Prévio emitido pelo egrégio do Tribunal de Contas do Estado.\n\nArt. 2º - O presente Decreto Legislativo entra em vigor na data de sua publicação, revogadas as disposições em contrário.`;
+    }
+
+    return { ementa, artigos };
   }
 
   // Mudamos para aceitar "any" ou FormEvent para funcionar no onClick do botão também
@@ -137,10 +259,19 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       if (isMocao) {
         if (autoresSelecionados.length === 0) throw new Error("Selecione pelo menos um Autor.");
         if (!homenageado.trim()) throw new Error("Informe o homenageado/destinatário da moção.");
+      } else if (isDecretoLegislativo) {
+        if (!autorId) throw new Error("Selecione o Autor.");
+        if (tipoDecreto === 'Honraria') {
+          if (!homenageadoDecreto.trim()) throw new Error("Informe o homenageado.");
+          if (tipoHonraria === 'Comenda Maria Sonia Sampaio Pinheiro' && !motivoHomenagem.trim()) throw new Error("Informe o motivo da homenagem.");
+        } else if (tipoDecreto === 'Julgamento de Contas') {
+          if (!anoContas.trim()) throw new Error("Informe o ano do exercício.");
+          if (!nomeGestor.trim()) throw new Error("Informe o nome do gestor.");
+        }
       } else {
         if (!autorId) throw new Error("Selecione o Autor.");
       }
-      if (!instrucaoIA.trim()) throw new Error("Descreva o conteúdo.");
+      if (!isDecretoLegislativo && !instrucaoIA.trim()) throw new Error("Descreva o conteúdo.");
 
       console.log("2. Validação OK. Buscando usuário...");
       const { data: { user } } = await supabase.auth.getUser();
@@ -151,6 +282,58 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       const nomeAutor = isMocao
         ? autoresSelecionados.map(a => a.nome).join(", ")
         : autores.find(a => a.id.toString() === autorId)?.nome;
+
+      // Regra de negócio: máximo 3 honrarias por vereador por ano
+      if (isDecretoLegislativo && tipoDecreto === 'Honraria') {
+        try {
+          console.log("2.5. Verificando limite de honrarias...");
+          const anoAtual = new Date().getFullYear();
+
+          // Buscar IDs de decretos do tipo Honraria
+          const { data: honrarias, error: honrariasError } = await supabase
+            .from('projetosdedecretolegislativo')
+            .select('documento_id')
+            .eq('tipo_decreto', 'Honraria' as any);
+
+          if (honrariasError) {
+            console.warn("Aviso: Não foi possível verificar limite de honrarias:", honrariasError);
+          } else {
+            const idsHonrarias = honrarias?.map(h => h.documento_id) || [];
+
+            if (idsHonrarias.length > 0) {
+              // Buscar documentos do autor via documentoautores
+              const { data: docsAutor } = await supabase
+                .from('documentoautores')
+                .select('documento_id')
+                .eq('autor_id', Number(autorId));
+
+              const idsDocsAutor = docsAutor?.map(d => d.documento_id) || [];
+              const idsIntersecao = idsHonrarias.filter(id => idsDocsAutor.includes(id));
+
+              if (idsIntersecao.length > 0) {
+                // Contar quantos são do ano atual
+                const { count, error: countError } = await supabase
+                  .from('documentos')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('ano', anoAtual)
+                  .in('id', idsIntersecao as any);
+
+                if (!countError && (count || 0) >= 3) {
+                  const autorNome = autores.find(a => a.id.toString() === autorId)?.nome || 'Este vereador';
+                  throw new Error(`Limite atingido! ${autorNome} já possui ${count} honraria(s) em ${anoAtual}. Máximo permitido: 3 honrarias por ano.`);
+                }
+              }
+            }
+          }
+        } catch (limiteError: any) {
+          // Se for erro de limite (nossa regra), propaga
+          if (limiteError.message?.includes('Limite atingido')) {
+            throw limiteError;
+          }
+          // Outros erros apenas logamos (não bloqueia criação)
+          console.warn("Aviso: Validação de limite de honrarias falhou:", limiteError);
+        }
+      }
 
       console.log("3. Chamando RPC no Banco...");
       setStatusMsg("Reservando numeração...");
@@ -199,28 +382,48 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         }).eq('documento_id', dadosProtocolo.documento_id);
       }
 
+      // Se for Decreto Legislativo, inserir dados específicos E gerar texto automaticamente
+      if (isDecretoLegislativo) {
+        console.log("4.3 Gerando texto automático e salvando Decreto Legislativo...");
+        const { ementa, artigos } = gerarTextoDecretoLegislativo();
+
+        await supabase.from('projetosdedecretolegislativo').update({
+          tipo_decreto: tipoDecreto as any,  // Type assertion: novo enum
+          tipo_honraria: (tipoDecreto === 'Honraria' ? tipoHonraria : null) as any,
+          ementa: ementa,
+          justificativa: artigos
+        }).eq('documento_id', dadosProtocolo.documento_id);
+      }
+
       setStatusMsg("IA redigindo minuta...");
       console.log("5. Chamando Edge Function (IA)...");
 
-      const { data: dataIA, error: erroEdge } = await supabase.functions.invoke('gerar-minuta', {
-        body: {
-          documento_id: dadosProtocolo.documento_id,
-          protocolo_geral: dadosProtocolo.protocolo_geral,
-          tipo: tipo,
-          contexto: instrucaoIA,
-          autor_nome: nomeAutor,
-          destinatario: { nome: destinatario, cargo: cargo, orgao: orgao },
-          // Campos específicos de Moção para o prompt da IA
-          tipo_mocao: isMocao ? tipoMocao : null,
-          homenageado: isMocao ? homenageado : null
-        }
-      });
+      // Decreto Legislativo não precisa de IA (texto já foi gerado)
+      if (!isDecretoLegislativo) {
+        const { data: dataIA, error: erroEdge } = await supabase.functions.invoke('gerar-minuta', {
+          body: {
+            documento_id: dadosProtocolo.documento_id,
+            protocolo_geral: dadosProtocolo.protocolo_geral,
+            tipo: tipo,
+            contexto: instrucaoIA,
+            autor_nome: nomeAutor,
+            destinatario: { nome: destinatario, cargo: cargo, orgao: orgao },
+            // Campos específicos de Moção para o prompt da IA
+            tipo_mocao: isMocao ? tipoMocao : null,
+            homenageado: isMocao ? homenageado : null
+          }
+        });
 
-      if (erroEdge) console.warn("IA Falhou:", erroEdge);
-      else console.log("6. Sucesso IA:", dataIA);
+        if (erroEdge) console.warn("IA Falhou:", erroEdge);
+        else console.log("6. Sucesso IA:", dataIA);
+      } else {
+        console.log("5. Decreto Legislativo: Pulando IA (texto já gerado automaticamente)");
+      }
 
       setStatusMsg("Pronto!");
       if (onSucesso) onSucesso();
+
+      limparForm();  // Limpar apenas quando houver sucesso
       onClose();
 
       console.log("7. Navegando...");
@@ -228,11 +431,15 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
 
     } catch (error: any) {
       console.error("ERRO GERAL:", error);
-      alert("Erro: " + error.message);
+      const errorMsg = error?.message || error?.error_description || error?.details || (typeof error === 'string' ? error : 'Erro ao processar solicitação');
+      toast({
+        title: "Erro",
+        description: errorMsg,
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
       setStatusMsg("");
-      limparForm();
     }
   }
 
@@ -246,7 +453,10 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
             Nova Matéria (Redação Assistida)
           </DialogTitle>
           <div className="text-sm text-gray-500 mt-1">
-            Preencha os dados e a IA escreverá a minuta inicial.
+            {isDecretoLegislativo
+              ? "Preencha os dados e o texto será gerado automaticamente com base em templates oficiais."
+              : "Preencha os dados e a IA escreverá a minuta inicial."
+            }
           </div>
         </DialogHeader>
 
@@ -366,6 +576,133 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
             </div>
           )}
 
+          {/* DECRETO LEGISLATIVO: Campos condicionais */}
+          {isDecretoLegislativo && (
+            <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200 space-y-3">
+              {/* Select principal: Honraria ou Julgamento de Contas */}
+              <div>
+                <label className="block text-xs font-semibold text-emerald-800 mb-0.5">Tipo de Decreto</label>
+                <Select value={tipoDecreto} onValueChange={val => setTipoDecreto(val as TipoDecreto)}>
+                  <SelectTrigger className="h-8 text-xs bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tiposDecreto.map(t => (
+                      <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sub-select: Apenas se for Honraria */}
+              {tipoDecreto === "Honraria" && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-emerald-800 mb-0.5">Tipo de Honraria</label>
+                    <Select value={tipoHonraria} onValueChange={val => setTipoHonraria(val as TipoHonraria)}>
+                      <SelectTrigger className="h-8 text-xs bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tiposHonraria.map(t => (
+                          <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Indicador de honrarias utilizadas */}
+                    {honrariasCount !== null && (
+                      <div className={`mt-2 px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 ${honrariasCount >= 3
+                        ? 'bg-red-100 text-red-700 border border-red-300'
+                        : honrariasCount >= 2
+                          ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                          : 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                        }`}>
+                        <span className="font-bold">{honrariasCount}/3</span>
+                        <span>honrarias utilizadas em {new Date().getFullYear()}</span>
+                        {honrariasCount >= 3 && <span className="text-red-600">⚠️ Limite atingido!</span>}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Campos condicionais por tipo de honraria */}
+                  {tipoHonraria === "Título de Cidadania" && (
+                    <div>
+                      <label className="block text-xs font-semibold text-emerald-800 mb-0.5">Homenageado(a)</label>
+                      <Input
+                        value={homenageadoDecreto}
+                        onChange={e => setHomenageadoDecreto(e.target.value)}
+                        placeholder="Nome completo do homenageado"
+                        className="bg-white h-8 text-xs"
+                      />
+                    </div>
+                  )}
+
+                  {tipoHonraria === 'Medalha João Ludgero Sobreira' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-emerald-800 mb-0.5">Homenageado(a)</label>
+                      <Input
+                        value={homenageadoDecreto}
+                        onChange={e => setHomenageadoDecreto(e.target.value)}
+                        placeholder="Nome completo do homenageado"
+                        className="bg-white h-8 text-xs"
+                      />
+                    </div>
+                  )}
+
+                  {tipoHonraria === 'Comenda Maria Sonia Sampaio Pinheiro' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-semibold text-emerald-800 mb-0.5">Homenageado(a)(s)</label>
+                        <Input
+                          value={homenageadoDecreto}
+                          onChange={e => setHomenageadoDecreto(e.target.value)}
+                          placeholder="Nome(s) do(s) homenageado(s)"
+                          className="bg-white h-8 text-xs"
+                        />
+                        <p className="text-xs text-emerald-600 mt-1 italic">Comenda: Maria Sonia Sampaio Pinheiro (nome oficial fixo)</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-emerald-800 mb-0.5">Motivo da Homenagem</label>
+                        <Textarea
+                          value={motivoHomenagem}
+                          onChange={e => setMotivoHomenagem(e.target.value)}
+                          placeholder="Descreva o motivo da concessão da comenda"
+                          className="bg-white text-xs min-h-[60px]"
+                        />
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Campos para Julgamento de Contas */}
+              {tipoDecreto === "Julgamento de Contas" && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-emerald-800 mb-0.5">Ano do Exercício</label>
+                    <Input
+                      type="number"
+                      value={anoContas}
+                      onChange={e => setAnoContas(e.target.value)}
+                      placeholder="Ex: 2023"
+                      className="bg-white h-8 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-emerald-800 mb-0.5">Nome do Gestor</label>
+                    <Input
+                      value={nomeGestor}
+                      onChange={e => setNomeGestor(e.target.value)}
+                      placeholder="Nome completo do gestor responsável"
+                      className="bg-white h-8 text-xs"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* DESTINATÁRIO: Para Ofício e Requerimento */}
           {precisaDestinatario && (
             <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 space-y-2">
@@ -383,17 +720,22 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-0.5">Instruções (IA)</label>
-            <Textarea className="min-h-[80px] text-sm resize-none" required value={instrucaoIA} onChange={e => setInstrucaoIA(e.target.value)} placeholder={getPlaceholderIA()} />
-          </div>
+          {/* Campo de Instruções IA: oculto para Decreto Legislativo (usa templates fixos) */}
+          {!isDecretoLegislativo && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-0.5">Instruções (IA)</label>
+                <Textarea className="min-h-[80px] text-sm resize-none" required value={instrucaoIA} onChange={e => setInstrucaoIA(e.target.value)} placeholder={getPlaceholderIA()} />
+              </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-0.5 flex items-center gap-1">
-              <Paperclip className="w-3 h-3" /> Material de Apoio (Opcional)
-            </label>
-            <Input type="file" className="h-8 text-xs file:mr-2 file:py-0.5 file:px-2 file:text-[10px]" multiple onChange={e => setAnexos([...e.target.files ? Array.from(e.target.files) : []])} />
-          </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-0.5 flex items-center gap-1">
+                  <Paperclip className="w-3 h-3" /> Material de Apoio (Opcional)
+                </label>
+                <Input type="file" className="h-8 text-xs file:mr-2 file:py-0.5 file:px-2 file:text-[10px]" multiple onChange={e => setAnexos([...e.target.files ? Array.from(e.target.files) : []])} />
+              </div>
+            </>
+          )}
 
           <DialogFooter className="pt-2 border-t mt-1">
             {!isLoading && <DialogClose asChild><Button type="button" variant="ghost" size="sm" className="h-8 text-xs">Cancelar</Button></DialogClose>}

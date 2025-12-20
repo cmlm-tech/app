@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          query?: string
-          variables?: Json
-          operationName?: string
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
   }
   public: {
     Tables: {
@@ -40,7 +20,6 @@ export type Database = {
           foto_url: string | null
           id: number
           nome_completo: string
-          status_agente: string
           tipo: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Insert: {
@@ -48,7 +27,6 @@ export type Database = {
           foto_url?: string | null
           id?: number
           nome_completo: string
-          status_agente?: string
           tipo: Database["public"]["Enums"]["tipo_agente_publico"]
         }
         Update: {
@@ -56,8 +34,25 @@ export type Database = {
           foto_url?: string | null
           id?: number
           nome_completo?: string
-          status_agente?: string
           tipo?: Database["public"]["Enums"]["tipo_agente_publico"]
+        }
+        Relationships: []
+      }
+      atualizacao: {
+        Row: {
+          created_at: string
+          id: number
+          numero: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          numero?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          numero?: number | null
         }
         Relationships: []
       }
@@ -223,9 +218,9 @@ export type Database = {
           criado_por_usuario_id: string
           data_protocolo: string | null
           id: number
+          numero_protocolo_geral: number | null
           status: Database["public"]["Enums"]["status_documento"] | null
           tipo_documento_id: number
-          numero_protocolo_geral: number | null
         }
         Insert: {
           ano: number
@@ -234,9 +229,9 @@ export type Database = {
           criado_por_usuario_id: string
           data_protocolo?: string | null
           id?: number
+          numero_protocolo_geral?: number | null
           status?: Database["public"]["Enums"]["status_documento"] | null
           tipo_documento_id: number
-          numero_protocolo_geral?: number | null
         }
         Update: {
           ano?: number
@@ -245,9 +240,9 @@ export type Database = {
           criado_por_usuario_id?: string
           data_protocolo?: string | null
           id?: number
+          numero_protocolo_geral?: number | null
           status?: Database["public"]["Enums"]["status_documento"] | null
           tipo_documento_id?: number
-          numero_protocolo_geral?: number | null
         }
         Relationships: [
           {
@@ -379,6 +374,7 @@ export type Database = {
           descricao: string | null
           id: number
           numero: number
+          numero_vagas_vereadores: number
           slug: string | null
         }
         Insert: {
@@ -387,6 +383,7 @@ export type Database = {
           descricao?: string | null
           id?: number
           numero: number
+          numero_vagas_vereadores: number
           slug?: string | null
         }
         Update: {
@@ -395,6 +392,7 @@ export type Database = {
           descricao?: string | null
           id?: number
           numero?: number
+          numero_vagas_vereadores?: number
           slug?: string | null
         }
         Relationships: []
@@ -508,6 +506,7 @@ export type Database = {
       }
       mocoes: {
         Row: {
+          corpo_texto: string | null
           documento_id: number
           ementa: string | null
           homenageado_texto: string | null
@@ -517,6 +516,7 @@ export type Database = {
           tipo_mocao: Database["public"]["Enums"]["tipo_mocao"] | null
         }
         Insert: {
+          corpo_texto?: string | null
           documento_id: number
           ementa?: string | null
           homenageado_texto?: string | null
@@ -526,6 +526,7 @@ export type Database = {
           tipo_mocao?: Database["public"]["Enums"]["tipo_mocao"] | null
         }
         Update: {
+          corpo_texto?: string | null
           documento_id?: number
           ementa?: string | null
           homenageado_texto?: string | null
@@ -644,7 +645,6 @@ export type Database = {
           id: number
           legislatura_id: number
           numero: number
-          presidente_id: number | null
         }
         Insert: {
           data_fim: string
@@ -653,7 +653,6 @@ export type Database = {
           id?: number
           legislatura_id: number
           numero: number
-          presidente_id?: number | null
         }
         Update: {
           data_fim?: string
@@ -662,7 +661,6 @@ export type Database = {
           id?: number
           legislatura_id?: number
           numero?: number
-          presidente_id?: number | null
         }
         Relationships: [
           {
@@ -670,13 +668,6 @@ export type Database = {
             columns: ["legislatura_id"]
             isOneToOne: false
             referencedRelation: "legislaturas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "periodossessao_presidente_id_fkey"
-            columns: ["presidente_id"]
-            isOneToOne: false
-            referencedRelation: "agentespublicos"
             referencedColumns: ["id"]
           },
         ]
@@ -694,6 +685,7 @@ export type Database = {
           tipo_decreto:
             | Database["public"]["Enums"]["tipo_decreto_legislativo"]
             | null
+          tipo_honraria: Database["public"]["Enums"]["tipo_honraria"] | null
         }
         Insert: {
           corpo_texto?: string | null
@@ -707,6 +699,7 @@ export type Database = {
           tipo_decreto?:
             | Database["public"]["Enums"]["tipo_decreto_legislativo"]
             | null
+          tipo_honraria?: Database["public"]["Enums"]["tipo_honraria"] | null
         }
         Update: {
           corpo_texto?: string | null
@@ -720,6 +713,7 @@ export type Database = {
           tipo_decreto?:
             | Database["public"]["Enums"]["tipo_decreto_legislativo"]
             | null
+          tipo_honraria?: Database["public"]["Enums"]["tipo_honraria"] | null
         }
         Relationships: [
           {
@@ -1184,65 +1178,83 @@ export type Database = {
     }
     Functions: {
       aprovar_e_numerar_materia: {
-        Args: {
-          p_documento_id: number
-          p_usuario_aprovador_id: string
-        }
-        Returns: {
-          sucesso: boolean
-          numero_gerado: number
-          mensagem: string
-        }
+        Args: { p_documento_id: number; p_usuario_aprovador_id: string }
+        Returns: Json
       }
+      create_legislatura_with_periods:
+        | {
+            Args: {
+              p_data_fim: string
+              p_data_inicio: string
+              p_descricao: string
+              p_numero: number
+              p_numero_vagas_vereadores: number
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_data_fim: string
+              p_data_inicio: string
+              p_descricao: string
+              p_numero: number
+              p_numero_vagas_vereadores: number
+              p_slug: string
+            }
+            Returns: number
+          }
       get_agentes_publicos_com_status: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          id: number
-          nome_completo: string
-          cpf: string
-          foto_url: string
-          tipo: Database["public"]["Enums"]["tipo_agente_publico"]
-          status_usuario: string
-          nome_parlamentar: string
-          perfil: string
           cargo: string
-          tipo_vinculo: Database["public"]["Enums"]["tipo_vinculo_funcionario"]
+          cpf: string
           data_admissao: string
           data_exoneracao: string
+          foto_url: string
+          id: number
+          nome_completo: string
+          nome_parlamentar: string
+          perfil: string
+          status_usuario: string
+          tipo: Database["public"]["Enums"]["tipo_agente_publico"]
+          tipo_vinculo: Database["public"]["Enums"]["tipo_vinculo_funcionario"]
         }[]
       }
-      get_my_agente_publico_id: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      get_my_permission: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      is_staff: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      get_my_agente_publico_id: { Args: never; Returns: number }
+      get_my_permission: { Args: never; Returns: string }
+      is_staff: { Args: never; Returns: boolean }
       protocolar_materia: {
         Args: {
-          p_tipo_documento_id: number
           p_ano: number
-          p_data_protocolo: string
+          p_arquivo_url?: string
           p_autor_id: number
           p_autor_type: string
+          p_data_protocolo: string
+          p_destinatario_cargo?: string
+          p_destinatario_nome?: string
+          p_destinatario_orgao?: string
+          p_observacao_tramitacao?: string
           p_texto_resumo: string
+          p_tipo_documento_id: number
           p_usuario_id: string
-          p_arquivo_url?: string | null
-          p_observacao_tramitacao?: string | null
-          p_destinatario_nome?: string | null
-          p_destinatario_cargo?: string | null
-          p_destinatario_orgao?: string | null
         }
-        Returns: {
-          documento_id: number
-          protocolo_geral: number
-          mensagem: string
+        Returns: Json
+      }
+      upsert_agente_publico: {
+        Args: {
+          p_cargo?: string
+          p_cpf: string
+          p_data_admissao?: string
+          p_data_exoneracao?: string
+          p_foto_url: string
+          p_id: number
+          p_nome_completo: string
+          p_nome_parlamentar?: string
+          p_perfil?: string
+          p_tipo: Database["public"]["Enums"]["tipo_agente_publico"]
+          p_tipo_vinculo?: Database["public"]["Enums"]["tipo_vinculo_funcionario"]
         }
+        Returns: number
       }
     }
     Enums: {
@@ -1260,7 +1272,12 @@ export type Database = {
         | "Subscritor"
         | "Relator"
         | "Autor"
-      permissao_usuario: "Admin" | "Assessoria" | "Secretaria" | "Vereador"
+      permissao_usuario:
+        | "Admin"
+        | "Assessoria"
+        | "Secretaria"
+        | "Vereador"
+        | "Inativo"
       status_documento: "Rascunho" | "Protocolado" | "Tramitando" | "Arquivado"
       status_presenca: "Presente" | "Ausente" | "Ausente com Justificativa"
       status_sessao: "Agendada" | "Em Andamento" | "Realizada" | "Cancelada"
@@ -1285,11 +1302,8 @@ export type Database = {
         | "Entidade"
         | "Cidadão"
         | "Outros Órgãos"
-      tipo_decreto_legislativo:
-        | "Título de Cidadania"
-        | "Medalha"
-        | "Comenda"
-        | "Aprovação de Contas"
+      tipo_decreto_legislativo: "Honraria" | "Julgamento de Contas"
+      tipo_honraria: "Título de Cidadania" | "Medalha" | "Comenda"
       tipo_mocao:
         | "Aplausos"
         | "Solidariedade"
@@ -1306,21 +1320,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -1338,14 +1356,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -1361,14 +1381,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -1384,14 +1406,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -1399,22 +1423,21 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       cargo_comissao: ["Presidente", "Membro", "Relator"],
@@ -1433,7 +1456,13 @@ export const Constants = {
         "Relator",
         "Autor",
       ],
-      permissao_usuario: ["Admin", "Assessoria", "Secretaria", "Vereador"],
+      permissao_usuario: [
+        "Admin",
+        "Assessoria",
+        "Secretaria",
+        "Vereador",
+        "Inativo",
+      ],
       status_documento: ["Rascunho", "Protocolado", "Tramitando", "Arquivado"],
       status_presenca: ["Presente", "Ausente", "Ausente com Justificativa"],
       status_sessao: ["Agendada", "Em Andamento", "Realizada", "Cancelada"],
@@ -1460,12 +1489,8 @@ export const Constants = {
         "Cidadão",
         "Outros Órgãos",
       ],
-      tipo_decreto_legislativo: [
-        "Título de Cidadania",
-        "Medalha",
-        "Comenda",
-        "Aprovação de Contas",
-      ],
+      tipo_decreto_legislativo: ["Honraria", "Julgamento de Contas"],
+      tipo_honraria: ["Título de Cidadania", "Medalha", "Comenda"],
       tipo_mocao: ["Aplausos", "Solidariedade", "Pesar", "Protesto", "Repúdio"],
       tipo_sessao: ["Ordinária", "Extraordinária", "Solene"],
       tipo_vinculo_funcionario: ["Efetivo", "Comissionado", "Terceirizado"],

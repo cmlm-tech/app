@@ -1,0 +1,79 @@
+import { Document, Page, View, Text } from '@react-pdf/renderer';
+import { pdfStyles } from '../shared/PDFStyles';
+import { PDFHeader } from '../shared/PDFHeader';
+import { PDFFooter } from '../shared/PDFFooter';
+import { PDFSignature } from '../shared/PDFSignature';
+
+interface DecretoLegislativoPDFProps {
+    numero: string;
+    dataProtocolo: string;
+    texto: string;
+    autor: string;
+    autorCargo: string;
+    ementa?: string;
+}
+
+// TEMPLATE EXTRAÍDO DO PLANO DE IMPLEMENTAÇÃO
+export default function DecretoLegislativoPDF({
+    numero,
+    dataProtocolo,
+    texto,
+    autor,
+    autorCargo,
+    ementa,
+}: DecretoLegislativoPDFProps) {
+    const dataObj = new Date(dataProtocolo);
+    const dia = dataObj.getDate();
+    const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+        'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const mes = meses[dataObj.getMonth()];
+    const ano = dataObj.getFullYear();
+    const dataExtenso = `Lavras da Mangabeira – Ceará, ${dia} de ${mes} de ${ano}.`;
+
+    // Limpar número (remove "Projeto de Decreto Legislativo nº" ou "Decreto Legislativo nº")
+    const numeroLimpo = numero ? numero.replace(/^(projeto\s*de\s*)?(decreto\s*legislativo)\s*n[º°]?\s*/i, '').trim() : '';
+
+    // Limpar texto
+    const cleanText = texto ? texto.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ') : '';
+    const paragrafos = cleanText.split('\n').filter(p => p.trim() !== '');
+
+    return (
+        <Document>
+            <Page size="A4" style={pdfStyles.page}>
+                <PDFHeader />
+
+                <Text style={[pdfStyles.documentNumberText, { textAlign: 'center', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 10 }]}>
+                    PROJETO DE DECRETO LEGISLATIVO N° {numeroLimpo}
+                </Text>
+
+                <Text style={[pdfStyles.documentNumberText, { textAlign: 'center', fontWeight: 'bold', fontSize: 11, marginBottom: 30 }]}>
+                    {autor.toUpperCase()}
+                </Text>
+
+                {ementa && (
+                    <Text style={[pdfStyles.paragraph, { textAlign: 'center', marginBottom: 20, fontStyle: 'normal' }]}>
+                        {ementa}
+                    </Text>
+                )}
+
+                <Text style={[pdfStyles.paragraph, { marginBottom: 15, textIndent: 0 }]}>
+                    A Câmara Municipal de Lavras da Mangabeira no uso de suas atribuições legais e regimentais,
+                    especialmente nos termos do art. 64 da Lei Orgânica Municipal decreta:
+                </Text>
+
+                <View>
+                    {paragrafos.map((p, i) => (
+                        <Text key={i} style={pdfStyles.paragraph}>{p}</Text>
+                    ))}
+                </View>
+
+                <Text style={[pdfStyles.paragraph, { marginTop: 30, textAlign: 'center', textIndent: 0 }]}>
+                    Lavras da Mangabeira/CE, Sala das Sessões, em {dia} de {mes} de {ano}
+                </Text>
+
+                <PDFSignature autor={autor} cargo={autorCargo} />
+                <PDFFooter />
+            </Page>
+        </Document>
+    );
+}

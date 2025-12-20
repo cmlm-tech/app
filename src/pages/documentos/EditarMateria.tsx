@@ -120,6 +120,10 @@ export default function EditarMateria() {
                 tabelaFilha = "mocoes";
                 colunaTexto = "corpo_texto";
                 colunaEmenta = "ementa";
+            } else if (tipoNome === "Projeto de Decreto Legislativo") {
+                tabelaFilha = "projetosdedecretolegislativo";
+                colunaTexto = "justificativa";
+                colunaEmenta = "ementa";
             } // Add others as needed
 
             if (tabelaFilha) {
@@ -142,6 +146,7 @@ export default function EditarMateria() {
                     if (childData['numero_lei']) (docData as any).numero_oficial = childData['numero_lei'];
                     if (childData['numero_requerimento']) (docData as any).numero_oficial = childData['numero_requerimento'];
                     if (childData['numero_mocao']) (docData as any).numero_oficial = childData['numero_mocao'];
+                    if (childData['numero_decreto']) (docData as any).numero_oficial = `Decreto Legislativo nº ${childData['numero_decreto']}/${docData.ano}`;
                 }
             }
 
@@ -215,6 +220,7 @@ export default function EditarMateria() {
             else if (tipoNome === "Projeto de Lei") { tabelaFilha = "projetosdelei"; colunaTexto = "corpo_texto"; }
             else if (tipoNome === "Requerimento") { tabelaFilha = "requerimentos"; colunaTexto = "corpo_texto"; }
             else if (tipoNome === "Moção") { tabelaFilha = "mocoes"; colunaTexto = "corpo_texto"; }
+            else if (tipoNome === "Projeto de Decreto Legislativo") { tabelaFilha = "projetosdedecretolegislativo"; colunaTexto = "justificativa"; }
 
             if (!tabelaFilha) throw new Error("Tipo de documento não suporta edição de texto ainda.");
 
@@ -438,9 +444,40 @@ export default function EditarMateria() {
                     throw upErr;
                 }
 
+            } else if (tipoNome === "Projeto de Decreto Legislativo") {
+                // Global por ano (mesma lógica de Projeto de Lei)
+                const { data: docsAno, error: errDocs } = await supabase
+                    .from('documentos')
+                    .select('id')
+                    .eq('ano', doc.ano);
+
+                if (errDocs) throw errDocs;
+
+                const docIds = docsAno.map(d => d.id).filter(id => id !== doc.id);
+
+                if (docIds.length > 0) {
+                    const { data: decretosList } = await supabase
+                        .from('projetosdedecretolegislativo')
+                        .select('numero_decreto')
+                        .in('documento_id', docIds)
+                        .not('numero_decreto', 'is', null)
+                        .order('numero_decreto', { ascending: false });
+
+                    if (decretosList && decretosList.length > 0) {
+                        novoNumero = decretosList[0].numero_decreto;
+                    }
+                }
+                novoNumero += 1;
+
+                const { error: upErr } = await supabase.from('projetosdedecretolegislativo').update({ numero_decreto: novoNumero }).eq('documento_id', doc.id);
+                if (upErr) {
+                    console.error("Erro ao salvar número:", upErr);
+                    throw upErr;
+                }
+
             } else {
                 console.error("❌ Tipo não reconhecido:", tipoNome);
-                throw new Error(`Geração automática não suportada para o tipo "${tipoNome}". Tipos válidos: Ofício, Projeto de Lei, Requerimento, Moção.`);
+                throw new Error(`Geração automática não suportada para o tipo "${tipoNome}". Tipos válidos: Ofício, Projeto de Lei, Requerimento, Moção, Projeto de Decreto Legislativo.`);
             }
 
             toast({ title: "Oficializado!", description: `${tipoNome} recebeu o número ${novoNumero}/${doc.ano}.`, className: "bg-blue-600 text-white" });
@@ -471,6 +508,7 @@ export default function EditarMateria() {
             else if (tipoNome === "Projeto de Lei") { tabelaFilha = "projetosdelei"; colunaEmenta = "ementa"; }
             else if (tipoNome === "Requerimento") { tabelaFilha = "requerimentos"; colunaEmenta = "justificativa"; }
             else if (tipoNome === "Moção") { tabelaFilha = "mocoes"; colunaEmenta = "ementa"; }
+            else if (tipoNome === "Projeto de Decreto Legislativo") { tabelaFilha = "projetosdedecretolegislativo"; colunaEmenta = "ementa"; }
 
             if (!tabelaFilha) throw new Error("Tipo de documento não suporta edição de resumo ainda.");
 

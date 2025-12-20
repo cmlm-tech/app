@@ -7,13 +7,14 @@ export type StatusMateria =
   | "Rejeitado"
   | "Arquivado"
   | "Rascunho"
-  | "Aguardando Deliberação"; 
+  | "Aguardando Deliberação";
 
 export type TipoMateria =
   | "Projeto de Lei"
   | "Ofício"
   | "Requerimento"
   | "Moção"
+  | "Projeto de Decreto Legislativo"
   | "Todos";
 
 export interface Materia {

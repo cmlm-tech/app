@@ -3,6 +3,7 @@ import MocaoPDF from './pdf/templates/MocaoPDF';
 import OficioPDF from './pdf/templates/OficioPDF';
 import ProjetoLeiPDF from './pdf/templates/ProjetoLeiPDF';
 import RequerimentoPDF from './pdf/templates/RequerimentoPDF';
+import DecretoLegislativoPDF from './pdf/templates/DecretoLegislativoPDF';
 
 interface DocumentoPDFProps {
     tipo: string;
@@ -82,6 +83,18 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     destinatarioNome={props.destinatarioNome}
                     destinatarioCargo={props.destinatarioCargo}
                     destinatarioOrgao={props.destinatarioOrgao}
+                />
+            );
+
+        case 'Projeto de Decreto Legislativo':
+            return (
+                <DecretoLegislativoPDF
+                    numero={props.numero}
+                    dataProtocolo={props.dataProtocolo}
+                    texto={props.texto}
+                    autor={props.autor}
+                    autorCargo={autorCargo}
+                    ementa={props.ementa}
                 />
             );
 

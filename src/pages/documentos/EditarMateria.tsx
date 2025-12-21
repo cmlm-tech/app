@@ -146,7 +146,14 @@ export default function EditarMateria() {
                     if (childData['numero_lei']) (docData as any).numero_oficial = childData['numero_lei'];
                     if (childData['numero_requerimento']) (docData as any).numero_oficial = childData['numero_requerimento'];
                     if (childData['numero_mocao']) (docData as any).numero_oficial = childData['numero_mocao'];
-                    if (childData['numero_decreto']) (docData as any).numero_oficial = `Decreto Legislativo nº ${childData['numero_decreto']}/${docData.ano}`;
+                    // numero_decreto: extrair apenas o número inteiro (pode vir como 14, "14", ou "14/2025")
+                    if (childData['numero_decreto']) {
+                        const numStr = String(childData['numero_decreto']);
+                        // Extrair apenas a parte numérica antes da barra (se houver)
+                        const numOnly = numStr.split('/')[0];
+                        const numPadded = numOnly.padStart(3, '0');
+                        (docData as any).numero_oficial = `${numPadded}/${docData.ano}`;
+                    }
                 }
             }
 
@@ -464,11 +471,14 @@ export default function EditarMateria() {
                         .order('numero_decreto', { ascending: false });
 
                     if (decretosList && decretosList.length > 0) {
-                        novoNumero = decretosList[0].numero_decreto;
+                        // Extrair apenas o número inteiro (pode vir como "15" ou "15/2025")
+                        const numStr = String(decretosList[0].numero_decreto);
+                        novoNumero = parseInt(numStr.split('/')[0], 10) || 0;
                     }
                 }
                 novoNumero += 1;
 
+                // Salvar APENAS o número inteiro no banco
                 const { error: upErr } = await supabase.from('projetosdedecretolegislativo').update({ numero_decreto: novoNumero }).eq('documento_id', doc.id);
                 if (upErr) {
                     console.error("Erro ao salvar número:", upErr);
@@ -480,12 +490,17 @@ export default function EditarMateria() {
                 throw new Error(`Geração automática não suportada para o tipo "${tipoNome}". Tipos válidos: Ofício, Projeto de Lei, Requerimento, Moção, Projeto de Decreto Legislativo.`);
             }
 
-            toast({ title: "Oficializado!", description: `${tipoNome} recebeu o número ${novoNumero}/${doc.ano}.`, className: "bg-blue-600 text-white" });
+            // Formatar número para exibição
+            const numeroFormatado = tipoNome === "Projeto de Decreto Legislativo"
+                ? `${String(novoNumero).padStart(3, '0')}/${doc.ano}`
+                : `${novoNumero}/${doc.ano}`;
+
+            toast({ title: "Oficializado!", description: `${tipoNome} recebeu o número ${numeroFormatado}.`, className: "bg-blue-600 text-white" });
 
             // Update local state immediately (No reload needed)
             setDoc((prev: any) => ({
                 ...prev,
-                numero_oficial: novoNumero
+                numero_oficial: numeroFormatado
             }));
 
         } catch (err: any) {
@@ -551,8 +566,9 @@ export default function EditarMateria() {
     );
 
     // UI Logic for official number display
+    // numero_oficial já vem formatado como "016/2025", não precisa adicionar ano novamente
     const labelNumeroOficial = (doc as any).numero_oficial
-        ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial.toString().padStart(3, '0')}/${doc.ano} - ${autorNome}`
+        ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial} - ${autorNome}`
         : "Aguardando geração...";
 
     return (

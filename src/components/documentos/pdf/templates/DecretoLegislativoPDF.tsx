@@ -30,8 +30,13 @@ export default function DecretoLegislativoPDF({
     const ano = dataObj.getFullYear();
     const dataExtenso = `Lavras da Mangabeira – Ceará, ${dia} de ${mes} de ${ano}.`;
 
-    // Limpar número (remove "Projeto de Decreto Legislativo nº" ou "Decreto Legislativo nº")
-    const numeroLimpo = numero ? numero.replace(/^(projeto\s*de\s*)?(decreto\s*legislativo)\s*n[º°]?\s*/i, '').trim() : '';
+    // Limpar número - remove prefixos e corrige ano duplicado (ex: "8/2025/2025" -> "8/2025")
+    let numeroLimpo = numero || '';
+    // Remove prefixo "Projeto de Decreto Legislativo nº" ou "Decreto Legislativo nº"
+    numeroLimpo = numeroLimpo.replace(/^(projeto\s*de\s*)?(decreto\s*legislativo)\s*n[º°]?\s*/i, '');
+    // Remove ano duplicado (ex: "8/2025/2025" -> "8/2025")
+    numeroLimpo = numeroLimpo.replace(/(\d+\/\d{4})\/\d{4}$/, '$1');
+    numeroLimpo = numeroLimpo.trim();
 
     // Limpar texto
     const cleanText = texto ? texto.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ') : '';

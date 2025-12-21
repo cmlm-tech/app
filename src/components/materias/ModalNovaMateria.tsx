@@ -19,6 +19,13 @@ const tiposMocao = ["Aplausos", "Pesar", "Repúdio", "Solidariedade", "Protesto"
 const tiposDecreto = ["Honraria", "Julgamento de Contas"] as const;
 const tiposHonraria = ["Título de Cidadania", "Medalha João Ludgero Sobreira", "Comenda Maria Sonia Sampaio Pinheiro"] as const;
 
+// Mapeamento de nomes de exibição para valores do enum no banco
+const honrariaParaBanco: Record<string, string> = {
+  "Título de Cidadania": "Título de Cidadania",
+  "Medalha João Ludgero Sobreira": "Medalha",
+  "Comenda Maria Sonia Sampaio Pinheiro": "Comenda"
+};
+
 type TipoDecreto = typeof tiposDecreto[number];
 type TipoHonraria = typeof tiposHonraria[number];
 type TipoMocao = typeof tiposMocao[number];
@@ -250,6 +257,12 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
     let ementa = '';
     let artigos = '';
 
+    console.log('=== GERANDO TEXTO DECRETO ===');
+    console.log('tipoDecreto:', tipoDecreto);
+    console.log('tipoHonraria:', tipoHonraria);
+    console.log('homenageadoDecreto:', homenageadoDecreto);
+    console.log('motivoHomenagem:', motivoHomenagem);
+
     if (tipoDecreto === 'Honraria') {
       switch (tipoHonraria) {
         case 'Título de Cidadania':
@@ -266,11 +279,17 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
           ementa = `Concede a Comenda Maria Sonia Sampaio Pinheiro e dá outras providências.`;
           artigos = `Art. 1º - Fica concedida a Comenda Maria Sonia Sampaio Pinheiro a ${homenageadoDecreto}, em razão de ${motivoHomenagem}.\n\nArt. 2º - Este Decreto Legislativo entra em vigor na data de sua publicação.`;
           break;
+
+        default:
+          console.warn('TIPO DE HONRARIA NÃO RECONHECIDO:', tipoHonraria);
       }
     } else if (tipoDecreto === 'Julgamento de Contas') {
       ementa = `APROVA AS CONTAS DE GOVERNO DO EXERCÍCIO FINANCEIRO DE ${anoContas} E DÁ OUTRAS PROVIDÊNCIAS.`;
       artigos = `Art. 1º - Ficam aprovadas as Contas da Prefeitura Municipal de Lavras da Mangabeira referentes ao Exercício Financeiro de ${anoContas}, de responsabilidade do ex-gestor ${nomeGestor}, conforme Parecer da Comissão de Finanças e Orçamento da Câmara Municipal, que não acolheu o Parecer Prévio emitido pelo egrégio do Tribunal de Contas do Estado.\n\nArt. 2º - O presente Decreto Legislativo entra em vigor na data de sua publicação, revogadas as disposições em contrário.`;
     }
+
+    console.log('Ementa gerada:', ementa);
+    console.log('Artigos gerados:', artigos ? artigos.substring(0, 100) + '...' : 'VAZIO');
 
     return { ementa, artigos };
   }
@@ -417,9 +436,13 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         console.log("4.3 Gerando texto automático e salvando Decreto Legislativo...");
         const { ementa, artigos } = gerarTextoDecretoLegislativo();
 
+        // Converter nome de exibição para valor do enum no banco
+        const tipoHonrariaDb = tipoDecreto === 'Honraria' ? honrariaParaBanco[tipoHonraria] : null;
+        console.log('Tipo honraria para banco:', tipoHonrariaDb);
+
         await supabase.from('projetosdedecretolegislativo').update({
-          tipo_decreto: tipoDecreto as any,  // Type assertion: novo enum
-          tipo_honraria: (tipoDecreto === 'Honraria' ? tipoHonraria : null) as any,
+          tipo_decreto: tipoDecreto as any,
+          tipo_honraria: tipoHonrariaDb as any,
           ementa: ementa,
           justificativa: artigos
         }).eq('documento_id', dadosProtocolo.documento_id);

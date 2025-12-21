@@ -95,6 +95,33 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
     }
   }
 
+  // Calcula o período de honrarias: 21/ago do ano X até 20/ago do ano X+1
+  // Evento de entrega: 20 de agosto
+  function getPeriodoHonrarias() {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = hoje.getMonth(); // 0-indexed (7 = agosto)
+    const dia = hoje.getDate();
+
+    // Se estamos após 20 de agosto, o período é deste ano até o próximo
+    // Se estamos antes ou no dia 20 de agosto, o período é do ano anterior até este ano
+    if (mes > 7 || (mes === 7 && dia > 20)) {
+      // Após 20/ago: período atual = ano/08/21 até (ano+1)/08/20
+      return {
+        inicio: `${ano}-08-21`,
+        fim: `${ano + 1}-08-20`,
+        anoEvento: ano + 1
+      };
+    } else {
+      // Até 20/ago: período atual = (ano-1)/08/21 até ano/08/20
+      return {
+        inicio: `${ano - 1}-08-21`,
+        fim: `${ano}-08-20`,
+        anoEvento: ano
+      };
+    }
+  }
+
   // Buscar quantidade de honrarias do autor selecionado
   async function buscarHonrariasDoAutor(autorIdSelecionado: string) {
     if (!autorIdSelecionado || !isDecretoLegislativo || tipoDecreto !== 'Honraria') {
@@ -102,7 +129,8 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       return;
     }
     try {
-      const anoAtual = new Date().getFullYear();
+      const periodo = getPeriodoHonrarias();
+      console.log('Período de honrarias:', periodo);
 
       // Buscar IDs de decretos do tipo Honraria
       const { data: honrarias } = await supabase
@@ -127,14 +155,15 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         const idsIntersecao = idsHonrarias.filter(id => idsDocsAutor.includes(id));
 
         if (idsIntersecao.length > 0) {
-          // Contar quantos s̃ao do ano atual
+          // Contar quantos estão no período atual (21/ago - 20/ago)
           const { count } = await supabase
             .from('documentos')
             .select('id', { count: 'exact', head: true })
-            .eq('ano', anoAtual)
+            .gte('data_protocolo', periodo.inicio)
+            .lte('data_protocolo', periodo.fim)
             .in('id', idsIntersecao as any);
 
-          console.log('Honrarias do autor no ano:', count);
+          console.log('Honrarias do autor no período:', count);
           setHonrariasCount(count || 0);
         } else {
           setHonrariasCount(0);
@@ -287,7 +316,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       if (isDecretoLegislativo && tipoDecreto === 'Honraria') {
         try {
           console.log("2.5. Verificando limite de honrarias...");
-          const anoAtual = new Date().getFullYear();
+          const periodo = getPeriodoHonrarias();
 
           // Buscar IDs de decretos do tipo Honraria
           const { data: honrarias, error: honrariasError } = await supabase
@@ -311,16 +340,17 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
               const idsIntersecao = idsHonrarias.filter(id => idsDocsAutor.includes(id));
 
               if (idsIntersecao.length > 0) {
-                // Contar quantos são do ano atual
+                // Contar quantos estão no período atual (21/ago - 20/ago)
                 const { count, error: countError } = await supabase
                   .from('documentos')
                   .select('id', { count: 'exact', head: true })
-                  .eq('ano', anoAtual)
+                  .gte('data_protocolo', periodo.inicio)
+                  .lte('data_protocolo', periodo.fim)
                   .in('id', idsIntersecao as any);
 
                 if (!countError && (count || 0) >= 3) {
                   const autorNome = autores.find(a => a.id.toString() === autorId)?.nome || 'Este vereador';
-                  throw new Error(`Limite atingido! ${autorNome} já possui ${count} honraria(s) em ${anoAtual}. Máximo permitido: 3 honrarias por ano.`);
+                  throw new Error(`Limite atingido! ${autorNome} já possui ${count} honraria(s) para o evento de 20/08/${periodo.anoEvento}. Máximo permitido: 3 honrarias por período.`);
                 }
               }
             }
@@ -619,7 +649,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
                           : 'bg-emerald-100 text-emerald-700 border border-emerald-300'
                         }`}>
                         <span className="font-bold">{honrariasCount}/3</span>
-                        <span>honrarias utilizadas em {new Date().getFullYear()}</span>
+                        <span>para evento de 20/08/{getPeriodoHonrarias().anoEvento}</span>
                         {honrariasCount >= 3 && <span className="text-red-600">⚠️ Limite atingido!</span>}
                       </div>
                     )}

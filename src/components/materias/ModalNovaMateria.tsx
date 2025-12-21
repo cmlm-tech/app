@@ -30,6 +30,41 @@ type TipoDecreto = typeof tiposDecreto[number];
 type TipoHonraria = typeof tiposHonraria[number];
 type TipoMocao = typeof tiposMocao[number];
 
+// Função para converter número em extenso (português)
+function numeroPorExtenso(num: number): string {
+  const unidades = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove',
+    'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+  const dezenas = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+  const centenas = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+
+  if (num === 0) return 'zero';
+  if (num === 100) return 'cem';
+  if (num < 0 || num > 999) return num.toString();
+
+  let extenso = '';
+  const c = Math.floor(num / 100);
+  const d = Math.floor((num % 100) / 10);
+  const u = num % 10;
+
+  if (c > 0) extenso += centenas[c];
+
+  if (num % 100 < 20 && num % 100 > 0) {
+    if (c > 0) extenso += ' e ';
+    extenso += unidades[num % 100];
+  } else {
+    if (d > 0) {
+      if (c > 0) extenso += ' e ';
+      extenso += dezenas[d];
+    }
+    if (u > 0) {
+      if (c > 0 || d > 0) extenso += ' e ';
+      extenso += unidades[u];
+    }
+  }
+
+  return extenso;
+}
+
 interface Autor {
   id: number;
   nome: string;
@@ -70,7 +105,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
   const [tipoHonraria, setTipoHonraria] = useState<TipoHonraria>("Título de Cidadania");
   const [homenageadoDecreto, setHomenageadoDecreto] = useState("");
   const [nomeMedalhaComenda, setNomeMedalhaComenda] = useState("");
-  const [motivoHomenagem, setMotivoHomenagem] = useState("");
+  const [anosMatrimonio, setAnosMatrimonio] = useState<number | "">("");  // Anos de matrimônio para Comenda
   const [anoContas, setAnoContas] = useState("");
   const [nomeGestor, setNomeGestor] = useState("");
   const [honrariasCount, setHonrariasCount] = useState<number | null>(null);  // Contador de honrarias do autor
@@ -247,7 +282,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
     setTipoHonraria("Título de Cidadania");
     setHomenageadoDecreto("");
     setNomeMedalhaComenda("");
-    setMotivoHomenagem("");
+    setAnosMatrimonio("");
     setAnoContas("");
     setNomeGestor("");
   }
@@ -261,7 +296,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
     console.log('tipoDecreto:', tipoDecreto);
     console.log('tipoHonraria:', tipoHonraria);
     console.log('homenageadoDecreto:', homenageadoDecreto);
-    console.log('motivoHomenagem:', motivoHomenagem);
+    console.log('anosMatrimonio:', anosMatrimonio);
 
     if (tipoDecreto === 'Honraria') {
       switch (tipoHonraria) {
@@ -276,8 +311,10 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
           break;
 
         case 'Comenda Maria Sonia Sampaio Pinheiro':
-          ementa = `Concede a Comenda Maria Sonia Sampaio Pinheiro e dá outras providências.`;
-          artigos = `Art. 1º - Fica concedida a Comenda Maria Sonia Sampaio Pinheiro a ${homenageadoDecreto}, em razão de ${motivoHomenagem}.\n\nArt. 2º - Este Decreto Legislativo entra em vigor na data de sua publicação.`;
+          const anos = typeof anosMatrimonio === 'number' ? anosMatrimonio : 50;
+          const anosExtenso = numeroPorExtenso(anos);
+          ementa = `CONCEDE A COMENDA MARIA SONIA SAMPAIO PINHEIRO A ${homenageadoDecreto.toUpperCase()}, E DÁ OUTRAS PROVIDÊNCIAS.`;
+          artigos = `Art. 1º - Fica concedida a Comenda Maria Sonia Sampaio Pinheiro a ${homenageadoDecreto}, pelo transcurso de ${anos} (${anosExtenso}) anos de matrimônio.\n\nArt. 2º - Este Decreto Legislativo entra em vigor na data de sua publicação.`;
           break;
 
         default:
@@ -311,7 +348,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         if (!autorId) throw new Error("Selecione o Autor.");
         if (tipoDecreto === 'Honraria') {
           if (!homenageadoDecreto.trim()) throw new Error("Informe o homenageado.");
-          if (tipoHonraria === 'Comenda Maria Sonia Sampaio Pinheiro' && !motivoHomenagem.trim()) throw new Error("Informe o motivo da homenagem.");
+          if (tipoHonraria === 'Comenda Maria Sonia Sampaio Pinheiro' && (anosMatrimonio === '' || anosMatrimonio < 50)) throw new Error("Informe os anos de matrimônio (mínimo 50).");
         } else if (tipoDecreto === 'Julgamento de Contas') {
           if (!anoContas.trim()) throw new Error("Informe o ano do exercício.");
           if (!nomeGestor.trim()) throw new Error("Informe o nome do gestor.");
@@ -716,13 +753,20 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
                         <p className="text-xs text-emerald-600 mt-1 italic">Comenda: Maria Sonia Sampaio Pinheiro (nome oficial fixo)</p>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-emerald-800 mb-0.5">Motivo da Homenagem</label>
-                        <Textarea
-                          value={motivoHomenagem}
-                          onChange={e => setMotivoHomenagem(e.target.value)}
-                          placeholder="Descreva o motivo da concessão da comenda"
-                          className="bg-white text-xs min-h-[60px]"
+                        <label className="block text-xs font-semibold text-emerald-800 mb-0.5">Anos de Matrimônio</label>
+                        <Input
+                          type="number"
+                          min={50}
+                          value={anosMatrimonio}
+                          onChange={e => setAnosMatrimonio(e.target.value ? Number(e.target.value) : "")}
+                          placeholder="Ex: 50, 55, 60..."
+                          className="bg-white h-8 text-xs"
                         />
+                        {typeof anosMatrimonio === 'number' && anosMatrimonio >= 50 && (
+                          <p className="text-xs text-emerald-600 mt-1 italic">
+                            {anosMatrimonio} ({numeroPorExtenso(anosMatrimonio)}) anos
+                          </p>
+                        )}
                       </div>
                     </>
                   )}

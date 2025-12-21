@@ -77,9 +77,7 @@ export default function TabelaMaterias({ materias }: Props) {
       const blob = await pdf(
         <DocumentoPDF
           tipo={mat.tipo}
-          ano={Number(anoStr)}
           numero={numeroOficial}
-          protocolo={Number(numStr)}
           dataProtocolo={mat.dataProtocolo.toISOString()}
           texto={childData[colunaTexto] || ""}
           autor={mat.autor}
@@ -126,7 +124,7 @@ export default function TabelaMaterias({ materias }: Props) {
                   <a href={linkToMateria(mat.id)} className="font-semibold text-gov-blue-700 hover:underline">{mat.protocolo}</a>
                 </TableCell>
                 <TableCell>{mat.tipo}</TableCell>
-                <TableCell>{mat.ementa}</TableCell>
+                <TableCell>{mat.ementa || '—'}</TableCell>
                 <TableCell>{mat.autor}</TableCell>
                 <TableCell>{mat.dataProtocolo.toLocaleDateString()}</TableCell>
                 <TableCell>
@@ -151,12 +149,12 @@ export default function TabelaMaterias({ materias }: Props) {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </div >
       <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
         {materias.map((materia) => (
           <CardMateria key={materia.id} materia={materia} />
         ))}
       </div>
-    </div>
+    </div >
   );
 }

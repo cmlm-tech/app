@@ -57,7 +57,8 @@ export default function Materias() {
           projetosdelei ( ementa ),
           requerimentos ( justificativa ),
           mocoes ( ementa ),
-          indicacoes ( ementa )
+          indicacoes ( ementa ),
+          projetosdedecretolegislativo ( ementa )
         `)
         .order('data_protocolo', { ascending: false });
 
@@ -73,6 +74,7 @@ export default function Materias() {
           else if (doc.requerimentos?.[0]) resumo = doc.requerimentos[0].justificativa;
           else if (doc.mocoes?.[0]) resumo = doc.mocoes[0].ementa;
           else if (doc.indicacoes?.[0]) resumo = doc.indicacoes[0].ementa;
+          else if (doc.projetosdedecretolegislativo?.[0]) resumo = doc.projetosdedecretolegislativo[0].ementa;
 
           // Nome do Autor (Buscar no Map)
           const autorId = doc.documentoautores?.[0]?.autor_id;
@@ -88,7 +90,7 @@ export default function Materias() {
             id: doc.id.toString(),
             protocolo: protocoloStr,
             tipo: nomeTipo as TipoMateria,
-            ementa: resumo || "Sem descrição",
+            ementa: resumo || "",
             autor: nomeAutor,
             dataProtocolo: new Date(doc.data_protocolo),
             status: doc.status as StatusMateria,

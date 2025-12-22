@@ -73,6 +73,64 @@ export default function TabelaMaterias({ materias }: Props) {
         ? `${mat.tipo} nº ${childData[colunaNumero].toString().padStart(3, '0')}/${anoStr}`
         : "Sem Numeração Oficial";
 
+      let membrosComissao: any[] = [];
+
+      // Se for Projeto de Decreto Legislativo, verificar se menciona Finanças
+      if (mat.tipo === 'Projeto de Decreto Legislativo') {
+        // Normalizar texto para ignorar acentos
+        const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const textoCompleto = normalize((childData[colunaTexto] || '') + ' ' + (mat.ementa || ''));
+        const mencionaFinancas = textoCompleto.includes('financas') || textoCompleto.includes('comissao');
+
+        console.log('[PDF DEBUG] Tipo:', mat.tipo);
+        console.log('[PDF DEBUG] Texto normalizado contém financas?', mencionaFinancas);
+
+        if (mencionaFinancas) {
+          console.log('[PDF] Documento pode ser de Comissão - buscando comissão de finanças...');
+
+          // Buscar a comissão de finanças diretamente
+          const { data: comissao } = await supabase
+            .from('comissoes')
+            .select('id')
+            .or('nome.ilike.%finanças%,nome.ilike.%financas%')
+            .limit(1)
+            .single();
+
+          if (comissao) {
+            console.log(`[PDF] Comissão encontrada ID: ${comissao.id}`);
+
+            // Buscar membros
+            const { data: membrosRef } = await supabase
+              .from('comissaomembros')
+              .select('cargo, agente_publico_id')
+              .eq('comissao_id', comissao.id);
+
+            if (membrosRef && membrosRef.length > 0) {
+              console.log(`[PDF] Membros encontrados: ${membrosRef.length}`);
+
+              const agenteIds = membrosRef.map(m => m.agente_publico_id);
+              const { data: agentes } = await supabase
+                .from('agentespublicos')
+                .select('id, nome_completo')
+                .in('id', agenteIds);
+
+              if (agentes) {
+                const agentesMap = new Map(agentes.map(a => [a.id, a.nome_completo]));
+                membrosComissao = membrosRef.map(m => ({
+                  nome: agentesMap.get(m.agente_publico_id) || "Nome não encontrado",
+                  cargo: m.cargo
+                }));
+                console.log(`[PDF] Membros processados:`, membrosComissao);
+              }
+            } else {
+              console.warn('[PDF] Nenhum membro cadastrado para esta comissão');
+            }
+          } else {
+            console.warn('[PDF] Comissão de Finanças não encontrada no banco');
+          }
+        }
+      }
+
       // Generate PDF
       const blob = await pdf(
         <DocumentoPDF
@@ -81,6 +139,9 @@ export default function TabelaMaterias({ materias }: Props) {
           dataProtocolo={mat.dataProtocolo.toISOString()}
           texto={childData[colunaTexto] || ""}
           autor={mat.autor}
+          autorCargo={membrosComissao.length > 0 ? "Comissão Permanente" : undefined}
+          autores={membrosComissao.length > 0 ? membrosComissao : undefined}
+          membrosComissao={membrosComissao}
         />
       ).toBlob();
 

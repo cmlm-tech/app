@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useState, useEffect, useMemo } from "react";
 import { Wand2, Paperclip, Loader2, X, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
@@ -69,6 +69,7 @@ interface Autor {
   id: number;
   nome: string;
   cargo?: string;
+  tipoObjeto: 'AgentePublico' | 'Comissao';
 }
 
 interface Props {
@@ -124,18 +125,55 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
 
   async function buscarAutores() {
     try {
-      const { data, error } = await supabase
+      // 1. Buscar Agentes Públicos
+      const { data: agentes, error: errAgentes } = await supabase
         .from('agentespublicos')
         .select('id, nome:nome_completo, cargo:tipo')
-        .eq('tipo', 'Vereador')
         .order('nome_completo');
 
-      if (error) throw error;
-      if (data) setAutores(data);
+      if (errAgentes) throw errAgentes;
+
+      // 2. Buscar Comissões
+      const { data: comissoes, error: errComissoes } = await supabase
+        .from('comissoes')
+        .select('id, nome');
+
+      if (errComissoes) throw errComissoes;
+
+      // 3. Unificar Listas
+      const listaAgentes: Autor[] = (agentes || []).map((a: any) => ({
+        id: a.id,
+        nome: a.nome,
+        cargo: a.cargo,
+        tipoObjeto: 'AgentePublico'
+      }));
+
+      const listaComissoes: Autor[] = (comissoes || []).map((c: any) => ({
+        id: c.id,
+        nome: c.nome,
+        cargo: 'Comissão',
+        tipoObjeto: 'Comissao'
+      }));
+
+      const listaCompleta = [...listaAgentes, ...listaComissoes].sort((a, b) => a.nome.localeCompare(b.nome));
+
+      setAutores(listaCompleta);
     } catch (err) {
       console.error("Erro ao buscar autores:", err);
     }
   }
+
+  // Filtragem dinâmica de autores baseada no tipo de decreto
+  const autoresFiltrados = useMemo(() => {
+    if (tipoDecreto === 'Julgamento de Contas') {
+      return autores.filter(a => a.tipoObjeto === 'Comissao');
+    }
+    if (tipoDecreto === 'Honraria') {
+      return autores.filter(a => a.tipoObjeto === 'AgentePublico');
+    }
+    // Padrão para outros tipos (apenas Vereadores/Agentes)
+    return autores.filter(a => a.tipoObjeto === 'AgentePublico');
+  }, [autores, tipoDecreto]);
 
   // Calcula o período de honrarias: 21/ago do ano X até 20/ago do ano X+1
   // Evento de entrega: 20 de agosto
@@ -165,16 +203,23 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
   }
 
   // Buscar quantidade de honrarias do autor selecionado
-  async function buscarHonrariasDoAutor(autorIdSelecionado: string) {
-    if (!autorIdSelecionado || !isDecretoLegislativo || tipoDecreto !== 'Honraria') {
+  async function buscarHonrariasDoAutor(autorIdComposto: string) {
+    if (!autorIdComposto || !isDecretoLegislativo || tipoDecreto !== 'Honraria') {
       setHonrariasCount(null);
       return;
     }
+
+    const [tipoObj, idStr] = autorIdComposto.split(':');
+    if (tipoObj !== 'AgentePublico') {
+      setHonrariasCount(0); // Comissões não tem limite de honraria pessoal
+      return;
+    }
+
     try {
       const periodo = getPeriodoHonrarias();
-      console.log('Período de honrarias:', periodo);
+      // ... restante da função usa idStr numerico
+      const autorIdNumerico = Number(idStr);
 
-      // Buscar IDs de decretos do tipo Honraria
       const { data: honrarias } = await supabase
         .from('projetosdedecretolegislativo')
         .select('documento_id')
@@ -188,7 +233,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         const { data: docsAutor } = await supabase
           .from('documentoautores')
           .select('documento_id')
-          .eq('autor_id', Number(autorIdSelecionado));
+          .eq('autor_id', autorIdNumerico);
 
         const idsDocsAutor = docsAutor?.map(d => d.documento_id) || [];
         console.log('Docs do autor:', idsDocsAutor);
@@ -221,12 +266,18 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
 
   // Atualizar contador quando autor ou tipo mudar
   useEffect(() => {
-    if (isDecretoLegislativo && tipoDecreto === 'Honraria' && autorId) {
-      buscarHonrariasDoAutor(autorId);
+    let idParaVerificar = autorId;
+    // Se não tiver autorId, tenta pegar do array (caso de auto-seleção ou Moção)
+    if (!idParaVerificar && autoresSelecionados.length > 0) {
+      idParaVerificar = autoresSelecionados[0].id.toString();
+    }
+
+    if (isDecretoLegislativo && tipoDecreto === 'Honraria' && idParaVerificar) {
+      buscarHonrariasDoAutor(idParaVerificar);
     } else {
       setHonrariasCount(null);
     }
-  }, [autorId, tipoDecreto, isDecretoLegislativo]);
+  }, [autorId, autoresSelecionados, tipoDecreto, isDecretoLegislativo]);
 
   const getTipoId = (t: string) => {
     switch (t) {
@@ -287,6 +338,30 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
     setNomeGestor("");
   }
 
+  // Effect para auto-selecionar Comissão de Finanças em Julgamento de Contas
+  useEffect(() => {
+    if (tipoDecreto === 'Julgamento de Contas' && autores.length > 0) {
+      // Normalize search to ignore accents and case
+      const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+      const comissao = autores.find(a => {
+        const nomeNorm = normalize(a.nome);
+        return (nomeNorm.includes('comissao') && nomeNorm.includes('financas')) || nomeNorm.includes('financas');
+      });
+
+      if (comissao) {
+        setAutoresSelecionados([comissao]);
+        setAutorId(`${comissao.tipoObjeto}:${comissao.id}`);
+        toast({ title: "Autor Definido", description: `Autor definido para: ${comissao.nome}`, className: "bg-blue-600 text-white" });
+      } else {
+        console.warn("Comissão de Finanças não encontrada. Autores disponíveis:", autores.map(a => a.nome));
+        toast({ title: "Atenção", description: "Comissão de Finanças não encontrada. Verifique se a comissão está cadastrada com o nome correto.", variant: "destructive" });
+      }
+    } else if (tipoDecreto === 'Honraria') {
+      // Se mudar de volta para honraria, limpar se for comissão (opcional, ou deixar o usuário mudar)
+    }
+  }, [tipoDecreto, autores]);
+
   // Gerar texto automático para Decreto Legislativo (templates fixos)
   function gerarTextoDecretoLegislativo(): { ementa: string; artigos: string } {
     let ementa = '';
@@ -297,7 +372,15 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
     console.log('tipoHonraria:', tipoHonraria);
     console.log('homenageadoDecreto:', homenageadoDecreto);
     console.log('anosMatrimonio:', anosMatrimonio);
+    console.log('anosMatrimonio:', anosMatrimonio);
 
+    // Regra: Julgamento de Contas deve ser autoria da Comissão
+    if (tipoDecreto === 'Julgamento de Contas' && autoresSelecionados.length > 0) {
+      const isComissao = autoresSelecionados[0].nome.toLowerCase().includes('comissão');
+      if (!isComissao) {
+        console.warn("Aviso: Julgamento de Contas deveria ser da Comissão.");
+      }
+    }
     if (tipoDecreto === 'Honraria') {
       switch (tipoHonraria) {
         case 'Título de Cidadania':
@@ -359,65 +442,52 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       if (!isDecretoLegislativo && !instrucaoIA.trim()) throw new Error("Descreva o conteúdo.");
 
       console.log("2. Validação OK. Buscando usuário...");
+
+      // Validação Extra para Julgamento de Contas
+      if (tipoDecreto === 'Julgamento de Contas') {
+        const comissaoFinancas = autores.find(a => a.nome.toLowerCase().includes('comissão de finanças'));
+        if (comissaoFinancas && autoresSelecionados[0]?.id !== comissaoFinancas.id) {
+          throw new Error("O autor para Julgamento de Contas deve ser a 'Comissão de Finanças e Orçamento'.");
+        }
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado.");
 
-      // Para Moção, usamos o primeiro autor selecionado como principal
-      const autorPrincipalId = isMocao ? autoresSelecionados[0].id : Number(autorId);
+      // Definir autor principal e objeto completo
+      let autorPrincipal: Autor | undefined;
+
+      // Prioridade para autoresSelecionados (usado em Moção e Julgamento de Contas via auto-select)
+      if (autoresSelecionados.length > 0) {
+        autorPrincipal = autoresSelecionados[0];
+      } else if (autorId) {
+        // Usado nos selects simples
+        autorPrincipal = autores.find(a => a.id.toString() === autorId);
+      }
+
+      if (!autorPrincipal) throw new Error("Selecione um autor.");
+
+      const autorPrincipalId = autorPrincipal.id;
       const nomeAutor = isMocao
         ? autoresSelecionados.map(a => a.nome).join(", ")
-        : autores.find(a => a.id.toString() === autorId)?.nome;
+        : autorPrincipal.nome;
 
       // Regra de negócio: máximo 3 honrarias por vereador por ano
       if (isDecretoLegislativo && tipoDecreto === 'Honraria') {
-        try {
-          console.log("2.5. Verificando limite de honrarias...");
-          const periodo = getPeriodoHonrarias();
+        const isVereador = autorPrincipal.tipoObjeto === 'AgentePublico';
 
-          // Buscar IDs de decretos do tipo Honraria
-          const { data: honrarias, error: honrariasError } = await supabase
-            .from('projetosdedecretolegislativo')
-            .select('documento_id')
-            .eq('tipo_decreto', 'Honraria' as any);
+        if (isVereador) {
+          console.log(`Verificando limite para: ${nomeAutor} (ID: ${autorPrincipalId})`);
 
-          if (honrariasError) {
-            console.warn("Aviso: Não foi possível verificar limite de honrarias:", honrariasError);
-          } else {
-            const idsHonrarias = honrarias?.map(h => h.documento_id) || [];
-
-            if (idsHonrarias.length > 0) {
-              // Buscar documentos do autor via documentoautores
-              const { data: docsAutor } = await supabase
-                .from('documentoautores')
-                .select('documento_id')
-                .eq('autor_id', Number(autorId));
-
-              const idsDocsAutor = docsAutor?.map(d => d.documento_id) || [];
-              const idsIntersecao = idsHonrarias.filter(id => idsDocsAutor.includes(id));
-
-              if (idsIntersecao.length > 0) {
-                // Contar quantos estão no período atual (21/ago - 20/ago)
-                const { count, error: countError } = await supabase
-                  .from('documentos')
-                  .select('id', { count: 'exact', head: true })
-                  .gte('data_protocolo', periodo.inicio)
-                  .lte('data_protocolo', periodo.fim)
-                  .in('id', idsIntersecao as any);
-
-                if (!countError && (count || 0) >= 3) {
-                  const autorNome = autores.find(a => a.id.toString() === autorId)?.nome || 'Este vereador';
-                  throw new Error(`Limite atingido! ${autorNome} já possui ${count} honraria(s) para o evento de 20/08/${periodo.anoEvento}. Máximo permitido: 3 honrarias por período.`);
-                }
-              }
+          if (honrariasCount !== null && honrariasCount >= 3) {
+            const limiteError = new Error(`O autor ${nomeAutor} já atingiu o limite de 3 honrarias para o período atual.`);
+            if (honrariasCount >= 3) {
+              toast({ title: "Limite de Honrarias", description: limiteError.message, variant: "destructive" });
+              throw limiteError;
             }
+            // Outros erros apenas logamos (não bloqueia criação)
+            console.warn("Aviso: Validação de limite de honrarias falhou:", limiteError);
           }
-        } catch (limiteError: any) {
-          // Se for erro de limite (nossa regra), propaga
-          if (limiteError.message?.includes('Limite atingido')) {
-            throw limiteError;
-          }
-          // Outros erros apenas logamos (não bloqueia criação)
-          console.warn("Aviso: Validação de limite de honrarias falhou:", limiteError);
         }
       }
 
@@ -428,8 +498,8 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         p_tipo_documento_id: getTipoId(tipo),
         p_ano: new Date().getFullYear(),
         p_data_protocolo: new Date().toISOString(),
-        p_autor_id: autorPrincipalId,
-        p_autor_type: 'AgentePublico',
+        p_autor_id: autorPrincipal.id,
+        p_autor_type: autorPrincipal.tipoObjeto, // Passa 'AgentePublico' ou 'Comissao' dinamicamente
         p_texto_resumo: isMocao ? `Moção de ${tipoMocao} - ${homenageado}` : instrucaoIA,
         p_usuario_id: user.id,
         p_destinatario_nome: destinatario || null,
@@ -575,8 +645,8 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {autores.map(a => (
-                      <SelectItem key={a.id} value={a.id.toString()} className="text-xs">
+                    {autoresFiltrados.map(a => (
+                      <SelectItem key={`${a.tipoObjeto}:${a.id}`} value={`${a.tipoObjeto}:${a.id}`} className="text-xs">
                         {a.nome}
                       </SelectItem>
                     ))}

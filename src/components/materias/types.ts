@@ -23,6 +23,8 @@ export interface Materia {
   tipo: TipoMateria;
   ementa: string;
   autor: string;
+  autorId?: number;
+  autorTipo?: string;
   dataProtocolo: Date;
   status: StatusMateria;
   destinatario?: string;

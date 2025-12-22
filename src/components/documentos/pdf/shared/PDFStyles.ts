@@ -138,6 +138,9 @@ export const pdfStyles = StyleSheet.create({
         width: '45%',
         alignItems: 'center',
     },
+    signatureLine: {
+        marginBottom: 2,
+    },
 
     // --- RODAPÉ FIXO ---
     fixedFooter: {

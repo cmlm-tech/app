@@ -35,12 +35,12 @@ export default function Materias() {
   async function fetchMaterias() {
     setIsLoading(true);
     try {
-      // 1. Buscar Agentes (para mapear manualmente pois não há FK)
-      const { data: agentes } = await supabase
-        .from('agentespublicos')
-        .select('id, nome_completo');
+      // 1. Buscar Agentes e Comissões
+      const { data: agentes } = await supabase.from('agentespublicos').select('id, nome_completo');
+      const { data: comissoes } = await supabase.from('comissoes').select('id, nome');
 
       const agentesMap = new Map((agentes || []).map((a: any) => [a.id, a.nome_completo]));
+      const comissoesMap = new Map((comissoes || []).map((c: any) => [c.id, c.nome]));
 
       // 2. Buscar Documentos
       const { data, error } = await supabase
@@ -76,9 +76,27 @@ export default function Materias() {
           else if (doc.indicacoes?.[0]) resumo = doc.indicacoes[0].ementa;
           else if (doc.projetosdedecretolegislativo?.[0]) resumo = doc.projetosdedecretolegislativo[0].ementa;
 
-          // Nome do Autor (Buscar no Map)
-          const autorId = doc.documentoautores?.[0]?.autor_id;
-          const nomeAutor = autorId ? agentesMap.get(autorId) || "Desconhecido" : "Sem Autor";
+          // Nome do Autor (Combinando Agentes e Comissões)
+          const autorRel = doc.documentoautores?.[0];
+          let nomeAutor = "Sem Autor";
+          let autorId: number | undefined;
+          let autorTipo: string | undefined;
+
+          if (autorRel) {
+            const { autor_id } = autorRel;
+            autorId = autor_id;
+
+            // Tentar em comissões primeiro, depois em agentes
+            if (comissoesMap.has(autor_id)) {
+              nomeAutor = comissoesMap.get(autor_id)!;
+              autorTipo = 'Comissao';
+            } else if (agentesMap.has(autor_id)) {
+              nomeAutor = agentesMap.get(autor_id)!;
+              autorTipo = 'AgentePublico';
+            } else {
+              nomeAutor = "Desconhecido";
+            }
+          }
 
           // Nome do Tipo (com fallback)
           const nomeTipo = doc.tiposdedocumento?.nome || "Documento";
@@ -92,6 +110,8 @@ export default function Materias() {
             tipo: nomeTipo as TipoMateria,
             ementa: resumo || "",
             autor: nomeAutor,
+            autorId: autorId,
+            autorTipo: autorTipo,
             dataProtocolo: new Date(doc.data_protocolo),
             status: doc.status as StatusMateria,
           };

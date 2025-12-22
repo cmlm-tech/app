@@ -17,7 +17,8 @@ interface DocumentoPDFProps {
     destinatarioCargo?: string;
     destinatarioOrgao?: string;
     ementa?: string;
-    autores?: string[];
+    autores?: string[] | any[];
+    membrosComissao?: { nome: string; cargo: string }[];
 }
 
 /**
@@ -95,6 +96,7 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     autor={props.autor}
                     autorCargo={autorCargo}
                     ementa={props.ementa}
+                    membrosComissao={props.membrosComissao}
                 />
             );
 

@@ -86,23 +86,11 @@ export default function DecretoLegislativoPDF({
                     Lavras da Mangabeira/CE, Sala das Sessões, em {dia} de {mes} de {ano}
                 </Text>
 
-                {/* DEBUG INFO - REMOVER DEPOIS */}
-                <Text style={{ marginTop: 20, fontSize: 8, color: 'red', textAlign: 'center' }}>
-                    DEBUG: membrosComissao = {membrosComissao ? `${membrosComissao.length} membros` : 'undefined/null'}
-                </Text>
-                {membrosComissao && membrosComissao.map((m, i) => (
-                    <Text key={i} style={{ fontSize: 8, color: 'red', textAlign: 'center' }}>
-                        {m.cargo}: {m.nome}
-                    </Text>
-                ))}
-                {/* FIM DEBUG */}
-
                 {membrosComissao && membrosComissao.length > 0 ? (
                     <View style={{ marginTop: 40 }}>
                         {/* Linha 1: Presidente Centralizado */}
                         {presidente && (
                             <View style={{ marginBottom: 40, alignItems: 'center' }}>
-                                <Text style={pdfStyles.signatureLine}>_________________________________________________</Text>
                                 <Text style={pdfStyles.signatureName}>{presidente.nome}</Text>
                                 <Text style={pdfStyles.signatureRole}>{presidente.cargo}</Text>
                             </View>
@@ -112,25 +100,22 @@ export default function DecretoLegislativoPDF({
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20 }}>
                             {relator && (
                                 <View style={{ alignItems: 'center', width: '45%' }}>
-                                    <Text style={pdfStyles.signatureLine}>________________________________</Text>
                                     <Text style={pdfStyles.signatureName}>{relator.nome}</Text>
                                     <Text style={pdfStyles.signatureRole}>{relator.cargo}</Text>
                                 </View>
                             )}
                             {membro && (
                                 <View style={{ alignItems: 'center', width: '45%' }}>
-                                    <Text style={pdfStyles.signatureLine}>________________________________</Text>
                                     <Text style={pdfStyles.signatureName}>{membro.nome}</Text>
                                     <Text style={pdfStyles.signatureRole}>{membro.cargo}</Text>
                                 </View>
                             )}
                         </View>
 
-                        {/* Fallback para outros membros se não tiver cargos definidos ou forem extras */}
+                        {/* Fallback para outros membros se não tiver cargos definidos */}
                         {!presidente && !relator && !membro && (
                             membrosComissao.map((m, i) => (
                                 <View key={i} style={{ marginBottom: 20, alignItems: 'center' }}>
-                                    <Text style={pdfStyles.signatureLine}>_________________________________________________</Text>
                                     <Text style={pdfStyles.signatureName}>{m.nome}</Text>
                                     <Text style={pdfStyles.signatureRole}>{m.cargo}</Text>
                                 </View>

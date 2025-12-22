@@ -46,7 +46,11 @@ export default function TabelaMaterias({ materias }: Props) {
       } else if (mat.tipo === "Projeto de Lei") {
         tabelaFilha = "projetosdelei"; colunaTexto = "corpo_texto"; colunaNumero = "numero_lei";
       } else if (mat.tipo === "Requerimento") {
-        tabelaFilha = "requerimentos"; colunaTexto = "corpo_texto"; colunaNumero = "numero_requerimento"; // Check actual column later if fails
+        tabelaFilha = "requerimentos"; colunaTexto = "corpo_texto"; colunaNumero = "numero_requerimento";
+      } else if (mat.tipo === "Projeto de Decreto Legislativo") {
+        tabelaFilha = "projetosdedecretolegislativo"; colunaTexto = "justificativa"; colunaNumero = "numero_decreto_legislativo";
+      } else if (mat.tipo === "Moção") {
+        tabelaFilha = "mocoes"; colunaTexto = "corpo_texto"; colunaNumero = "numero_mocao";
       }
 
       if (!tabelaFilha) {

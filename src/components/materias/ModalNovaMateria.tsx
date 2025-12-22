@@ -125,13 +125,16 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
 
   async function buscarAutores() {
     try {
-      // 1. Buscar Agentes Públicos
-      const { data: agentes, error: errAgentes } = await supabase
-        .from('agentespublicos')
-        .select('id, nome:nome_completo, cargo:tipo')
-        .order('nome_completo');
+      // 1. Buscar Vereadores (com join para pegar o nome)
+      const { data: vereadores, error: errVereadores } = await supabase
+        .from('vereadores')
+        .select(`
+          agente_publico_id,
+          nome_parlamentar,
+          agente:agentespublicos (nome_completo)
+        `);
 
-      if (errAgentes) throw errAgentes;
+      if (errVereadores) throw errVereadores;
 
       // 2. Buscar Comissões
       const { data: comissoes, error: errComissoes } = await supabase
@@ -141,10 +144,10 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       if (errComissoes) throw errComissoes;
 
       // 3. Unificar Listas
-      const listaAgentes: Autor[] = (agentes || []).map((a: any) => ({
-        id: a.id,
-        nome: a.nome,
-        cargo: a.cargo,
+      const listaVereadores: Autor[] = (vereadores || []).map((v: any) => ({
+        id: v.agente_publico_id,
+        nome: v.nome_parlamentar || v.agente?.nome_completo || 'Sem Nome',
+        cargo: 'Vereador(a)',
         tipoObjeto: 'AgentePublico'
       }));
 
@@ -155,7 +158,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         tipoObjeto: 'Comissao'
       }));
 
-      const listaCompleta = [...listaAgentes, ...listaComissoes].sort((a, b) => a.nome.localeCompare(b.nome));
+      const listaCompleta = [...listaVereadores, ...listaComissoes].sort((a, b) => a.nome.localeCompare(b.nome));
 
       setAutores(listaCompleta);
     } catch (err) {
@@ -461,8 +464,9 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       if (autoresSelecionados.length > 0) {
         autorPrincipal = autoresSelecionados[0];
       } else if (autorId) {
-        // Usado nos selects simples
-        autorPrincipal = autores.find(a => a.id.toString() === autorId);
+        // Usado nos selects simples - autorId tem formato "tipoObjeto:id"
+        const [tipoObj, idStr] = autorId.split(':');
+        autorPrincipal = autores.find(a => a.tipoObjeto === tipoObj && a.id.toString() === idStr);
       }
 
       if (!autorPrincipal) throw new Error("Selecione um autor.");

@@ -47,6 +47,50 @@ export default function EditarMateria() {
                 ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial.toString().padStart(3, '0')}/${doc.ano}`
                 : "Sem Numeração";
 
+            // Buscar membros da comissão se for Projeto de Decreto Legislativo
+            let membrosComissao: { nome: string; cargo: string }[] = [];
+
+            if (doc.tiposdedocumento?.nome === 'Projeto de Decreto Legislativo') {
+                // Normalizar texto para ignorar acentos
+                const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                const textoCompleto = normalize((corpoTexto || '') + ' ' + (ementa || ''));
+                const mencionaFinancas = textoCompleto.includes('financas') || textoCompleto.includes('comissao');
+
+                if (mencionaFinancas) {
+                    // Buscar a comissão de finanças
+                    const { data: comissao } = await supabase
+                        .from('comissoes')
+                        .select('id')
+                        .or('nome.ilike.%finanças%,nome.ilike.%financas%')
+                        .limit(1)
+                        .single();
+
+                    if (comissao) {
+                        // Buscar membros
+                        const { data: membrosRef } = await supabase
+                            .from('comissaomembros')
+                            .select('cargo, agente_publico_id')
+                            .eq('comissao_id', comissao.id);
+
+                        if (membrosRef && membrosRef.length > 0) {
+                            const agenteIds = membrosRef.map(m => m.agente_publico_id);
+                            const { data: agentes } = await supabase
+                                .from('agentespublicos')
+                                .select('id, nome_completo')
+                                .in('id', agenteIds);
+
+                            if (agentes) {
+                                const agentesMap = new Map(agentes.map(a => [a.id, a.nome_completo]));
+                                membrosComissao = membrosRef.map(m => ({
+                                    nome: agentesMap.get(m.agente_publico_id) || "Nome não encontrado",
+                                    cargo: m.cargo
+                                }));
+                            }
+                        }
+                    }
+                }
+            }
+
             const blob = await pdf(
                 <DocumentoPDF
                     tipo={doc.tiposdedocumento?.nome || "Documento"}
@@ -54,8 +98,10 @@ export default function EditarMateria() {
                     dataProtocolo={doc.data_protocolo}
                     texto={corpoTexto}
                     autor={autorNome}
+                    autorCargo={membrosComissao.length > 0 ? "Comissão Permanente" : undefined}
                     ementa={ementa}
                     autores={autoresArray.length > 0 ? autoresArray : undefined}
+                    membrosComissao={membrosComissao}
                 />
             ).toBlob();
 

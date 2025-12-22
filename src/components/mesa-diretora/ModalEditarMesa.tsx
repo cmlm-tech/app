@@ -52,32 +52,44 @@ export default function ModalEditarMesa({ open, onOpenChange, vereadores, compos
             className="space-y-4 pt-3"
             onSubmit={form.handleSubmit(handleSubmit)}
           >
-            {CARGOS.map((cargo) => (
-              <FormField
-                key={cargo.key}
-                control={form.control}
-                name={cargo.key as keyof ComposicaoMesa}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{cargo.label}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={`Escolha o ${cargo.label}`} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {vereadores.map((v) => (
-                          <SelectItem key={v.id} value={v.id}>
-                            {v.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            ))}
+            {CARGOS.map((cargo) => {
+              const currentValues = form.watch();
+
+              const availableVereadores = vereadores.filter(v => {
+                // Check if this vereador is selected in any OTHER field
+                const isSelectedElsewhere = Object.entries(currentValues).some(([key, value]) => {
+                  return key !== cargo.key && value === String(v.id);
+                });
+                return !isSelectedElsewhere;
+              });
+
+              return (
+                <FormField
+                  key={cargo.key}
+                  control={form.control}
+                  name={cargo.key as keyof ComposicaoMesa}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{cargo.label}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={`Escolha o ${cargo.label}`} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {availableVereadores.map((v) => (
+                            <SelectItem key={v.id} value={v.id}>
+                              {v.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              )
+            })}
             <DialogFooter className="gap-2">
               <Button
                 type="button"

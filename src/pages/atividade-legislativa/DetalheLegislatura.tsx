@@ -39,7 +39,7 @@ export default function DetalheLegislatura() {
             if (legError) throw new Error(`Legislatura de ${numero} não encontrada.`);
 
             const legislaturaId = legData.id;
-            
+
             const [periodosResult, verResult] = await Promise.all([
                 supabase.from('periodossessao').select('*').eq('legislatura_id', legislaturaId),
                 supabase.from('legislaturavereadores').select('id, condicao, data_posse, data_afastamento, agentespublicos:agente_publico_id (*, vereadores:vereadores!inner(nome_parlamentar))').eq('legislatura_id', legislaturaId).order('nome_completo', { referencedTable: 'agentespublicos', ascending: true })
@@ -48,26 +48,26 @@ export default function DetalheLegislatura() {
             if (periodosResult.error) throw periodosResult.error;
             if (verResult.error) throw verResult.error;
 
-            const dadosVereadores = verResult.data.map(item => ({
-              ...(item.agentespublicos as AgentePublicoRow),
-              id: item.id,
-              condicao: item.condicao,
-              data_posse: item.data_posse,
-              data_afastamento: item.data_afastamento,
-              nome_parlamentar: item.agentespublicos?.vereadores?.nome_parlamentar || null,
-              vereadores: item.agentespublicos as AgentePublicoRow
+            const dadosVereadores = verResult.data.map((item: any) => ({
+                ...(item.agentespublicos as AgentePublicoRow),
+                id: item.id,
+                condicao: item.condicao,
+                data_posse: item.data_posse,
+                data_afastamento: item.data_afastamento,
+                nome_parlamentar: item.agentespublicos?.vereadores?.nome_parlamentar || null,
+                vereadores: item.agentespublicos as AgentePublicoRow
             }));
-            
+
             setLegislatura({ ...legData, periodos: periodosResult.data || [] });
-            
-            
+
+
             // Garante a ordenação no front-end após receber os dados.
             const vereadoresOrdenados = dadosVereadores.sort((a, b) => {
                 const nomeA = a.nome_parlamentar || a.nome_completo;
                 const nomeB = b.nome_parlamentar || b.nome_completo;
                 return nomeA.localeCompare(nomeB);
             });
-            setVereadores(vereadoresOrdenados);            
+            setVereadores(vereadoresOrdenados);
 
         } catch (error: any) {
             toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -99,7 +99,7 @@ export default function DetalheLegislatura() {
 
         carregarDados();
     }, [legislaturaNumero, fetchData, user]);
-    
+
     const handleGerenciarClick = (periodo: PeriodoRow) => {
         setPeriodoSelecionado(periodo);
         setModalPeriodoOpen(true);
@@ -108,17 +108,17 @@ export default function DetalheLegislatura() {
     const handleSavePeriodo = async (data: { presidenteId: string }) => {
         if (!periodoSelecionado || !legislatura) return;
         try {
-            toast({ 
-                title: "Funcionalidade não disponível", 
+            toast({
+                title: "Funcionalidade não disponível",
                 description: "A atribuição de presidente ao período requer atualização do banco de dados.",
-                variant: "destructive" 
+                variant: "destructive"
             });
-        } catch(error: any) {
-             toast({ title: "Erro", description: error.message, variant: "destructive" });
+        } catch (error: any) {
+            toast({ title: "Erro", description: error.message, variant: "destructive" });
         }
         setModalPeriodoOpen(false);
     };
-    
+
     const handleOpenModalRemocao = (vereador: AgentePublicoRow) => {
         setVereadorSelecionado(vereador as VereadorComCondicao);
         setModalRemocaoOpen(true);
@@ -147,7 +147,7 @@ export default function DetalheLegislatura() {
 
     if (loading) return <AppLayout><div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
     if (!legislatura) return <AppLayout><div className="text-center py-10"><h1>Legislatura não encontrada</h1></div></AppLayout>;
-    
+
     const anoInicio = new Date(legislatura.data_inicio).getFullYear();
     const anoFim = new Date(legislatura.data_fim).getFullYear();
 
@@ -180,7 +180,7 @@ export default function DetalheLegislatura() {
                     <BreadcrumbItem><BreadcrumbPage>Legislatura {anoInicio} - {anoFim}</BreadcrumbPage></BreadcrumbItem>
                 </BreadcrumbList>
             </Breadcrumb>
-            
+
             <div className="mb-6">
                 <h1 className="text-3xl font-bold">Legislatura {anoInicio} - {anoFim}</h1>
                 <p className="text-gray-600">
@@ -191,8 +191,8 @@ export default function DetalheLegislatura() {
                 </p>
             </div>
 
-            <CorpoLegislativo 
-                vereadores={vereadores} 
+            <CorpoLegislativo
+                vereadores={vereadores}
                 isAdmin={isAdmin}
                 onAdicionarClick={() => setModalVereadorOpen(true)}
                 onRemove={handleOpenModalRemocao}
@@ -208,9 +208,9 @@ export default function DetalheLegislatura() {
                             {legislatura.periodos.map(periodo => {
                                 const presidente = undefined;
                                 return (
-                                    <PeriodoCard 
-                                        key={periodo.id} 
-                                        periodo={periodo} 
+                                    <PeriodoCard
+                                        key={periodo.id}
+                                        periodo={periodo}
                                         presidente={presidente}
                                         onGerenciar={isAdmin ? () => handleGerenciarClick(periodo) : undefined}
                                         legislaturaNumero={legislatura.numero}
@@ -224,7 +224,7 @@ export default function DetalheLegislatura() {
 
             {isAdmin && (
                 <>
-                    <ModalGerenciarPeriodo 
+                    <ModalGerenciarPeriodo
                         open={modalPeriodoOpen}
                         onOpenChange={setModalPeriodoOpen}
                         periodo={periodoSelecionado}

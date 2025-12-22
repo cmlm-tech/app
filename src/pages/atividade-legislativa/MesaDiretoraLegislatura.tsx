@@ -28,10 +28,10 @@ export default function MesaDiretoraLegislatura() {
             <BreadcrumbPage>Mesa Diretora</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
-      {/* A linha abaixo foi corrigida */}
+        {/* A linha abaixo foi corrigida */}
       </Breadcrumb>
 
-      <MesaDiretoraContent />
+      <MesaDiretoraContent periodoId={Number(periodoId)} />
     </AppLayout>
   );
 }

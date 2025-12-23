@@ -296,6 +296,10 @@ REGRAS DE REDAÇÃO (O QUE FAZER):
         tabelaDestino = 'mocoes'
         colunaTexto = 'corpo_texto'
         break
+      case 'Indicação':
+        tabelaDestino = 'indicacoes'
+        colunaTexto = 'justificativa'
+        break
       default:
         tabelaDestino = 'oficios'
         colunaTexto = 'corpo_texto'

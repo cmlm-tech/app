@@ -4,6 +4,7 @@ import OficioPDF from './pdf/templates/OficioPDF';
 import ProjetoLeiPDF from './pdf/templates/ProjetoLeiPDF';
 import RequerimentoPDF from './pdf/templates/RequerimentoPDF';
 import DecretoLegislativoPDF from './pdf/templates/DecretoLegislativoPDF';
+import IndicacaoPDF from './pdf/templates/IndicacaoPDF';
 
 interface DocumentoPDFProps {
     tipo: string;
@@ -97,6 +98,19 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     autorCargo={autorCargo}
                     ementa={props.ementa}
                     membrosComissao={props.membrosComissao}
+                />
+            );
+
+        case 'Indicação':
+            return (
+                <IndicacaoPDF
+                    numero={props.numero}
+                    dataProtocolo={props.dataProtocolo}
+                    texto={props.texto}
+                    autor={props.autor}
+                    autorCargo={autorCargo}
+                    destinatario={props.destinatarioNome}
+                    indicacao={props.ementa}
                 />
             );
 

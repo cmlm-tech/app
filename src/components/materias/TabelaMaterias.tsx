@@ -51,6 +51,8 @@ export default function TabelaMaterias({ materias }: Props) {
         tabelaFilha = "projetosdedecretolegislativo"; colunaTexto = "justificativa"; colunaNumero = "numero_decreto_legislativo";
       } else if (mat.tipo === "Moção") {
         tabelaFilha = "mocoes"; colunaTexto = "corpo_texto"; colunaNumero = "numero_mocao";
+      } else if (mat.tipo === "Indicação") {
+        tabelaFilha = "indicacoes"; colunaTexto = "justificativa"; colunaNumero = "numero_indicacao";
       }
 
       if (!tabelaFilha) {

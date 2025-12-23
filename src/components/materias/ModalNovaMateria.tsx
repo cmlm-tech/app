@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { TipoMateria, RetornoProtocolo } from "./types";
 
-const tiposCriacao: TipoMateria[] = ["Projeto de Lei", "Ofício", "Requerimento", "Moção", "Projeto de Decreto Legislativo"];
+const tiposCriacao: TipoMateria[] = ["Projeto de Lei", "Ofício", "Requerimento", "Moção", "Projeto de Decreto Legislativo", "Indicação"];
 
 // Tipos de Moção conforme ENUM do banco
 const tiposMocao = ["Aplausos", "Pesar", "Repúdio", "Solidariedade", "Protesto"] as const;
@@ -112,7 +112,8 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
   const [honrariasCount, setHonrariasCount] = useState<number | null>(null);  // Contador de honrarias do autor
 
   const dataProtocolo = new Date();
-  const precisaDestinatario = tipo === "Ofício" || tipo === "Requerimento";
+  const precisaDestinatario = tipo === "Ofício" || tipo === "Requerimento" || tipo === "Indicação";
+  const isIndicacao = tipo === "Indicação";
   const isMocao = tipo === "Moção";
   const isDecretoLegislativo = tipo === "Projeto de Decreto Legislativo";
 
@@ -288,7 +289,8 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       case "Ofício": return 2;
       case "Requerimento": return 3;
       case "Moção": return 4;
-      case "Projeto de Decreto Legislativo": return 6;  // ID será 6 após insert
+      case "Indicação": return 5;
+      case "Projeto de Decreto Legislativo": return 6;
       default: return 1;
     }
   };
@@ -556,6 +558,14 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
           tipo_honraria: tipoHonrariaDb as any,
           ementa: ementa,
           justificativa: artigos
+        }).eq('documento_id', dadosProtocolo.documento_id);
+      }
+
+      // Se for Indicação, atualizar dados específicos
+      if (isIndicacao) {
+        console.log("4.4 Salvando dados específicos de Indicação...");
+        await supabase.from('indicacoes').update({
+          destinatario_texto: destinatario || "Sr. Prefeito Municipal"
         }).eq('documento_id', dadosProtocolo.documento_id);
       }
 

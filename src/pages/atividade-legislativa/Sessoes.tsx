@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,8 @@ import {
   Pause as PauseIcon,
   RotateCcw as ResumeIcon,
   Clock as ClockIcon,
-  RefreshCw as RefreshIcon
+  RefreshCw as RefreshIcon,
+  FileText as FileTextIcon
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import ModalSessao from "@/components/sessoes/ModalSessao";
@@ -307,6 +309,14 @@ export default function SessoesLeg() {
           {/* Ações para sessão Agendada */}
           {status === "Agendada" && (
             <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="ghost" onClick={() => window.location.href = `/atividade-legislativa/sessoes/${sessao.id}/pauta`}>
+                    <FileTextIcon className="w-4 h-4 text-blue-600" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Montar Pauta</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button size="icon" variant="ghost" onClick={() => handleIniciarSessao(sessao)}>

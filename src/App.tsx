@@ -20,7 +20,6 @@ import Atas from "./pages/documentos/Atas";
 import AgentesPublicos from "./pages/plenario/AgentesPublicos";
 import Vereadores from "./pages/plenario/Vereadores";
 import SessoesLeg from "./pages/atividade-legislativa/Sessoes";
-import Pautas from "./pages/atividade-legislativa/Pautas";
 import Legislaturas from "./pages/atividade-legislativa/Legislaturas";
 import GerenciarPauta from "./pages/atividade-legislativa/pautas/GerenciarPauta";
 import ConduzirSessao from "./pages/atividade-legislativa/sessoes/ConduzirSessao";
@@ -79,8 +78,7 @@ const App = () => (
             {/* --- MÓDULO DE ATIVIDADE LEGISLATIVA --- */}
             <Route path="/atividade-legislativa/sessoes" element={<RotaProtegida><SessoesLeg /></RotaProtegida>} />
             <Route path="/atividade-legislativa/sessoes/:id/conduzir" element={<RotaProtegida><ConduzirSessao /></RotaProtegida>} />
-            <Route path="/atividade-legislativa/pautas" element={<RotaProtegida><Pautas /></RotaProtegida>} />
-            <Route path="/atividade-legislativa/pautas/:pautaId" element={<RotaProtegida><GerenciarPauta /></RotaProtegida>} />
+            <Route path="/atividade-legislativa/sessoes/:sessaoId/pauta" element={<RotaProtegida><GerenciarPauta /></RotaProtegida>} />
             <Route path="/atividade-legislativa/legislaturas" element={<RotaProtegida><Legislaturas /></RotaProtegida>} />
             <Route path="/atividade-legislativa/legislaturas/:legislaturaNumero" element={<RotaProtegida><DetalheLegislatura /></RotaProtegida>} />
 

@@ -35,7 +35,7 @@ const sidebarMenu: MenuItem[] = [
   { label: "Painel de Controle", icon: Home, to: "/painel", type: "link" },
   { label: "Documentos", icon: FileText, type: "menu", children: [{ label: "Matérias", to: "/documentos/materias" }, { label: "Atas", to: "/documentos/atas" }] },
   { label: "Plenário", icon: Gavel, type: "menu", children: [{ label: "Agentes Públicos", to: "/plenario/agentes-publicos" }, { label: "Vereadores", to: "/plenario/vereadores" }, { label: "Mesa Diretora", to: "/plenario/mesa-diretora" }, { label: "Comissões", to: "/plenario/comissoes" }] },
-  { label: "Atividade Legislativa", icon: Activity, type: "menu", children: [{ label: "Sessões", to: "/atividade-legislativa/sessoes" }, { label: "Pautas", to: "/atividade-legislativa/pautas" }, { label: "Legislaturas", to: "/atividade-legislativa/legislaturas" }] }
+  { label: "Atividade Legislativa", icon: Activity, type: "menu", children: [{ label: "Sessões", to: "/atividade-legislativa/sessoes" }, { label: "Legislaturas", to: "/atividade-legislativa/legislaturas" }] }
 ];
 
 type AppSidebarProps = {
@@ -76,13 +76,13 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
 
   const SidebarLink = ({ item }: { item: MenuItem }) => {
     const content = (
-      <NavLink 
-        to={item.to!} 
-        onClick={handleMobileNavClick} 
+      <NavLink
+        to={item.to!}
+        onClick={handleMobileNavClick}
         className={({ isActive }) => cn(
           "relative flex items-center gap-3 px-3 py-3 rounded-md transition-colors font-medium w-full",
-          isActive 
-            ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full" 
+          isActive
+            ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
             : "hover:bg-gov-blue-700/70",
           isCollapsed && "justify-center px-3"
         )}
@@ -126,11 +126,11 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
     return (
       <Accordion type="multiple" value={openMenus.includes(item.label) || isActive ? [item.label] : []} onValueChange={(vals) => { setOpenMenus(vals as string[]); }}>
         <AccordionItem value={item.label} className="border-none">
-          <AccordionTrigger 
+          <AccordionTrigger
             className={cn(
               "relative flex items-center gap-3 px-3 py-3 rounded-md transition-colors font-medium text-white hover:bg-gov-blue-700/80 hover:no-underline w-full",
               (isActive || openMenus.includes(item.label)) && "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
-            )} 
+            )}
             onClick={(e) => { e.preventDefault(); handleMenuToggle(item.label); }}
           >
             <item.icon className="w-5 h-5" />
@@ -165,13 +165,13 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
           <button onClick={() => setIsCollapsed(!isCollapsed)} className="hidden md:flex items-center justify-center w-full p-2 rounded-md transition-colors hover:bg-gov-blue-700/70" title={isCollapsed ? "Expandir menu" : "Recolher menu"}>
             {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <><ChevronLeft className="w-5 h-5" /> <span className="ml-2">Recolher</span></>}
           </button>
-          
+
           {/* Configurações */}
           {isCollapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <NavLink 
-                  to="/configuracoes" 
+                <NavLink
+                  to="/configuracoes"
                   className={({ isActive }) => cn(
                     "relative flex items-center justify-center w-full px-3 py-3 rounded-md transition-colors hover:bg-gov-blue-700/70",
                     isActive && "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
@@ -183,12 +183,12 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
               <TooltipContent side="right"><p>Configurações</p></TooltipContent>
             </Tooltip>
           ) : (
-            <NavLink 
-              to="/configuracoes" 
+            <NavLink
+              to="/configuracoes"
               className={({ isActive }) => cn(
                 "relative flex items-center gap-3 px-3 py-3 rounded-md transition-colors font-medium w-full",
-                isActive 
-                  ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full" 
+                isActive
+                  ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
                   : "hover:bg-gov-blue-700/70"
               )}
             >
@@ -201,8 +201,8 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
           {isCollapsed ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <button 
-                  onClick={() => setDialogoSairAberto(true)} 
+                <button
+                  onClick={() => setDialogoSairAberto(true)}
                   className="flex items-center justify-center w-full px-3 py-3 rounded-md transition-colors hover:bg-gov-blue-700/70"
                 >
                   <LogOut className="w-5 h-5" />
@@ -211,8 +211,8 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
               <TooltipContent side="right"><p>Sair</p></TooltipContent>
             </Tooltip>
           ) : (
-            <button 
-              onClick={() => setDialogoSairAberto(true)} 
+            <button
+              onClick={() => setDialogoSairAberto(true)}
               className="flex items-center gap-3 px-3 py-3 rounded-md transition-colors hover:bg-gov-blue-700/70 w-full text-left"
             >
               <LogOut className="w-5 h-5" />

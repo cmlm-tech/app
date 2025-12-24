@@ -874,18 +874,24 @@ export type Database = {
           id: number
           ordem: number | null
           sessao_id: number
+          status_item: string | null
+          tipo_item: string | null
         }
         Insert: {
           documento_id: number
           id?: number
           ordem?: number | null
           sessao_id: number
+          status_item?: string | null
+          tipo_item?: string | null
         }
         Update: {
           documento_id?: number
           id?: number
           ordem?: number | null
           sessao_id?: number
+          status_item?: string | null
+          tipo_item?: string | null
         }
         Relationships: [
           {
@@ -936,6 +942,73 @@ export type Database = {
           },
           {
             foreignKeyName: "sessaopresenca_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "sessoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessaovotacao_resultado: {
+        Row: {
+          abstencoes: number | null
+          ausentes: number | null
+          created_at: string | null
+          documento_id: number | null
+          id: number
+          item_pauta_id: number | null
+          observacoes: string | null
+          resultado: string | null
+          sessao_id: number | null
+          voto_minerva_usado: boolean | null
+          votos_nao: number | null
+          votos_sim: number | null
+        }
+        Insert: {
+          abstencoes?: number | null
+          ausentes?: number | null
+          created_at?: string | null
+          documento_id?: number | null
+          id?: number
+          item_pauta_id?: number | null
+          observacoes?: string | null
+          resultado?: string | null
+          sessao_id?: number | null
+          voto_minerva_usado?: boolean | null
+          votos_nao?: number | null
+          votos_sim?: number | null
+        }
+        Update: {
+          abstencoes?: number | null
+          ausentes?: number | null
+          created_at?: string | null
+          documento_id?: number | null
+          id?: number
+          item_pauta_id?: number | null
+          observacoes?: string | null
+          resultado?: string | null
+          sessao_id?: number | null
+          voto_minerva_usado?: boolean | null
+          votos_nao?: number | null
+          votos_sim?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessaovotacao_resultado_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessaovotacao_resultado_item_pauta_id_fkey"
+            columns: ["item_pauta_id"]
+            isOneToOne: false
+            referencedRelation: "sessaopauta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessaovotacao_resultado_sessao_id_fkey"
             columns: ["sessao_id"]
             isOneToOne: false
             referencedRelation: "sessoes"
@@ -994,8 +1067,13 @@ export type Database = {
           ata_texto: string | null
           data_abertura: string | null
           data_fechamento: string | null
+          data_original: string | null
+          hora_agendada: string | null
           id: number
+          local: string | null
+          motivo_cancelamento: string | null
           numero: number | null
+          observacoes: string | null
           pauta_texto: string | null
           periodo_sessao_id: number
           status: Database["public"]["Enums"]["status_sessao"] | null
@@ -1005,8 +1083,13 @@ export type Database = {
           ata_texto?: string | null
           data_abertura?: string | null
           data_fechamento?: string | null
+          data_original?: string | null
+          hora_agendada?: string | null
           id?: number
+          local?: string | null
+          motivo_cancelamento?: string | null
           numero?: number | null
+          observacoes?: string | null
           pauta_texto?: string | null
           periodo_sessao_id: number
           status?: Database["public"]["Enums"]["status_sessao"] | null
@@ -1016,8 +1099,13 @@ export type Database = {
           ata_texto?: string | null
           data_abertura?: string | null
           data_fechamento?: string | null
+          data_original?: string | null
+          hora_agendada?: string | null
           id?: number
+          local?: string | null
+          motivo_cancelamento?: string | null
           numero?: number | null
+          observacoes?: string | null
           pauta_texto?: string | null
           periodo_sessao_id?: number
           status?: Database["public"]["Enums"]["status_sessao"] | null
@@ -1280,7 +1368,13 @@ export type Database = {
         | "Inativo"
       status_documento: "Rascunho" | "Protocolado" | "Tramitando" | "Arquivado"
       status_presenca: "Presente" | "Ausente" | "Ausente com Justificativa"
-      status_sessao: "Agendada" | "Em Andamento" | "Realizada" | "Cancelada"
+      status_sessao:
+        | "Agendada"
+        | "Em Andamento"
+        | "Realizada"
+        | "Cancelada"
+        | "Adiada"
+        | "Suspensa"
       status_tramitacao:
         | "Protocolado"
         | "Enviado para Comissão"
@@ -1465,7 +1559,14 @@ export const Constants = {
       ],
       status_documento: ["Rascunho", "Protocolado", "Tramitando", "Arquivado"],
       status_presenca: ["Presente", "Ausente", "Ausente com Justificativa"],
-      status_sessao: ["Agendada", "Em Andamento", "Realizada", "Cancelada"],
+      status_sessao: [
+        "Agendada",
+        "Em Andamento",
+        "Realizada",
+        "Cancelada",
+        "Adiada",
+        "Suspensa",
+      ],
       status_tramitacao: [
         "Protocolado",
         "Enviado para Comissão",

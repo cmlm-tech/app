@@ -339,6 +339,18 @@ export default function SessoesLeg() {
             <>
               <Tooltip>
                 <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="bg-amber-500 hover:bg-amber-600 text-white"
+                    onClick={() => window.location.href = `/atividade-legislativa/sessoes/${sessao.id}/conduzir`}
+                  >
+                    Conduzir
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Abrir painel de condução da sessão</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button size="icon" variant="ghost" onClick={() => handleSuspenderSessao(sessao)}>
                     <PauseIcon className="w-4 h-4 text-purple-600" />
                   </Button>

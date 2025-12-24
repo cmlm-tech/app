@@ -20,8 +20,15 @@ export type StatusSessao = Database["public"]["Enums"]["status_sessao"] | "Adiad
 export type TipoSessao = Database["public"]["Enums"]["tipo_sessao"];
 
 // Extended type with computed fields
-export interface Sessao extends SessaoRow {
+// Use Omit to exclude fields we need to redefine as optional
+export interface Sessao extends Omit<SessaoRow, 'hora_agendada' | 'local' | 'motivo_cancelamento' | 'data_original' | 'observacoes'> {
     titulo: string; // Computed title
+    // Fields added by migration (until types are regenerated)
+    hora_agendada?: string;
+    local?: string;
+    motivo_cancelamento?: string;
+    data_original?: string;
+    observacoes?: string;
     periodo_sessao?: {
         id: number;
         numero: number;
@@ -278,11 +285,14 @@ export async function criarSessao(sessao: {
             periodo_sessao_id: sessao.periodoId,
             tipo_sessao: sessao.tipoSessao,
             data_abertura: sessao.dataAbertura,
-            hora_agendada: sessao.horaAgendada || "16:00:00",
-            local: sessao.local || "Plenário da Câmara Municipal",
             numero,
             status: "Agendada",
-            observacoes: sessao.observacoes,
+            // Campos adicionais (cast necessário até regenerar types)
+            ...({
+                hora_agendada: sessao.horaAgendada || "16:00:00",
+                local: sessao.local || "Plenário da Câmara Municipal",
+                observacoes: sessao.observacoes,
+            } as any),
         })
         .select()
         .single();
@@ -292,7 +302,7 @@ export async function criarSessao(sessao: {
     return {
         ...data,
         titulo: gerarTituloSimplificado(data.tipo_sessao || "Ordinária", data.data_abertura || ""),
-    };
+    } as Sessao;
 }
 
 // Update session
@@ -306,17 +316,19 @@ export async function atualizarSessao(
         observacoes: string;
     }>
 ): Promise<Sessao> {
-    const updateData: SessaoUpdate = {};
+    // Usar objeto separado para campos que ainda não estão nos types
+    const baseUpdate: SessaoUpdate = {};
+    if (updates.tipoSessao) baseUpdate.tipo_sessao = updates.tipoSessao;
+    if (updates.dataAbertura) baseUpdate.data_abertura = updates.dataAbertura;
 
-    if (updates.tipoSessao) updateData.tipo_sessao = updates.tipoSessao;
-    if (updates.dataAbertura) updateData.data_abertura = updates.dataAbertura;
-    if (updates.horaAgendada) updateData.hora_agendada = updates.horaAgendada;
-    if (updates.local) updateData.local = updates.local;
-    if (updates.observacoes !== undefined) updateData.observacoes = updates.observacoes;
+    const extraFields: Record<string, any> = {};
+    if (updates.horaAgendada) extraFields.hora_agendada = updates.horaAgendada;
+    if (updates.local) extraFields.local = updates.local;
+    if (updates.observacoes !== undefined) extraFields.observacoes = updates.observacoes;
 
     const { data, error } = await supabase
         .from("sessoes")
-        .update(updateData)
+        .update({ ...baseUpdate, ...extraFields } as any)
         .eq("id", id)
         .select()
         .single();
@@ -326,7 +338,7 @@ export async function atualizarSessao(
     return {
         ...data,
         titulo: gerarTituloSimplificado(data.tipo_sessao || "Ordinária", data.data_abertura || ""),
-    };
+    } as Sessao;
 }
 
 // ====================== STATUS TRANSITIONS ======================
@@ -477,7 +489,7 @@ export async function cancelarSessao(id: number, motivo: string): Promise<Sessao
             motivo_cancelamento: motivo,
         })
         .eq("id", id)
-        .in("status", ["Agendada", "Suspensa", "Adiada"])
+        .in("status", ["Agendada", "Suspensa", "Adiada"] as any)
         .select()
         .single();
 

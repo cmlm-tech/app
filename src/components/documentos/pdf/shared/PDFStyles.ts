@@ -61,7 +61,7 @@ export const pdfStyles = StyleSheet.create({
         flexDirection: 'row',
         height: 16,
         width: '100%',
-        marginBottom: 25,
+        marginBottom: 40,
     },
     footerBarContainer: {
         flexDirection: 'row',

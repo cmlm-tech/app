@@ -231,7 +231,13 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
         status,
         tipo:tiposdedocumento (
           nome
-        )
+        ),
+        projetosdelei ( numero_lei ),
+        requerimentos ( numero_requerimento ),
+        mocoes ( numero_mocao ),
+        indicacoes ( numero_indicacao ),
+        oficios ( numero_oficio ),
+        projetosdedecretolegislativo ( numero_decreto )
       )
     `)
         .eq("sessao_id", sessaoId)
@@ -576,4 +582,77 @@ export async function getResultadosVotacao(sessaoId: number): Promise<ResultadoV
 
     if (error) throw error;
     return (data || []) as unknown as ResultadoVotacao[];
+}
+
+/**
+ * Presidente da Sessão com nome e cargo
+ */
+export interface PresidenteSessao {
+    agentePublicoId: number;
+    nome: string;
+    cargo: string;
+}
+
+/**
+ * Buscar o presidente da sessão com base na ordem de precedência da Mesa Diretora
+ * Ordem: Presidente > Vice-Presidente > 1º Secretário > 2º Secretário > 1º Tesoureiro > 2º Tesoureiro
+ * Retorna o primeiro cargo presente na sessão
+ */
+export async function getPresidenteSessao(
+    sessaoId: number,
+    periodoSessaoId: number,
+    presencas: Presenca[]
+): Promise<PresidenteSessao | null> {
+    // Ordem de precedência da Mesa Diretora
+    const precedenciaCargos = [
+        "Presidente",
+        "Vice-Presidente",
+        "1º Secretário",
+        "2º Secretário",
+        "1º Tesoureiro",
+        "2º Tesoureiro"
+    ];
+
+    // Buscar mesa diretora do período atual
+    const { data: mesaDiretora } = await supabase
+        .from("mesasdiretoras")
+        .select("id")
+        .eq("periodo_sessao_id", periodoSessaoId)
+        .maybeSingle();
+
+    if (!mesaDiretora) return null;
+
+    // Buscar membros da mesa diretora
+    const { data: membros } = await supabase
+        .from("mesadiretoramembros")
+        .select(`
+            agente_publico_id,
+            cargo,
+            agente:agentespublicos ( nome_completo )
+        `)
+        .eq("mesa_diretora_id", mesaDiretora.id);
+
+    if (!membros || membros.length === 0) return null;
+
+    // IDs dos presentes na sessão
+    const presentes = new Set(
+        presencas
+            .filter(p => p.status === "Presente")
+            .map(p => p.agente_publico_id)
+    );
+
+    // Percorrer por ordem de precedência
+    for (const cargo of precedenciaCargos) {
+        const membro = membros.find((m: any) => m.cargo === cargo);
+        if (membro && presentes.has(membro.agente_publico_id)) {
+            const agente = membro.agente as any;
+            return {
+                agentePublicoId: membro.agente_publico_id,
+                nome: agente?.nome_completo || "Nome não encontrado",
+                cargo: cargo
+            };
+        }
+    }
+
+    return null;
 }

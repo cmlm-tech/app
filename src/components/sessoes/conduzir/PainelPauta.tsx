@@ -7,13 +7,15 @@ import {
     Vote,
     AlertCircle,
     FileText,
-    ChevronRight
+    ChevronRight,
+    FileDown
 } from "lucide-react";
 import { ItemPauta } from "@/services/sessaoConduzirService";
 
 interface PainelPautaProps {
     itens: ItemPauta[];
     onIniciarVotacao: (item: ItemPauta) => Promise<void>;
+    onGerarRelatorioVotacao?: (item: ItemPauta) => void;
     votacaoEmAndamento: boolean;
     temQuorum: boolean;
 }
@@ -21,6 +23,7 @@ interface PainelPautaProps {
 export default function PainelPauta({
     itens,
     onIniciarVotacao,
+    onGerarRelatorioVotacao,
     votacaoEmAndamento,
     temQuorum
 }: PainelPautaProps) {
@@ -62,10 +65,21 @@ export default function PainelPauta({
 
     const formatProtocolo = (item: ItemPauta) => {
         if (!item.documento) return "Documento não encontrado";
-        const tipo = item.documento.tipo?.nome || "DOC";
-        const numero = item.documento.numero_protocolo_geral;
-        const ano = item.documento.ano;
-        return `${tipo} ${numero}/${ano}`;
+        const doc = item.documento as any;
+        const tipo = doc.tipo?.nome || "DOC";
+
+        // Buscar número específico do tipo de documento
+        const numeroEspecifico =
+            doc.projetosdelei?.[0]?.numero_lei ||
+            doc.requerimentos?.[0]?.numero_requerimento ||
+            doc.mocoes?.[0]?.numero_mocao ||
+            doc.indicacoes?.[0]?.numero_indicacao ||
+            doc.oficios?.[0]?.numero_oficio ||
+            doc.projetosdedecretolegislativo?.[0]?.numero_decreto ||
+            doc.numero_protocolo_geral;
+
+        const numeroFormatado = String(numeroEspecifico).padStart(3, '0');
+        return `${tipo} ${numeroFormatado}/${doc.ano}`;
     };
 
     // Encontrar o próximo item pendente
@@ -80,13 +94,14 @@ export default function PainelPauta({
         const statusConfig = getStatusConfig(item.status_item);
         const isPrimeiroPendente = item.id === proximoPendente?.id;
         const podeIniciarVotacao = isPrimeiroPendente && !votacaoEmAndamento && temQuorum;
+        const isVotado = item.status_item === "Votado";
 
         return (
             <div
                 key={item.id}
                 className={`flex items-center justify-between p-3 rounded-lg border ${isPrimeiroPendente && !votacaoEmAndamento
-                        ? "border-gov-blue-300 bg-gov-blue-50"
-                        : "border-gray-200 bg-white"
+                    ? "border-gov-blue-300 bg-gov-blue-50"
+                    : "border-gray-200 bg-white"
                     }`}
             >
                 <div className="flex items-center gap-3">
@@ -104,6 +119,18 @@ export default function PainelPauta({
                         {statusConfig.icon}
                         <span className="ml-1">{statusConfig.label}</span>
                     </Badge>
+
+                    {/* Botão PDF para itens votados */}
+                    {isVotado && onGerarRelatorioVotacao && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onGerarRelatorioVotacao(item)}
+                            title="Gerar Certidão de Votação"
+                        >
+                            <FileDown className="w-4 h-4" />
+                        </Button>
+                    )}
 
                     {podeIniciarVotacao && (
                         <Button

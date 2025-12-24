@@ -20,6 +20,9 @@ import {
     AlertCircle,
     Loader2,
 } from "lucide-react";
+import { pdf } from "@react-pdf/renderer";
+import RelatorioVotacaoPDF, { VotoVereador } from "@/components/documentos/pdf/templates/RelatorioVotacaoPDF";
+import { supabase } from "@/lib/supabaseClient";
 
 import { getSessaoById, encerrarSessao, Sessao } from "@/services/sessoesService";
 import {
@@ -32,9 +35,11 @@ import {
     getVotos,
     registrarVoto,
     encerrarVotacao,
+    getPresidenteSessao,
     Presenca,
     ItemPauta,
     VotoIndividual,
+    PresidenteSessao,
 } from "@/services/sessaoConduzirService";
 import { getCurrentPeriodo } from "@/services/legislaturaService";
 
@@ -74,6 +79,8 @@ export default function ConduzirSessao() {
 
     const [confirmEncerrar, setConfirmEncerrar] = useState(false);
     const [abaAtiva, setAbaAtiva] = useState("presencas");
+    const [presidenteSessao, setPresidenteSessao] = useState<PresidenteSessao | null>(null);
+    const [periodoAtual, setPeriodoAtual] = useState<number | null>(null);
 
     // Carregar dados da sessão
     const fetchSessao = useCallback(async () => {
@@ -116,6 +123,7 @@ export default function ConduzirSessao() {
             const periodo = await getCurrentPeriodo();
             if (periodo) {
                 await inicializarPresencas(parseInt(id), periodo.id);
+                setPeriodoAtual(periodo.id);
             }
 
             const presencasData = await getPresencas(parseInt(id));
@@ -123,6 +131,12 @@ export default function ConduzirSessao() {
 
             const quorumData = await calcularQuorum(parseInt(id));
             setQuorum(quorumData);
+
+            // Buscar presidente da sessão com base na precedência da Mesa Diretora
+            if (periodo) {
+                const presidente = await getPresidenteSessao(parseInt(id), periodo.id, presencasData);
+                setPresidenteSessao(presidente);
+            }
         } catch (error: any) {
             toast({ title: "Erro ao carregar presenças", description: error.message, variant: "destructive" });
         }
@@ -250,6 +264,120 @@ export default function ConduzirSessao() {
         }
     };
 
+    // Gerar relatório de votação em PDF
+    const handleGerarRelatorioVotacao = async (item: ItemPauta) => {
+        if (!sessao || !item.documento) return;
+
+        try {
+            // Buscar votos do item
+            const votosItem = await getVotos(sessao.id, item.documento_id);
+
+            // Mapear votos para o formato do PDF
+            const votosDetalhados: VotoVereador[] = votosItem.map(v => ({
+                nome: v.vereador?.nome_parlamentar || v.vereador?.nome_completo || "Desconhecido",
+                voto: v.voto === "Sim" ? "Favorável" : v.voto === "Não" ? "Contrário" : "Abstenção",
+            }));
+
+            // Calcular contagem
+            const favoraveis = votosItem.filter(v => v.voto === "Sim").length;
+            const contrarios = votosItem.filter(v => v.voto === "Não").length;
+            const abstencoes = votosItem.filter(v => v.voto === "Abstenção").length;
+            const resultado = favoraveis > contrarios ? "Aprovado" : "Rejeitado";
+
+            // Usar presidente da sessão calculado pela precedência da Mesa Diretora
+            const presidenteNome = presidenteSessao?.nome || "Presidente da Sessão";
+
+            // Buscar autor do documento (mesma abordagem do pautaService)
+            let autorNome = "Autor não informado";
+
+            // Buscar documentoautores
+            const { data: autorData } = await supabase
+                .from("documentoautores")
+                .select("autor_id")
+                .eq("documento_id", item.documento_id)
+                .maybeSingle();
+
+            if (autorData?.autor_id) {
+                // Buscar em agentespublicos
+                const { data: agente } = await supabase
+                    .from("agentespublicos")
+                    .select("nome_completo")
+                    .eq("id", autorData.autor_id)
+                    .maybeSingle();
+
+                if (agente?.nome_completo) {
+                    autorNome = agente.nome_completo;
+                } else {
+                    // Tentar em comissoes
+                    const { data: comissao } = await supabase
+                        .from("comissoes")
+                        .select("nome")
+                        .eq("id", autorData.autor_id)
+                        .maybeSingle();
+
+                    if (comissao?.nome) {
+                        autorNome = comissao.nome;
+                    }
+                }
+            }
+
+            // Buscar ementa do documento (tabelas específicas)
+            let ementa = "Sem ementa";
+            const { data: docCompleto } = await supabase
+                .from("documentos")
+                .select(`
+                    projetosdelei(ementa),
+                    requerimentos(justificativa),
+                    mocoes(ementa),
+                    indicacoes(ementa),
+                    oficios(assunto)
+                `)
+                .eq("id", item.documento_id)
+                .single();
+
+            if (docCompleto) {
+                const d = docCompleto as any;
+                ementa = d.projetosdelei?.[0]?.ementa
+                    || d.requerimentos?.[0]?.justificativa
+                    || d.mocoes?.[0]?.ementa
+                    || d.indicacoes?.[0]?.ementa
+                    || d.oficios?.[0]?.assunto
+                    || "Sem ementa";
+            }
+
+            // Gerar PDF
+            const blob = await pdf(
+                <RelatorioVotacaoPDF
+                    materia={{
+                        tipo: item.documento.tipo?.nome || "Documento",
+                        numero: String(item.documento.numero_protocolo_geral).padStart(3, '0'),
+                        ano: item.documento.ano,
+                        ementa: ementa,
+                        autor: autorNome,
+                    }}
+                    sessao={{
+                        titulo: sessao.titulo,
+                        data: sessao.data_abertura || new Date().toISOString(),
+                    }}
+                    resultado={resultado}
+                    votos={{
+                        favoraveis,
+                        contrarios,
+                        abstencoes,
+                    }}
+                    votosDetalhados={votosDetalhados}
+                    presidenteNome={presidenteNome}
+                />
+            ).toBlob();
+
+            // Abrir em nova aba
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error: any) {
+            toast({ title: "Erro ao gerar relatório", description: error.message, variant: "destructive" });
+        }
+    };
+
     if (loading) {
         return (
             <AppLayout>
@@ -298,6 +426,14 @@ export default function ConduzirSessao() {
                         {" • "}
                         {sessao.hora_agendada?.slice(0, 5) || "16:00"}
                     </p>
+                    {presidenteSessao && (
+                        <p className="text-sm text-gov-blue-600 font-medium">
+                            🪑 Presidindo: {presidenteSessao.nome}
+                            {presidenteSessao.cargo !== "Presidente" && (
+                                <span className="text-gray-500 font-normal"> ({presidenteSessao.cargo})</span>
+                            )}
+                        </p>
+                    )}
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => navigate("/atividade-legislativa/sessoes")}>
@@ -370,6 +506,7 @@ export default function ConduzirSessao() {
                             <PainelPauta
                                 itens={itensPauta}
                                 onIniciarVotacao={handleIniciarVotacao}
+                                onGerarRelatorioVotacao={handleGerarRelatorioVotacao}
                                 votacaoEmAndamento={votacaoAtual !== null}
                                 temQuorum={quorum?.temQuorum || false}
                             />

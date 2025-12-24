@@ -85,12 +85,12 @@ export async function getMateriasDisponiveis(sessaoId: number): Promise<MateriaD
             status,
             tiposdedocumento ( nome ),
             documentoautores ( autor_id, papel ),
-            oficios ( assunto ),
-            projetosdelei ( ementa ),
-            requerimentos ( justificativa ),
-            mocoes ( ementa ),
-            indicacoes ( ementa ),
-            projetosdedecretolegislativo ( ementa )
+            oficios ( numero_oficio, assunto ),
+            projetosdelei ( numero_lei, ementa ),
+            requerimentos ( numero_requerimento, justificativa ),
+            mocoes ( numero_mocao, ementa ),
+            indicacoes ( numero_indicacao, ementa ),
+            projetosdedecretolegislativo ( numero_decreto, ementa )
         `)
         .in("status", STATUS_ELEGIVEIS)
         .order("data_protocolo", { ascending: false });
@@ -101,14 +101,29 @@ export async function getMateriasDisponiveis(sessaoId: number): Promise<MateriaD
     const materias: MateriaDisponivel[] = (documentos || [])
         .filter((doc: any) => !idsEmPauta.has(doc.id))
         .map((doc: any) => {
-            // Determinar ementa/resumo baseado no tipo
+            // Determinar ementa/resumo e número baseado no tipo
             let ementa = "";
-            if (doc.oficios?.[0]) ementa = doc.oficios[0].assunto;
-            else if (doc.projetosdelei?.[0]) ementa = doc.projetosdelei[0].ementa;
-            else if (doc.requerimentos?.[0]) ementa = doc.requerimentos[0].justificativa;
-            else if (doc.mocoes?.[0]) ementa = doc.mocoes[0].ementa;
-            else if (doc.indicacoes?.[0]) ementa = doc.indicacoes[0].ementa;
-            else if (doc.projetosdedecretolegislativo?.[0]) ementa = doc.projetosdedecretolegislativo[0].ementa;
+            let numeroMateria: number | null = null;
+
+            if (doc.oficios?.[0]) {
+                ementa = doc.oficios[0].assunto;
+                numeroMateria = doc.oficios[0].numero_oficio;
+            } else if (doc.projetosdelei?.[0]) {
+                ementa = doc.projetosdelei[0].ementa;
+                numeroMateria = doc.projetosdelei[0].numero_lei;
+            } else if (doc.requerimentos?.[0]) {
+                ementa = doc.requerimentos[0].justificativa;
+                numeroMateria = doc.requerimentos[0].numero_requerimento;
+            } else if (doc.mocoes?.[0]) {
+                ementa = doc.mocoes[0].ementa;
+                numeroMateria = doc.mocoes[0].numero_mocao;
+            } else if (doc.indicacoes?.[0]) {
+                ementa = doc.indicacoes[0].ementa;
+                numeroMateria = doc.indicacoes[0].numero_indicacao;
+            } else if (doc.projetosdedecretolegislativo?.[0]) {
+                ementa = doc.projetosdedecretolegislativo[0].ementa;
+                numeroMateria = doc.projetosdedecretolegislativo[0].numero_decreto;
+            }
 
             // Nome do Autor
             const autorRel = doc.documentoautores?.[0];
@@ -125,8 +140,10 @@ export async function getMateriasDisponiveis(sessaoId: number): Promise<MateriaD
             // Nome do Tipo
             const tipo = doc.tiposdedocumento?.nome || "Documento";
 
-            // Formatar Protocolo
-            const protocolo = `${tipo} ${doc.numero_protocolo_geral}/${doc.ano}`;
+            // Formatar identificador da matéria (usar número específico ou protocolo como fallback)
+            const numero = numeroMateria || doc.numero_protocolo_geral;
+            const numeroFormatado = String(numero).padStart(3, '0');
+            const protocolo = `${tipo} ${numeroFormatado}/${doc.ano}`;
 
             return {
                 id: doc.id,
@@ -326,15 +343,99 @@ export async function salvarPautaCompleta(
 
 /**
  * Verificar se sessão permite edição de pauta
- * Só sessões "Agendada" podem ter pauta editada
+ * Só sessões "Agendada" e com pauta não publicada podem ser editadas
  */
 export async function podeEditarPauta(sessaoId: number): Promise<boolean> {
     const { data, error } = await supabase
         .from("sessoes")
-        .select("status")
+        .select("status, pauta_publicada")
         .eq("id", sessaoId)
         .single();
 
     if (error) return false;
-    return data?.status === "Agendada";
+    const sessao = data as any;
+    // Pode editar se está agendada E pauta não foi publicada
+    return sessao?.status === "Agendada" && !sessao?.pauta_publicada;
 }
+
+/**
+ * Verificar se a pauta foi publicada
+ */
+export async function isPautaPublicada(sessaoId: number): Promise<{
+    publicada: boolean;
+    dataPublicacao?: string;
+}> {
+    const { data, error } = await supabase
+        .from("sessoes")
+        .select("pauta_publicada, data_publicacao_pauta")
+        .eq("id", sessaoId)
+        .single();
+
+    if (error) return { publicada: false };
+    const sessao = data as any;
+    return {
+        publicada: sessao?.pauta_publicada || false,
+        dataPublicacao: sessao?.data_publicacao_pauta || undefined,
+    };
+}
+
+/**
+ * Publicar pauta da sessão
+ * Marca a pauta como publicada e registra a data
+ */
+export async function publicarPauta(sessaoId: number): Promise<void> {
+    // 1. Verificar se há itens na pauta
+    const { count, error: countError } = await supabase
+        .from("sessaopauta")
+        .select("*", { count: "exact", head: true })
+        .eq("sessao_id", sessaoId);
+
+    if (countError) throw countError;
+    if (!count || count === 0) {
+        throw new Error("A pauta precisa ter pelo menos um item para ser publicada.");
+    }
+
+    // 2. Verificar se sessão está agendada
+    const { data, error: sessaoError } = await supabase
+        .from("sessoes")
+        .select("status, pauta_publicada")
+        .eq("id", sessaoId)
+        .single();
+
+    if (sessaoError) throw sessaoError;
+    const sessao = data as any;
+    if (sessao?.status !== "Agendada") {
+        throw new Error("Só é possível publicar a pauta de sessões com status 'Agendada'.");
+    }
+    if (sessao?.pauta_publicada) {
+        throw new Error("A pauta já foi publicada anteriormente.");
+    }
+
+    // 3. Publicar (usando type assertion para campos novos)
+    const { error: updateError } = await supabase
+        .from("sessoes")
+        .update({
+            pauta_publicada: true,
+            data_publicacao_pauta: new Date().toISOString(),
+        } as any)
+        .eq("id", sessaoId);
+
+    if (updateError) throw updateError;
+}
+
+/**
+ * Despublicar pauta (permitir edição novamente)
+ * Útil para correções antes da sessão iniciar
+ */
+export async function despublicarPauta(sessaoId: number): Promise<void> {
+    const { error } = await supabase
+        .from("sessoes")
+        .update({
+            pauta_publicada: false,
+            data_publicacao_pauta: null,
+        } as any)
+        .eq("id", sessaoId);
+
+    if (error) throw error;
+}
+

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { pdf } from '@react-pdf/renderer';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -10,6 +11,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from "@/components/ui/badge";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Printer, Save, FileUp, Search, Loader2, Plus, Trash2, GripVertical } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
@@ -23,11 +34,14 @@ import {
   reordenarPauta,
   salvarPautaCompleta,
   podeEditarPauta,
+  publicarPauta,
+  isPautaPublicada,
   MateriaDisponivel,
   ItemPauta,
   TipoItemPauta,
 } from '@/services/pautaService';
 import { getSessaoById, Sessao } from '@/services/sessoesService';
+import PautaPDF from '@/components/documentos/pdf/templates/PautaPDF';
 
 // Componente para item arrastável na pauta
 function SortableItemPauta({
@@ -139,6 +153,8 @@ export default function GerenciarPauta() {
   const [saving, setSaving] = useState(false);
   const [addingId, setAddingId] = useState<number | null>(null);
   const [podeEditar, setPodeEditar] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [pautaPublicada, setPautaPublicada] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
   // DnD sensors
@@ -164,9 +180,13 @@ export default function GerenciarPauta() {
       }
       setSessao(sessaoData);
 
-      // Verificar se pode editar
-      const canEdit = await podeEditarPauta(id);
+      // Verificar se pode editar e se pauta está publicada
+      const [canEdit, statusPublicacao] = await Promise.all([
+        podeEditarPauta(id),
+        isPautaPublicada(id),
+      ]);
       setPodeEditar(canEdit);
+      setPautaPublicada(statusPublicacao.publicada);
 
       // Carregar matérias disponíveis e itens da pauta
       const [materias, itens] = await Promise.all([
@@ -276,9 +296,110 @@ export default function GerenciarPauta() {
     }
   }
 
-  async function handlePublicarPauta() {
-    // TODO: Implementar lógica de publicação (mudar status, gerar PDF, etc.)
-    toast({ title: "Funcionalidade em desenvolvimento" });
+  // Estado para diálogo de confirmação
+  const [showConfirmPublish, setShowConfirmPublish] = useState(false);
+
+  function handleClickPublicar() {
+    if (!sessaoId || itensPauta.length === 0) {
+      toast({
+        title: "Pauta vazia",
+        description: "Adicione itens à pauta antes de publicar.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowConfirmPublish(true);
+  }
+
+  async function handleConfirmPublicar() {
+    if (!sessaoId) return;
+
+    setShowConfirmPublish(false);
+    setPublishing(true);
+    try {
+      await publicarPauta(parseInt(sessaoId));
+      setPautaPublicada(true);
+      setPodeEditar(false);
+      toast({
+        title: "Pauta publicada com sucesso!",
+        description: "A pauta foi publicada oficialmente."
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao publicar",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  // Estado para geração de PDF
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+
+  async function handleGerarPDF() {
+    if (!sessao || itensPauta.length === 0) {
+      toast({ title: "Pauta vazia", description: "Adicione itens à pauta antes de gerar o PDF.", variant: "destructive" });
+      return;
+    }
+
+    setGeneratingPDF(true);
+    try {
+      // Preparar dados para o PDF
+      const itensExpediente = itensPauta
+        .filter(i => i.tipo_item === "Expediente")
+        .map(i => ({
+          ordem: i.ordem,
+          protocolo: i.documento?.protocolo || `Doc #${i.documento_id}`,
+          tipo: i.documento?.tipo || "Documento",
+          ementa: i.documento?.ementa || "",
+          autor: i.documento?.autor || "Desconhecido",
+        }));
+
+      const itensOrdemDoDia = itensPauta
+        .filter(i => i.tipo_item === "Ordem do Dia")
+        .map(i => ({
+          ordem: i.ordem,
+          protocolo: i.documento?.protocolo || `Doc #${i.documento_id}`,
+          tipo: i.documento?.tipo || "Documento",
+          ementa: i.documento?.ementa || "",
+          autor: i.documento?.autor || "Desconhecido",
+        }));
+
+      const itensExplicacoes = itensPauta
+        .filter(i => i.tipo_item === "Explicações Pessoais")
+        .map(i => ({
+          ordem: i.ordem,
+          protocolo: i.documento?.protocolo || `Doc #${i.documento_id}`,
+          tipo: i.documento?.tipo || "Documento",
+          ementa: i.documento?.ementa || "",
+          autor: i.documento?.autor || "Desconhecido",
+        }));
+
+      // Gerar PDF
+      const blob = await pdf(
+        <PautaPDF
+          sessaoTitulo={sessao.titulo}
+          sessaoData={sessao.data_abertura || new Date().toISOString()}
+          sessaoHora={sessao.hora_agendada?.slice(0, 5) || "16:00"}
+          sessaoLocal={sessao.local || "Plenário da Câmara Municipal"}
+          itensExpediente={itensExpediente}
+          itensOrdemDoDia={itensOrdemDoDia}
+          itensExplicacoes={itensExplicacoes}
+        />
+      ).toBlob();
+
+      // Abrir em nova aba
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      toast({ title: "PDF gerado com sucesso!" });
+    } catch (error: any) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({ title: "Erro ao gerar PDF", description: error.message, variant: "destructive" });
+    } finally {
+      setGeneratingPDF(false);
+    }
   }
 
   if (loading) {
@@ -316,7 +437,12 @@ export default function GerenciarPauta() {
           <p className="text-gray-600">
             Sessão: <span className="font-semibold">{sessao?.titulo || `Sessão #${sessaoId}`}</span>
           </p>
-          {!podeEditar && (
+          {pautaPublicada && (
+            <Badge className="mt-2 bg-green-600">
+              ✓ Pauta Publicada
+            </Badge>
+          )}
+          {!podeEditar && !pautaPublicada && (
             <Badge variant="destructive" className="mt-2">
               Pauta não pode ser editada (sessão não está agendada)
             </Badge>
@@ -329,20 +455,26 @@ export default function GerenciarPauta() {
           <Button
             variant="outline"
             onClick={handleSalvarRascunho}
-            disabled={!hasChanges || saving}
+            disabled={!hasChanges || saving || pautaPublicada}
           >
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Salvar
           </Button>
-          <Button variant="outline" disabled>
-            <Printer className="mr-2 h-4 w-4" /> Gerar PDF
+          <Button
+            variant="outline"
+            onClick={handleGerarPDF}
+            disabled={generatingPDF || itensPauta.length === 0}
+          >
+            {generatingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+            Gerar PDF
           </Button>
           <Button
             className="bg-gov-blue-700 hover:bg-gov-blue-800"
-            onClick={handlePublicarPauta}
-            disabled={!podeEditar || itensPauta.length === 0}
+            onClick={handleClickPublicar}
+            disabled={pautaPublicada || publishing || itensPauta.length === 0}
           >
-            <FileUp className="mr-2 h-4 w-4" /> Publicar Pauta
+            {publishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
+            {pautaPublicada ? "Publicada" : "Publicar Pauta"}
           </Button>
         </div>
       </div>
@@ -460,6 +592,27 @@ export default function GerenciarPauta() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </DndContext>
+
+      {/* Diálogo de Confirmação de Publicação */}
+      <AlertDialog open={showConfirmPublish} onOpenChange={setShowConfirmPublish}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publicar Pauta</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja publicar a pauta desta sessão? Após a publicação, <strong>não será possível editar os itens</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-gov-blue-700 hover:bg-gov-blue-800"
+              onClick={handleConfirmPublicar}
+            >
+              Confirmar Publicação
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

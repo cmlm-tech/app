@@ -582,6 +582,10 @@ export async function encerrarVotacao(
             });
     }
 
+    // Atualizar status do documento
+    const novoStatusDoc = resultado === "Aprovado" ? "Aprovado" : "Rejeitado";
+    await supabase.from("documentos").update({ status: novoStatusDoc } as any).eq("id", documentoId);
+
     return resultadoData as unknown as ResultadoVotacao;
 }
 
@@ -603,7 +607,8 @@ export async function getResultadosVotacao(sessaoId: number): Promise<ResultadoV
  */
 export async function marcarComoLido(
     sessaoId: number,
-    documentoId: number
+    documentoId: number,
+    exigeParecer: boolean
 ): Promise<void> {
     // Atualizar status do item na pauta
     const { error } = await supabase
@@ -614,6 +619,16 @@ export async function marcarComoLido(
 
     if (error) throw error;
 
+    // Atualizar status do documento
+    // Se exige parecer -> Em Comissão
+    // Se não exige -> Pronto para Pauta
+    const novoStatus = exigeParecer ? "Em Comissão" : "Pronto para Pauta";
+
+    await supabase
+        .from("documentos")
+        .update({ status: novoStatus } as any)
+        .eq("id", documentoId);
+
     // Registrar tramitação
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -623,7 +638,7 @@ export async function marcarComoLido(
             .insert({
                 documento_id: documentoId,
                 status: "Lido em Plenário",
-                descricao: "Matéria lida em plenário durante sessão",
+                descricao: `Matéria lida em plenário. Encaminhada para: ${novoStatus}`,
                 usuario_id: user.id,
             } as any);
     }

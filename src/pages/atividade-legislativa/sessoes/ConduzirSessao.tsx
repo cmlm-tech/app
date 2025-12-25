@@ -271,11 +271,13 @@ export default function ConduzirSessao() {
 
         try {
             const documentoId = (item.documento as any).id;
-            await marcarComoLido(parseInt(id), documentoId);
+            const exigeParecer = (item.documento as any).tipo?.exige_parecer || false;
+
+            await marcarComoLido(parseInt(id), documentoId, exigeParecer);
 
             toast({
                 title: "Item marcado como lido!",
-                description: `${(item.documento as any).tipo?.nome || "Documento"} lido com sucesso.`,
+                description: `${(item.documento as any).tipo?.nome || "Documento"} lido com sucesso. Status atualizado.`,
             });
 
             await fetchPauta();

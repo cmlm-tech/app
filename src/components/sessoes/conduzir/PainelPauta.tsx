@@ -163,17 +163,20 @@ export default function PainelPauta({
                             const exigeParecer = item.documento?.tipo?.exige_parecer !== false; // Default true (backwards compat)
                             const pareceresPendentes = item.documento?.pareceres?.filter(p => p.status !== 'Finalizado') || [];
 
+                            const statusDoc = (item.documento as any)?.status;
+
                             // Só considera pendência se o tipo exigir parecer
-                            const temPendencias = exigeParecer && pareceresPendentes.length > 0;
+                            // Bloqueia se tiver pareceres não finalizados OU se o status for explicitamente "Em Comissão"
+                            const temPendencias = (exigeParecer && pareceresPendentes.length > 0) || statusDoc === 'Em Comissão';
 
                             if (temPendencias) {
                                 return (
                                     <div
                                         className="flex items-center text-amber-600 text-xs bg-amber-50 px-3 py-2 rounded-md border border-amber-200 select-none"
-                                        title={`Aguardando: ${pareceresPendentes.map(p => p.comissao?.nome).join(', ')}`}
+                                        title={statusDoc === 'Em Comissão' ? "Matéria em comissão" : `Aguardando: ${pareceresPendentes.map(p => p.comissao?.nome).join(', ')}`}
                                     >
                                         <AlertTriangle className="w-3 h-3 mr-1.5" />
-                                        <span>Aguardando Parecer</span>
+                                        <span>{statusDoc === 'Em Comissão' ? "Em Comissão" : "Aguardando Parecer"}</span>
                                     </div>
                                 );
                             }

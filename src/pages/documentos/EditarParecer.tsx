@@ -103,7 +103,10 @@ export default function EditarParecer() {
 
         setSaving(true);
         try {
-            const { error } = await supabase
+            // Updated to perform multiple operations
+
+            // 1. Update Parecer status
+            const { error: parecerError } = await supabase
                 .from("pareceres")
                 .update({
                     corpo_texto: corpoTexto,
@@ -112,7 +115,33 @@ export default function EditarParecer() {
                 } as any)
                 .eq("id", parecer.id);
 
-            if (error) throw error;
+            if (parecerError) throw parecerError;
+
+            // 2. Update Document Status (Pronto para Pauta)
+            if (materiaOriginal?.id) {
+                const { error: docError } = await supabase
+                    .from("documentos")
+                    .update({ status: "Pronto para Pauta" } as any)
+                    .eq("id", materiaOriginal.id);
+
+                if (docError) {
+                    console.error("Erro ao atualizar status do documento:", docError);
+                    // Non-blocking but should be logged
+                }
+
+                // 3. Add Tramitação
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await supabase
+                        .from("tramitacoes")
+                        .insert({
+                            documento_id: materiaOriginal.id,
+                            status: "Pronto para Pauta",
+                            descricao: `Parecer da comissão ${comissao?.nome || "de Constituição"} finalizado (${resultado}). Matéria pronta para pauta.`,
+                            usuario_id: user.id,
+                        } as any);
+                }
+            }
 
             toast({
                 title: "Parecer Finalizado!",

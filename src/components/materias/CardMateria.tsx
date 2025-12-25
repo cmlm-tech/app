@@ -17,13 +17,14 @@ interface CardMateriaProps {
 }
 
 const statusColors: Record<string, string> = {
-  "Aprovado": "bg-green-100 text-green-700",
-  "Em análise": "bg-yellow-100 text-yellow-900",
-  "Aguardando votação": "bg-blue-100 text-blue-700",
-  "Rejeitado": "bg-red-100 text-red-700",
-  "Arquivado": "bg-gray-200 text-gray-500",
-  "Protocolado": "bg-gray-100 text-gray-800",
-  "Rascunho": "bg-purple-100 text-purple-700"
+  "Rascunho": "bg-gray-100 text-gray-600 border border-gray-200",
+  "Protocolado": "bg-blue-100 text-blue-800 border border-blue-200",
+  "Leitura": "bg-purple-100 text-purple-800 border border-purple-200",
+  "Em Comissão": "bg-orange-100 text-orange-800 border border-orange-200",
+  "Pronto para Pauta": "bg-indigo-100 text-indigo-800 border border-indigo-200",
+  "Aprovado": "bg-green-100 text-green-800 border border-green-200",
+  "Rejeitado": "bg-red-100 text-red-800 border border-red-200",
+  "Arquivado": "bg-gray-200 text-gray-600 border border-gray-300",
 };
 
 export const CardMateria = ({ materia }: CardMateriaProps) => {

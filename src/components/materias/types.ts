@@ -16,6 +16,7 @@ export type TipoMateria =
   | "Moção"
   | "Projeto de Decreto Legislativo"
   | "Indicação"
+  | "Parecer"
   | "Todos";
 
 export interface Materia {

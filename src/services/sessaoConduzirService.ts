@@ -40,6 +40,13 @@ export interface ItemPauta {
         tipo?: {
             nome: string;
         };
+        pareceres?: {
+            id: number;
+            status: string;
+            comissao: {
+                nome: string;
+            };
+        }[];
     };
 }
 
@@ -237,7 +244,12 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
         mocoes ( numero_mocao ),
         indicacoes ( numero_indicacao ),
         oficios ( numero_oficio ),
-        projetosdedecretolegislativo ( numero_decreto )
+        projetosdedecretolegislativo ( numero_decreto ),
+        pareceres:pareceres!pareceres_materia_documento_id_fkey (
+          id,
+          status,
+          comissao:comissoes ( nome )
+        )
       )
     `)
         .eq("sessao_id", sessaoId)
@@ -582,6 +594,37 @@ export async function getResultadosVotacao(sessaoId: number): Promise<ResultadoV
 
     if (error) throw error;
     return (data || []) as unknown as ResultadoVotacao[];
+}
+
+/**
+ * Marcar item da pauta como lido (para Ofícios, Indicações - sem votação)
+ */
+export async function marcarComoLido(
+    sessaoId: number,
+    documentoId: number
+): Promise<void> {
+    // Atualizar status do item na pauta
+    const { error } = await supabase
+        .from("sessaopauta")
+        .update({ status_item: "Lido" } as any)
+        .eq("sessao_id", sessaoId)
+        .eq("documento_id", documentoId);
+
+    if (error) throw error;
+
+    // Registrar tramitação
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+        await supabase
+            .from("tramitacoes")
+            .insert({
+                documento_id: documentoId,
+                status: "Lido em Plenário",
+                descricao: "Matéria lida em plenário durante sessão",
+                usuario_id: user.id,
+            } as any);
+    }
 }
 
 /**

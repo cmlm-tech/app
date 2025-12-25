@@ -16,6 +16,7 @@ import RedefinirSenha from "./pages/RedefinirSenha";
 import Configuracoes from "./pages/Configuracoes";
 import Materias from "./pages/documentos/Materias";
 import EditarMateria from "@/pages/documentos/EditarMateria";
+import EditarParecer from "@/pages/documentos/EditarParecer";
 import Atas from "./pages/documentos/Atas";
 import AgentesPublicos from "./pages/plenario/AgentesPublicos";
 import Vereadores from "./pages/plenario/Vereadores";
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/painel" element={<RotaProtegida><Painel /></RotaProtegida>} />
             <Route path="/documentos/materias" element={<RotaProtegida><Materias /></RotaProtegida>} />
             <Route path="/documentos/materias/:id/editar" element={<RotaProtegida><EditarMateria /></RotaProtegida>} />
+            <Route path="/documentos/pareceres/:id/editar" element={<RotaProtegida><EditarParecer /></RotaProtegida>} />
             <Route path="/documentos/atas" element={<RotaProtegida><Atas /></RotaProtegida>} />
 
             {/* Rota para o futuro módulo /plenario como arquivo */}

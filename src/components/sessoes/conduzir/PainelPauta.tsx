@@ -8,13 +8,23 @@ import {
     AlertCircle,
     FileText,
     ChevronRight,
-    FileDown
+    FileDown,
+    BookOpen,
+    AlertTriangle
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 import { ItemPauta } from "@/services/sessaoConduzirService";
+
+// Tipos de documento que exigem votação nominal
+const TIPOS_COM_VOTACAO = ["Projeto de Lei", "Requerimento", "Moção", "Projeto de Decreto Legislativo"];
+
+// Tipos de documento que são apenas lidos (sem votação)
+const TIPOS_APENAS_LEITURA = ["Ofício", "Indicação"];
 
 interface PainelPautaProps {
     itens: ItemPauta[];
     onIniciarVotacao: (item: ItemPauta) => Promise<void>;
+    onMarcarLido?: (item: ItemPauta) => Promise<void>;
     onGerarRelatorioVotacao?: (item: ItemPauta) => void;
     votacaoEmAndamento: boolean;
     temQuorum: boolean;
@@ -23,6 +33,7 @@ interface PainelPautaProps {
 export default function PainelPauta({
     itens,
     onIniciarVotacao,
+    onMarcarLido,
     onGerarRelatorioVotacao,
     votacaoEmAndamento,
     temQuorum
@@ -35,6 +46,12 @@ export default function PainelPauta({
                     icon: <CheckCircle2 className="w-4 h-4" />,
                     color: "bg-green-100 text-green-700",
                     label: "Votado"
+                };
+            case "Lido":
+                return {
+                    icon: <BookOpen className="w-4 h-4" />,
+                    color: "bg-blue-100 text-blue-700",
+                    label: "Lido"
                 };
             case "Em Votação":
                 return {
@@ -61,6 +78,12 @@ export default function PainelPauta({
                     label: "Pendente"
                 };
         }
+    };
+
+    // Verifica se o tipo de documento exige votação
+    const exigeVotacao = (item: ItemPauta): boolean => {
+        const tipoNome = (item.documento as any)?.tipo?.nome || "";
+        return TIPOS_COM_VOTACAO.includes(tipoNome);
     };
 
     const formatProtocolo = (item: ItemPauta) => {
@@ -93,8 +116,11 @@ export default function PainelPauta({
     const renderItem = (item: ItemPauta) => {
         const statusConfig = getStatusConfig(item.status_item);
         const isPrimeiroPendente = item.id === proximoPendente?.id;
-        const podeIniciarVotacao = isPrimeiroPendente && !votacaoEmAndamento && temQuorum;
+        const itemExigeVotacao = exigeVotacao(item);
+        const podeIniciarVotacao = isPrimeiroPendente && !votacaoEmAndamento && temQuorum && itemExigeVotacao;
+        const podeMarcarLido = isPrimeiroPendente && !votacaoEmAndamento && !itemExigeVotacao;
         const isVotado = item.status_item === "Votado";
+        const isLido = item.status_item === "Lido";
 
         return (
             <div
@@ -133,12 +159,43 @@ export default function PainelPauta({
                     )}
 
                     {podeIniciarVotacao && (
+                        (() => {
+                            const pareceresPendentes = item.documento?.pareceres?.filter(p => p.status !== 'Finalizado') || [];
+                            const temPendencias = pareceresPendentes.length > 0;
+
+                            if (temPendencias) {
+                                return (
+                                    <div
+                                        className="flex items-center text-amber-600 text-xs bg-amber-50 px-3 py-2 rounded-md border border-amber-200 select-none"
+                                        title={`Aguardando: ${pareceresPendentes.map(p => p.comissao?.nome).join(', ')}`}
+                                    >
+                                        <AlertTriangle className="w-3 h-3 mr-1.5" />
+                                        <span>Aguardando Parecer</span>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <Button
+                                    size="sm"
+                                    className="bg-gov-blue-700 hover:bg-gov-blue-800"
+                                    onClick={() => onIniciarVotacao(item)}
+                                >
+                                    <Vote className="w-4 h-4 mr-1" /> Iniciar Votação
+                                </Button>
+                            );
+                        })()
+                    )}
+
+                    {/* Botão para marcar como lido (Ofícios, Indicações) */}
+                    {podeMarcarLido && onMarcarLido && (
                         <Button
                             size="sm"
-                            className="bg-gov-blue-700 hover:bg-gov-blue-800"
-                            onClick={() => onIniciarVotacao(item)}
+                            variant="outline"
+                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                            onClick={() => onMarcarLido(item)}
                         >
-                            <Vote className="w-4 h-4 mr-1" /> Iniciar Votação
+                            <BookOpen className="w-4 h-4 mr-1" /> Marcar como Lido
                         </Button>
                     )}
 

@@ -58,7 +58,16 @@ export default function Materias() {
           requerimentos ( justificativa ),
           mocoes ( ementa ),
           indicacoes ( ementa ),
-          projetosdedecretolegislativo ( ementa )
+          projetosdedecretolegislativo ( ementa ),
+          pareceres!pareceres_documento_id_fkey ( 
+            status, 
+            comissao:comissoes(nome),
+            materia:documentos!pareceres_materia_documento_id_fkey (
+                ano, 
+                numero_protocolo_geral,
+                tiposdedocumento ( nome )
+            )
+          )
         `)
         .order('data_protocolo', { ascending: false });
 
@@ -75,6 +84,11 @@ export default function Materias() {
           else if (doc.mocoes?.[0]) resumo = doc.mocoes[0].ementa;
           else if (doc.indicacoes?.[0]) resumo = doc.indicacoes[0].ementa;
           else if (doc.projetosdedecretolegislativo?.[0]) resumo = doc.projetosdedecretolegislativo[0].ementa;
+          else if (doc.pareceres?.[0]) {
+            const p = doc.pareceres[0];
+            const mat = p.materia;
+            resumo = `Parecer sobre ${mat?.tiposdedocumento?.nome || 'Matéria'} ${mat?.numero_protocolo_geral || ''}/${mat?.ano || ''}`;
+          }
 
           // Nome do Autor (Combinando Agentes e Comissões)
           const autorRel = doc.documentoautores?.[0];
@@ -82,7 +96,11 @@ export default function Materias() {
           let autorId: number | undefined;
           let autorTipo: string | undefined;
 
-          if (autorRel) {
+          // Para Pareceres, o autor é a Comissão
+          if (doc.tiposdedocumento?.nome === 'Parecer' && doc.pareceres?.[0]?.comissao) {
+            nomeAutor = doc.pareceres[0].comissao.nome;
+            autorTipo = 'Comissao';
+          } else if (autorRel) {
             const { autor_id } = autorRel;
             autorId = autor_id;
 
@@ -102,7 +120,9 @@ export default function Materias() {
           const nomeTipo = doc.tiposdedocumento?.nome || "Documento";
 
           // Formatar Protocolo (Ex: 2025.0000001) requested format
-          const protocoloStr = `${doc.ano}.${doc.numero_protocolo_geral.toString().padStart(7, '0')}`;
+          const protocoloStr = doc.numero_protocolo_geral
+            ? `${doc.ano}.${doc.numero_protocolo_geral.toString().padStart(7, '0')}`
+            : `${doc.ano}.SEM_PROTOCOLO`;
 
           return {
             id: doc.id.toString(),

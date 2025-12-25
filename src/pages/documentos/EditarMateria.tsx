@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ArrowLeft, Save, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { PainelComissoes } from "@/components/documentos/PainelComissoes";
 
 interface DocumentoDetalhes {
     id: number;
@@ -771,6 +772,13 @@ export default function EditarMateria() {
                                 </Button>
                             </CardContent>
                         </Card>
+
+                        {/* Bloco de Comissões */}
+                        <PainelComissoes
+                            docId={doc.id}
+                            ano={doc.ano}
+                            disabled={saving}
+                        />
                     </div>
                 </div>
 

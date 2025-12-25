@@ -36,6 +36,7 @@ import {
     registrarVoto,
     encerrarVotacao,
     getPresidenteSessao,
+    marcarComoLido,
     Presenca,
     ItemPauta,
     VotoIndividual,
@@ -261,6 +262,25 @@ export default function ConduzirSessao() {
             navigate("/atividade-legislativa/sessoes");
         } catch (error: any) {
             toast({ title: "Erro ao encerrar sessão", description: error.message, variant: "destructive" });
+        }
+    };
+
+    // Marcar item como lido (para Ofícios, Indicações - sem votação)
+    const handleMarcarLido = async (item: ItemPauta) => {
+        if (!id || !item.documento) return;
+
+        try {
+            const documentoId = (item.documento as any).id;
+            await marcarComoLido(parseInt(id), documentoId);
+
+            toast({
+                title: "Item marcado como lido!",
+                description: `${(item.documento as any).tipo?.nome || "Documento"} lido com sucesso.`,
+            });
+
+            await fetchPauta();
+        } catch (error: any) {
+            toast({ title: "Erro ao marcar como lido", description: error.message, variant: "destructive" });
         }
     };
 
@@ -506,6 +526,7 @@ export default function ConduzirSessao() {
                             <PainelPauta
                                 itens={itensPauta}
                                 onIniciarVotacao={handleIniciarVotacao}
+                                onMarcarLido={handleMarcarLido}
                                 onGerarRelatorioVotacao={handleGerarRelatorioVotacao}
                                 votacaoEmAndamento={votacaoAtual !== null}
                                 temQuorum={quorum?.temQuorum || false}

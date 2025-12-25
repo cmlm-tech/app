@@ -160,8 +160,11 @@ export default function PainelPauta({
 
                     {podeIniciarVotacao && (
                         (() => {
+                            const exigeParecer = item.documento?.tipo?.exige_parecer !== false; // Default true (backwards compat)
                             const pareceresPendentes = item.documento?.pareceres?.filter(p => p.status !== 'Finalizado') || [];
-                            const temPendencias = pareceresPendentes.length > 0;
+
+                            // Só considera pendência se o tipo exigir parecer
+                            const temPendencias = exigeParecer && pareceresPendentes.length > 0;
 
                             if (temPendencias) {
                                 return (

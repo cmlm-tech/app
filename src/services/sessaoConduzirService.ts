@@ -39,6 +39,7 @@ export interface ItemPauta {
         status: string;
         tipo?: {
             nome: string;
+            exige_parecer?: boolean;
         };
         pareceres?: {
             id: number;
@@ -237,7 +238,8 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
         ano,
         status,
         tipo:tiposdedocumento (
-          nome
+          nome,
+          exige_parecer
         ),
         projetosdelei ( numero_lei ),
         requerimentos ( numero_requerimento ),

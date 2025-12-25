@@ -1155,18 +1155,27 @@ export type Database = {
           id: number
           is_materia: boolean | null
           nome: string
+          exige_parecer: boolean | null
+          exige_leitura: boolean | null
+          votacao_turnos: number | null
         }
         Insert: {
           descricao?: string | null
           id?: number
           is_materia?: boolean | null
           nome: string
+          exige_parecer?: boolean | null
+          exige_leitura?: boolean | null
+          votacao_turnos?: number | null
         }
         Update: {
           descricao?: string | null
           id?: number
           is_materia?: boolean | null
           nome?: string
+          exige_parecer?: boolean | null
+          exige_leitura?: boolean | null
+          votacao_turnos?: number | null
         }
         Relationships: []
       }
@@ -1379,7 +1388,7 @@ export type Database = {
       | "Secretaria"
       | "Vereador"
       | "Inativo"
-      status_documento: "Rascunho" | "Protocolado" | "Tramitando" | "Arquivado"
+      status_documento: "Rascunho" | "Protocolado" | "Leitura" | "Em Comissão" | "Pronto para Pauta" | "Aprovado" | "Rejeitado" | "Arquivado"
       status_presenca: "Presente" | "Ausente" | "Ausente com Justificativa"
       status_sessao:
       | "Agendada"

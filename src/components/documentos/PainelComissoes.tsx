@@ -33,6 +33,9 @@ export function PainelComissoes({ docId, ano, disabled = false }: PainelComissoe
     const [participantes, setParticipantes] = useState<Set<number>>(new Set());
     const [pareceresMap, setPareceresMap] = useState<Map<number, ParecerExistente>>(new Map());
 
+    const [exigeParecer, setExigeParecer] = useState<boolean>(true); // Default true para não piscar
+    const [tipoDocNome, setTipoDocNome] = useState<string>("");
+
     useEffect(() => {
         carregarDados();
     }, [docId]);
@@ -40,6 +43,28 @@ export function PainelComissoes({ docId, ano, disabled = false }: PainelComissoe
     async function carregarDados() {
         try {
             setLoading(true);
+
+            // 0. Verificar Tipo do Documento e Configuração
+            const { data: docData } = await supabase
+                .from("documentos")
+                .select(`
+                    tipo:tiposdedocumento (
+                        nome,
+                        exige_parecer
+                    )
+                `)
+                .eq("id", docId)
+                .single();
+
+            if (docData?.tipo) {
+                // @ts-ignore
+                const configExige = docData.tipo.exige_parecer;
+                // @ts-ignore
+                setTipoDocNome(docData.tipo.nome);
+
+                // Se for explicitamente false, setar false. Se null/undefined, assumir true (backwards compat)
+                setExigeParecer(configExige !== false);
+            }
 
             // 1. Carregar Comissões Permanentes
             // @ts-ignore - Tipos complexos do Supabase causam erro de profundidade
@@ -184,6 +209,26 @@ export function PainelComissoes({ docId, ano, disabled = false }: PainelComissoe
     }
 
     if (loading) return <div className="p-4"><Loader2 className="w-4 h-4 animate-spin" /></div>;
+
+    if (!exigeParecer) {
+        return (
+            <Card className="border-slate-200 shadow-sm bg-gray-50 border-dashed">
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold text-gray-500">
+                        Comissões (Pareceres)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-xs text-gray-500">
+                        O tipo de documento <strong>"{tipoDocNome}"</strong> está configurado para não exigir pareceres.
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-2">
+                        Configure regras de fluxo no menu Configurações.
+                    </p>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <Card className="border-slate-200 shadow-sm">

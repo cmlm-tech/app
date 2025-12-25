@@ -111,11 +111,20 @@ export default function EditarParecer() {
                 .update({
                     corpo_texto: corpoTexto,
                     resultado: resultado || null,
-                    status: "Finalizado"
+                    // Parecer agora assume status "Emitido" ao invés de "Finalizado" (mantendo compatibilidade de lógica se necessário)
+                    status: "Emitido"
                 } as any)
                 .eq("id", parecer.id);
 
             if (parecerError) throw parecerError;
+
+            // 1.1 Update Parecer Document Status
+            const { error: parecerDocError } = await supabase
+                .from("documentos")
+                .update({ status: "Emitido" } as any)
+                .eq("id", parecer.documento_id); // ID do documento do parecer
+
+            if (parecerDocError) throw parecerDocError;
 
             // 2. Update Document Status (Pronto para Pauta)
             if (materiaOriginal?.id) {
@@ -183,7 +192,7 @@ export default function EditarParecer() {
         );
     }
 
-    const statusFinalizado = parecer.status === "Finalizado";
+    const statusFinalizado = ["Finalizado", "Emitido", "Lido"].includes(parecer.status);
 
     return (
         <AppLayout>

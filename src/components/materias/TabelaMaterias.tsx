@@ -25,6 +25,8 @@ const statusColors: Record<string, string> = {
   "Aprovado": "bg-green-100 text-green-800 border border-green-200",
   "Rejeitado": "bg-red-100 text-red-800 border border-red-200",
   "Arquivado": "bg-gray-200 text-gray-600 border border-gray-300",
+  "Emitido": "bg-sky-100 text-sky-800 border border-sky-200",
+  "Lido": "bg-purple-100 text-purple-800 border border-purple-200",
 };
 
 function linkToMateria(id: string, tipo: string) {

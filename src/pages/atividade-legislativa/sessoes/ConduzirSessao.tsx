@@ -271,9 +271,11 @@ export default function ConduzirSessao() {
 
         try {
             const documentoId = (item.documento as any).id;
+            const tipoNome = (item.documento as any).tipo?.nome;
             const exigeParecer = (item.documento as any).tipo?.exige_parecer || false;
+            const isParecer = tipoNome === "Parecer";
 
-            await marcarComoLido(parseInt(id), documentoId, exigeParecer);
+            await marcarComoLido(parseInt(id), documentoId, exigeParecer, isParecer);
 
             toast({
                 title: "Item marcado como lido!",

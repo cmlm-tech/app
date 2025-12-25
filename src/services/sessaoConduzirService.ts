@@ -608,7 +608,8 @@ export async function getResultadosVotacao(sessaoId: number): Promise<ResultadoV
 export async function marcarComoLido(
     sessaoId: number,
     documentoId: number,
-    exigeParecer: boolean
+    exigeParecer: boolean,
+    isParecer: boolean = false
 ): Promise<void> {
     // Atualizar status do item na pauta
     const { error } = await supabase
@@ -620,9 +621,17 @@ export async function marcarComoLido(
     if (error) throw error;
 
     // Atualizar status do documento
-    // Se exige parecer -> Em Comissão
-    // Se não exige -> Pronto para Pauta
-    const novoStatus = exigeParecer ? "Em Comissão" : "Pronto para Pauta";
+    // Sequência:
+    // 1. Se for Parecer -> status: Lido
+    // 2. Se exige parecer -> status: Em Comissão
+    // 3. Padrão -> status: Pronto para Pauta
+
+    let novoStatus = exigeParecer ? "Em Comissão" : "Pronto para Pauta";
+
+    // Verificar se é um Parecer
+    if (isParecer) {
+        novoStatus = "Lido";
+    }
 
     await supabase
         .from("documentos")

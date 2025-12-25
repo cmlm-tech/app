@@ -161,7 +161,7 @@ export default function PainelPauta({
                     {podeIniciarVotacao && (
                         (() => {
                             const exigeParecer = item.documento?.tipo?.exige_parecer !== false; // Default true (backwards compat)
-                            const pareceresPendentes = item.documento?.pareceres?.filter(p => p.status !== 'Finalizado') || [];
+                            const pareceresPendentes = item.documento?.pareceres?.filter(p => !['Finalizado', 'Emitido', 'Lido'].includes(p.status)) || [];
 
                             const statusDoc = (item.documento as any)?.status;
 

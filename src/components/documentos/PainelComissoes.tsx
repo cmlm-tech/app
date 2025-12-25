@@ -177,7 +177,7 @@ export function PainelComissoes({ docId, ano, disabled = false }: PainelComissoe
                         documento_id: novoDoc.id,
                         materia_documento_id: docId,
                         comissao_id: comissaoId,
-                        status: "Pendente"
+                        status: "Rascunho"
                     } as any);
 
                 if (parErr) throw parErr;

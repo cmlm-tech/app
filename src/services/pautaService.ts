@@ -195,7 +195,8 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
                 mocoes ( ementa ),
                 indicacoes ( ementa ),
                 projetosdedecretolegislativo ( ementa ),
-                pareceres:pareceres!pareceres_documento_id_fkey ( id, corpo_texto, comissoes ( nome ) )
+                pareceres:pareceres!pareceres_documento_id_fkey ( id, corpo_texto, comissoes ( nome ) ),
+                atas:atas!atas_documento_id_fkey ( resumo_pauta, texto, sessao_id, sessoes:sessoes!atas_sessao_id_fkey ( numero, tipo_sessao ) )
             )
         `)
         .eq("sessao_id", sessaoId)
@@ -203,10 +204,69 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
 
     if (error) throw error;
 
+    // Buscar membros da mesa diretora para Atas (ordem de prioridade)
+    // Ordem: 1º Secretário > 2º Secretário > 1º Tesoureiro > 2º Tesoureiro
+    const CARGOS_PRIORIDADE = [
+        "1º Secretário",
+        "2º Secretário",
+        "1º Tesoureiro",
+        "2º Tesoureiro"
+    ];
+
+    const { data: membrosMesa } = await (supabase as any)
+        .from("mesadiretoramembros")
+        .select(`
+            cargo,
+            agentespublicos ( id, nome_completo ),
+            mesasdiretoras!inner ( periodo_sessao_id )
+        `)
+        .in("cargo", CARGOS_PRIORIDADE);
+
+    // Função para encontrar membro por prioridade de cargo
+    function encontrarMembroPorPrioridade(membros: any[]): string {
+        for (const cargoAlvo of CARGOS_PRIORIDADE) {
+            const membro = membros.find((m: any) => m.cargo === cargoAlvo);
+            if (membro?.agentespublicos?.nome_completo) {
+                return membro.agentespublicos.nome_completo;
+            }
+        }
+        return "Secretário";
+    }
+
+
     return (data || []).map((item: any) => {
         const doc = item.documentos;
+        const tipo = doc?.tiposdedocumento?.nome || "Documento";
 
-        // Determinar ementa
+        // Tratamento especial para Atas
+
+        if (tipo === "Ata" && doc?.atas) {
+            const ataData = doc.atas; // É objeto único, não array!
+            const sessaoAta = ataData.sessoes;
+            const numeroSessao = sessaoAta?.numero || "?";
+            const tipoSessao = sessaoAta?.tipo_sessao || "Ordinária";
+
+            // Buscar membro da mesa por ordem de prioridade
+            const nomeAutor = encontrarMembroPorPrioridade(membrosMesa || []);
+
+            return {
+                id: item.id,
+                sessao_id: item.sessao_id,
+                documento_id: item.documento_id,
+                ordem: item.ordem || 0,
+                tipo_item: item.tipo_item || "Expediente",
+                status_item: item.status_item || "Pendente",
+                documento: {
+                    id: doc.id,
+                    protocolo: `Ata da ${numeroSessao}ª Sessão ${tipoSessao}/${doc.ano}`,
+                    tipo: "Ata",
+                    ementa: ataData.resumo_pauta || "Ata da sessão anterior",
+                    autor: nomeAutor,
+                },
+            };
+        }
+
+        // Tratamento para outros tipos de documento
         let ementa = "";
         let numeroMateria: number | null = null;
         if (doc?.oficios?.[0]) {
@@ -247,7 +307,6 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
             nomeAutor = doc.pareceres[0].comissoes.nome;
         }
 
-        const tipo = doc?.tiposdedocumento?.nome || "Documento";
         // Formatar identificador da matéria (usar número específico ou protocolo como fallback)
         const numero = numeroMateria || doc?.numero_protocolo_geral;
         const numeroFormatado = String(numero).padStart(3, '0');

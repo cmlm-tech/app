@@ -22,6 +22,9 @@ import {
 } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
 import RelatorioVotacaoPDF, { VotoVereador } from "@/components/documentos/pdf/templates/RelatorioVotacaoPDF";
+import AtaPDF from "@/components/documentos/pdf/templates/AtaPDF";
+import PainelAta from "./components/PainelAta";
+import { getDadosParaAta } from "@/services/ataService";
 import { supabase } from "@/lib/supabaseClient";
 
 import { getSessaoById, encerrarSessao, Sessao } from "@/services/sessoesService";
@@ -97,10 +100,11 @@ export default function ConduzirSessao() {
                 return;
             }
 
-            if (sessaoData.status !== "Em Andamento") {
+            // Permitir apenas sessões "Em Andamento" ou "Realizada" (para acessar a Ata)
+            if (sessaoData.status !== "Em Andamento" && sessaoData.status !== "Realizada") {
                 toast({
-                    title: "Sessão não está em andamento",
-                    description: "Só é possível conduzir sessões com status 'Em Andamento'",
+                    title: "Sessão indisponível",
+                    description: "Só é possível visualizar sessões com status 'Em Andamento' ou 'Realizada'",
                     variant: "destructive"
                 });
                 navigate("/atividade-legislativa/sessoes");
@@ -258,8 +262,20 @@ export default function ConduzirSessao() {
 
         try {
             await encerrarSessao(parseInt(id));
-            toast({ title: "Sessão encerrada com sucesso!" });
-            navigate("/atividade-legislativa/sessoes");
+
+            // Atualizar dados da sessão para refletir o novo status
+            const sessaoAtualizada = await getSessaoById(parseInt(id));
+            if (sessaoAtualizada) {
+                setSessao(sessaoAtualizada);
+            }
+
+            toast({
+                title: "Sessão encerrada com sucesso!",
+                description: "A aba 'Ata' está disponível para gerar o documento."
+            });
+
+            // Mudar automaticamente para a aba "Ata"
+            setAbaAtiva("ata");
         } catch (error: any) {
             toast({ title: "Erro ao encerrar sessão", description: error.message, variant: "destructive" });
         }
@@ -441,8 +457,8 @@ export default function ConduzirSessao() {
                         <h1 className="text-2xl font-bold text-gov-blue-800">
                             {sessao.numero ? `${sessao.numero}ª ` : ""}Sessão {sessao.tipo_sessao}
                         </h1>
-                        <Badge className="bg-amber-100 text-amber-700 animate-pulse">
-                            Em Andamento
+                        <Badge className={sessao.status === "Em Andamento" ? "bg-amber-100 text-amber-700 animate-pulse" : "bg-green-100 text-green-700"}>
+                            {sessao.status}
                         </Badge>
                     </div>
                     <p className="text-gray-600">
@@ -466,9 +482,10 @@ export default function ConduzirSessao() {
                     <Button
                         variant="destructive"
                         onClick={() => setConfirmEncerrar(true)}
-                        disabled={votacaoAtual !== null}
+                        disabled={votacaoAtual !== null || sessao.status === "Realizada"}
                     >
-                        <Square className="w-4 h-4 mr-2" /> Encerrar Sessão
+                        <Square className="w-4 h-4 mr-2" />
+                        {sessao.status === "Realizada" ? "Sessão Encerrada" : "Encerrar Sessão"}
                     </Button>
                 </div>
             </div>
@@ -503,7 +520,7 @@ export default function ConduzirSessao() {
             <Card>
                 <Tabs value={abaAtiva} onValueChange={setAbaAtiva}>
                     <CardHeader className="pb-0">
-                        <TabsList className="grid w-full grid-cols-3">
+                        <TabsList className="grid w-full grid-cols-4">
                             <TabsTrigger value="presencas" className="gap-2">
                                 <Users className="w-4 h-4" /> Presenças
                             </TabsTrigger>
@@ -514,6 +531,9 @@ export default function ConduzirSessao() {
                                 <Vote className="w-4 h-4" />
                                 Votação
                                 {votacaoAtual && <Badge variant="secondary" className="ml-1 bg-amber-100 text-amber-700">Ativa</Badge>}
+                            </TabsTrigger>
+                            <TabsTrigger value="ata" className="gap-2" disabled={sessao.status !== "Realizada"}>
+                                <FileText className="w-4 h-4" /> Ata
                             </TabsTrigger>
                         </TabsList>
                     </CardHeader>
@@ -551,6 +571,22 @@ export default function ConduzirSessao() {
                                     <Vote className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                                     <p>Nenhuma votação em andamento</p>
                                     <p className="text-sm">Selecione um item da pauta para iniciar a votação</p>
+                                </div>
+                            )}
+                        </TabsContent>
+
+                        {/* Tab: Ata */}
+                        <TabsContent value="ata">
+                            {sessao.status === "Realizada" ? (
+                                <PainelAta
+                                    sessaoId={parseInt(id!)}
+                                    presencas={presencas}
+                                />
+                            ) : (
+                                <div className="text-center py-12 text-gray-500">
+                                    <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                                    <p>Ata disponível após encerramento da sessão</p>
+                                    <p className="text-sm">Encerre a sessão para gerar a ata</p>
                                 </div>
                             )}
                         </TabsContent>

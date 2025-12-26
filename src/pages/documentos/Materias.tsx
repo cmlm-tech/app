@@ -145,8 +145,11 @@ export default function Materias() {
     }
   }
 
-  // Filtrar matérias
+  // Filtrar matérias (excluindo Atas - aparecem em TabelaAtas)
   const materiasFiltradas = materias.filter((m) => {
+    // Atas são listadas em sua própria página/componente
+    if (m.tipo === "Ata") return false;
+    
     const buscaOk =
       busca === "" ||
       m.protocolo.toLowerCase().includes(busca.toLowerCase()) ||

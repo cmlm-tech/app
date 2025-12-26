@@ -1,93 +1,73 @@
 import { AppLayout } from "@/components/AppLayout";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { FilePlus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import { DateRange } from "react-day-picker";
 
-// Importando os componentes filhos
+// Componentes
 import FiltroAtas from "@/components/atas/FiltroAtas";
 import TabelaAtas from "@/components/atas/TabelaAtas";
-import ModalNovaAta, { SessaoParaAta } from "@/components/atas/ModalNovaAta"; // Importando o tipo também
 import { Ata } from "@/components/atas/types";
-
-// --- 1. DADOS MOCK PARA AS ATAS EXISTENTES ---
-const MOCK_ATAS: Ata[] = [
-  {
-    id: "1",
-    numeroSessao: 13,
-    tipoSessao: 'Ordinária',
-    dataRealizacao: new Date("2025-04-22T14:00:00"),
-    status: 'Realizada',
-    resumoPauta: "Aprovação de parecer, apresentação de Decretos Legislativos, Moções e ofícios.",
-    materiasDeliberadas: 3,
-    presentes: 12,
-    linkPDF: "/atas/Ata_13_2025_0000001.pdf"
-  },
-];
-
-// --- 2. DADOS MOCK PARA AS SESSÕES REALIZADAS ---
-// No futuro, isso viria da sua API. Note que a sessão 13 não está aqui,
-// pois estamos simulando que ela já teve sua ata gerada (MOCK_ATAS acima).
-const MOCK_SESSOES: SessaoParaAta[] = [
-    { id: "s1", numero: 12, tipoSessao: 'Ordinária', dataAbertura: new Date("2025-04-15T14:00:00"), totalPresentes: 13, totalDeliberacoes: 1 },
-    { id: "s2", numero: 5, tipoSessao: 'Solene', dataAbertura: new Date("2025-03-20T19:00:00"), totalPresentes: 13, totalDeliberacoes: 0 },
-    { id: "s3", numero: 6, tipoSessao: 'Extraordinária', dataAbertura: new Date("2025-05-10T10:00:00"), totalPresentes: 11, totalDeliberacoes: 1 },
-    { id: "s4", numero: 14, tipoSessao: 'Ordinária', dataAbertura: new Date("2025-04-29T14:00:00"), totalPresentes: 13, totalDeliberacoes: 5 },
-];
-
+import { getAtasParaListagem } from "@/services/atasListService";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Atas() {
-  const [modalAberto, setModalAberto] = useState(false);
-  const [atas, setAtas] = useState<Ata[]>(MOCK_ATAS);
-  const [sessoesDisponiveis, setSessoesDisponiveis] = useState<SessaoParaAta[]>(MOCK_SESSOES);
+  const { toast } = useToast();
+  const [atas, setAtas] = useState<Ata[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Estados dos filtros
   const [busca, setBusca] = useState("");
   const [tipoSessao, setTipoSessao] = useState("Todas");
   const [periodo, setPeriodo] = useState<DateRange | undefined>();
 
+  // Carregar atas ao montar o componente
+  useEffect(() => {
+    fetchAtas();
+  }, []);
+
+  async function fetchAtas() {
+    setIsLoading(true);
+    try {
+      const atasData = await getAtasParaListagem();
+      setAtas(atasData);
+    } catch (error: any) {
+      console.error("Erro ao carregar atas:", error);
+      toast({
+        title: "Erro ao carregar atas",
+        description: error.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Filtrar atas
   const atasFiltradas = atas.filter((a) => {
-    const buscaOk = busca === "" || a.resumoPauta.toLowerCase().includes(busca.toLowerCase()) || String(a.numeroSessao).includes(busca);
+    const buscaOk = busca === "" ||
+      a.resumoPauta.toLowerCase().includes(busca.toLowerCase()) ||
+      String(a.numeroSessao).includes(busca);
     const tipoOk = tipoSessao === "Todas" || a.tipoSessao === tipoSessao;
-    const periodoOk = !periodo?.from || (a.dataRealizacao >= periodo.from && a.dataRealizacao <= (periodo.to || periodo.from));
+    const periodoOk = !periodo?.from ||
+      (a.dataRealizacao >= periodo.from && a.dataRealizacao <= (periodo.to || periodo.from));
     return buscaOk && tipoOk && periodoOk;
   }).sort((a, b) => b.dataRealizacao.getTime() - a.dataRealizacao.getTime());
-  
-  // --- 3. LÓGICA PARA FILTRAR SESSÕES QUE JÁ TÊM ATA ---
-  // Isso garante que o modal só mostrará opções válidas.
-  const sessoesSemAta = sessoesDisponiveis.filter(sessao => 
-    !atas.some(ata => 
-        ata.numeroSessao === sessao.numero && 
-        ata.tipoSessao === sessao.tipoSessao
-    )
-  );
-
-  function handleRegistrar(novaAta: Omit<Ata, "id">) {
-    setAtas((atuais) => [
-        { ...novaAta, id: String(Math.random()) },
-        ...atuais
-    ]);
-    setModalAberto(false);
-  }
 
   return (
     <AppLayout>
       <div className="flex flex-col gap-6">
+        {/* Cabeçalho */}
         <div>
-          <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800 mb-1">Atas das Sessões</h1>
-          <p className="text-gray-600 text-lg">Consulte, pesquise e faça o download das atas de todas as sessões legislativas.</p>
+          <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800 mb-1">
+            Atas das Sessões
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Consulte, pesquise e faça o download das atas de todas as sessões legislativas.
+          </p>
         </div>
 
+        {/* Filtros */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-          <div>
-            <Button
-              className="bg-gov-blue-700 hover:bg-gov-blue-800 w-full md:w-auto"
-              onClick={() => setModalAberto(true)}
-            >
-              <FilePlus className="mr-2 w-4 h-4" />
-              Registrar Nova Ata
-            </Button>
-          </div>
           <FiltroAtas
             busca={busca}
             setBusca={setBusca}
@@ -98,18 +78,31 @@ export default function Atas() {
           />
         </div>
 
+        {/* Tabela */}
         <div className="rounded-lg bg-white shadow">
-          <TabelaAtas atas={atasFiltradas} />
+          {isLoading ? (
+            <div className="flex justify-center items-center p-12">
+              <Loader2 className="h-8 w-8 animate-spin text-gov-blue-600" />
+              <span className="ml-3 text-gray-600">Carregando atas...</span>
+            </div>
+          ) : (
+            <TabelaAtas atas={atasFiltradas} />
+          )}
         </div>
-      </div>
 
-      {/* --- 4. PASSANDO A LISTA DE SESSÕES FILTRADAS PARA O MODAL --- */}
-      <ModalNovaAta
-        aberto={modalAberto}
-        onClose={() => setModalAberto(false)}
-        onRegistrar={handleRegistrar}
-        sessoes={sessoesSemAta}
-      />
+        {/* Informação sobre como gerar atas */}
+        {!isLoading && atas.length === 0 && (
+          <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+            <p className="text-gray-600">
+              Nenhuma ata registrada ainda.
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              As atas são geradas automaticamente ao encerrar uma sessão em{" "}
+              <span className="font-medium">Atividade Legislativa → Sessões → Conduzir</span>.
+            </p>
+          </div>
+        )}
+      </div>
     </AppLayout>
   );
 }

@@ -277,7 +277,8 @@ export async function criarSessao(sessao: {
     local?: string;
     observacoes?: string;
 }): Promise<Sessao> {
-    const numero = await getProximoNumeroSessao(sessao.periodoId);
+    // MUDANÇA: Não atribuir número ao criar
+    // Número será atribuído apenas quando iniciarSessao() for chamado
 
     const { data, error } = await supabase
         .from("sessoes")
@@ -285,7 +286,7 @@ export async function criarSessao(sessao: {
             periodo_sessao_id: sessao.periodoId,
             tipo_sessao: sessao.tipoSessao,
             data_abertura: sessao.dataAbertura,
-            numero,
+            numero: null, // ← NULL até sessão ser iniciada
             status: "Agendada",
             // Campos adicionais (cast necessário até regenerar types)
             ...({
@@ -345,14 +346,44 @@ export async function atualizarSessao(
 
 // Start session (Agendada → Em Andamento)
 export async function iniciarSessao(id: number): Promise<Sessao> {
+    // 1. Buscar sessão atual
+    const { data: sessaoAtual, error: fetchError } = await supabase
+        .from("sessoes")
+        .select("numero, periodo_sessao_id, status")
+        .eq("id", id)
+        .single();
+
+    if (fetchError) throw fetchError;
+    if (sessaoAtual.status !== "Agendada") {
+        throw new Error("Apenas sessões agendadas podem ser iniciadas");
+    }
+
+    let numeroAtribuido = sessaoAtual.numero;
+
+    // 2. Se ainda não tem número, atribuir agora
+    if (!numeroAtribuido) {
+        // Buscar último número usado no período
+        const { data: ultimaSessao } = await supabase
+            .from("sessoes")
+            .select("numero")
+            .eq("periodo_sessao_id", sessaoAtual.periodo_sessao_id)
+            .not("numero", "is", null)
+            .order("numero", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        numeroAtribuido = (ultimaSessao?.numero || 0) + 1;
+    }
+
+    // 3. Atualizar com número + status
     const { data, error } = await supabase
         .from("sessoes")
         .update({
+            numero: numeroAtribuido,
             status: "Em Andamento",
             data_abertura: new Date().toISOString(),
-        })
+        } as any)
         .eq("id", id)
-        .eq("status", "Agendada") // Only if currently scheduled
         .select()
         .single();
 
@@ -480,14 +511,14 @@ export async function reagendarSessao(id: number, novaData: string): Promise<Ses
     };
 }
 
-// Cancel session (Agendada/Suspensa → Cancelada)
-export async function cancelarSessao(id: number, motivo: string): Promise<Sessao> {
+// Mark session as Não Realizada (Agendada/Suspensa/Adiada → Não Realizada)
+export async function marcarNaoRealizada(id: number, motivo: string): Promise<Sessao> {
     const { data, error } = await supabase
         .from("sessoes")
         .update({
-            status: "Cancelada",
-            motivo_cancelamento: motivo,
-        })
+            status: "Não Realizada",
+            motivo: motivo,
+        } as any)
         .eq("id", id)
         .in("status", ["Agendada", "Suspensa", "Adiada"] as any)
         .select()

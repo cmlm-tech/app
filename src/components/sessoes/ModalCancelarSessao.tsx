@@ -38,31 +38,31 @@ export default function ModalCancelarSessao({ open, onClose, onConfirm, dataSess
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Confirmar Cancelamento</DialogTitle>
+          <DialogTitle>Marcar Sessão como Não Realizada</DialogTitle>
           <DialogDescription>
-            Esta ação cancelará a sessão legislativa.
+            Esta sessão será marcada como não realizada no histórico.
           </DialogDescription>
         </DialogHeader>
         <div className="my-4 space-y-4">
           <p>
-            Tem certeza que deseja cancelar a sessão de{" "}
-            <span className="font-medium">{dataFormatada}</span>?
+            Tem certeza que deseja marcar a sessão de{" "}
+            <span className="font-medium">{dataFormatada}</span> como não realizada?
           </p>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Motivo do cancelamento (opcional)
+              Motivo (recomendado)
             </label>
             <Textarea
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Informe o motivo do cancelamento..."
+              placeholder="Ex: Feriado Municipal, Falta de quórum, Recesso não programado..."
               rows={3}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>Manter Sessão</Button>
-          <Button variant="destructive" onClick={handleConfirm}>Sim, Cancelar</Button>
+          <Button variant="outline" onClick={handleClose}>Cancelar</Button>
+          <Button variant="default" className="bg-orange-600 hover:bg-orange-700" onClick={handleConfirm}>Confirmar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

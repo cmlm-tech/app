@@ -21,6 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Printer, Save, FileUp, Search, Loader2, Plus, Trash2, GripVertical } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
@@ -93,14 +99,33 @@ function SortableItemPauta({
           Autor: {item.documento?.autor || "Desconhecido"}
         </p>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onRemove(item.id)}
-        className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      {/* Desabilitar remoção de Atas (obrigatórias por regimento) */}
+      {item.documento?.tipo === "Ata" ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled
+              className="shrink-0 text-gray-300 cursor-not-allowed"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Atas são obrigatórias por regimento e não podem ser removidas</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onRemove(item.id)}
+          className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }

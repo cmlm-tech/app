@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +37,7 @@ import {
   getSessoes,
   criarSessao,
   atualizarSessao,
-  cancelarSessao,
+  marcarNaoRealizada,
   iniciarSessao,
   encerrarSessao,
   suspenderSessao,
@@ -73,7 +74,7 @@ export default function SessoesLeg() {
 
   // Modal states
   const [modal, setModal] = useState<{ aberta: boolean, edicao?: Sessao | null }>({ aberta: false, edicao: null });
-  const [modalCancelar, setModalCancelar] = useState<{ aberta: boolean, sessao?: Sessao }>({ aberta: false, sessao: undefined });
+  const [modalNaoRealizada, setModalNaoRealizada] = useState<{ aberta: boolean, sessao?: Sessao }>({ aberta: false, sessao: undefined });
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     title: string;
@@ -155,16 +156,16 @@ export default function SessoesLeg() {
     }
   };
 
-  // Handle cancel session
-  const handleCancelarSessao = async (sessaoId: number, motivo: string) => {
+  // Handle marcar sessão como não realizada
+  const handleMarcarNaoRealizada = async (sessaoId: number, motivo: string) => {
     try {
-      await cancelarSessao(sessaoId, motivo);
-      toast({ title: "Sessão cancelada" });
-      setModalCancelar({ aberta: false, sessao: undefined });
+      await marcarNaoRealizada(sessaoId, motivo);
+      toast({ title: "Sessão marcada como não realizada" });
+      setModalNaoRealizada({ aberta: false, sessao: undefined });
       fetchData();
     } catch (error: any) {
       toast({
-        title: "Erro ao cancelar sessão",
+        title: "Erro ao marcar sessão",
         description: error.message,
         variant: "destructive",
       });
@@ -173,20 +174,48 @@ export default function SessoesLeg() {
 
   // Status transition handlers
   const handleIniciarSessao = async (sessao: Sessao) => {
-    setConfirmDialog({
-      open: true,
-      title: "Iniciar Sessão",
-      description: `Deseja iniciar a sessão "${sessao.titulo}"? Isso marcará o início oficial da sessão.`,
-      action: async () => {
-        try {
-          await iniciarSessao(sessao.id);
-          toast({ title: "Sessão iniciada!" });
-          fetchData();
-        } catch (error: any) {
-          toast({ title: "Erro", description: error.message, variant: "destructive" });
-        }
-      },
-    });
+    // Verificar se a pauta está montada
+    try {
+      const { data: itensPauta, error } = await supabase
+        .from("sessaopauta")
+        .select("id", { count: "exact", head: true })
+        .eq("sessao_id", sessao.id);
+
+      if (error) throw error;
+
+      const count = itensPauta?.length || 0;
+
+      if (count === 0) {
+        toast({
+          title: "Pauta não montada",
+          description: "Para iniciar a sessão, é necessário montar a pauta primeiro. Clique em 'Montar Pauta' para adicionar itens.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Pauta OK, prosseguir com confirmação
+      setConfirmDialog({
+        open: true,
+        title: "Iniciar Sessão",
+        description: `Deseja iniciar a sessão "${sessao.titulo}"? Isso marcará o início oficial da sessão.`,
+        action: async () => {
+          try {
+            await iniciarSessao(sessao.id);
+            toast({ title: "Sessão iniciada!" });
+            fetchData();
+          } catch (error: any) {
+            toast({ title: "Erro", description: error.message, variant: "destructive" });
+          }
+        },
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao verificar pauta",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEncerrarSessao = async (sessao: Sessao) => {
@@ -335,11 +364,11 @@ export default function SessoesLeg() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button size="icon" variant="ghost" onClick={() => setModalCancelar({ aberta: true, sessao })}>
-                    <XIcon className="w-4 h-4 text-red-500" />
+                  <Button size="icon" variant="ghost" onClick={() => setModalNaoRealizada({ aberta: true, sessao })}>
+                    <XIcon className="w-4 h-4 text-orange-500" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Cancelar</TooltipContent>
+                <TooltipContent>Marcar como Não Realizada</TooltipContent>
               </Tooltip>
             </>
           )}
@@ -391,11 +420,11 @@ export default function SessoesLeg() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button size="icon" variant="ghost" onClick={() => setModalCancelar({ aberta: true, sessao })}>
-                    <XIcon className="w-4 h-4 text-red-500" />
+                  <Button size="icon" variant="ghost" onClick={() => setModalNaoRealizada({ aberta: true, sessao })}>
+                    <XIcon className="w-4 h-4 text-orange-500" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Cancelar</TooltipContent>
+                <TooltipContent>Marcar como Não Realizada</TooltipContent>
               </Tooltip>
             </>
           )}
@@ -413,11 +442,11 @@ export default function SessoesLeg() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button size="icon" variant="ghost" onClick={() => setModalCancelar({ aberta: true, sessao })}>
-                    <XIcon className="w-4 h-4 text-red-500" />
+                  <Button size="icon" variant="ghost" onClick={() => setModalNaoRealizada({ aberta: true, sessao })}>
+                    <XIcon className="w-4 h-4 text-orange-500" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Cancelar</TooltipContent>
+                <TooltipContent>Marcar como Não Realizada</TooltipContent>
               </Tooltip>
             </>
           )}
@@ -565,10 +594,10 @@ export default function SessoesLeg() {
                         <TableBody>
                           {sessoes.map(sessao => (
                             <TableRow key={sessao.id}>
-                              <TableCell className="font-medium">{sessao.numero || "-"}</TableCell>
+                              <TableCell className="font-medium">{sessao.numero || "S/N"}</TableCell>
                               <TableCell>
                                 {sessao.data_abertura ? format(parseISO(sessao.data_abertura), "dd/MM/yyyy") : "-"}
-                                <br />
+                                <br />               <br />
                                 <span className="text-xs text-gray-500">
                                   {sessao.hora_agendada?.slice(0, 5) || "16:00"}
                                 </span>
@@ -603,7 +632,7 @@ export default function SessoesLeg() {
                             status: sessao.status as any,
                           }}
                           onEdit={() => setModal({ aberta: true, edicao: sessao })}
-                          onCancel={() => setModalCancelar({ aberta: true, sessao })}
+                          onCancel={() => setModalNaoRealizada({ aberta: true, sessao })}
                         />
                       ))}
                     </div>
@@ -632,13 +661,13 @@ export default function SessoesLeg() {
         />
       )}
 
-      {/* Modal de Cancelar Sessão */}
-      {modalCancelar.aberta && modalCancelar.sessao && (
+      {/* Modal de Marcar como Não Realizada */}
+      {modalNaoRealizada.aberta && modalNaoRealizada.sessao && (
         <ModalCancelarSessao
-          open={modalCancelar.aberta}
-          onClose={() => setModalCancelar({ aberta: false, sessao: undefined })}
-          onConfirm={(motivo) => handleCancelarSessao(modalCancelar.sessao!.id, motivo || "Cancelada pelo usuário")}
-          dataSessao={modalCancelar.sessao.data_abertura || ""}
+          open={modalNaoRealizada.aberta}
+          onClose={() => setModalNaoRealizada({ aberta: false, sessao: undefined })}
+          onConfirm={(motivo) => handleMarcarNaoRealizada(modalNaoRealizada.sessao!.id, motivo || "Não informado")}
+          dataSessao={modalNaoRealizada.sessao.data_abertura || ""}
         />
       )}
 

@@ -42,21 +42,18 @@ export type Database = {
         Row: {
           documento_id: number
           id: number
-          resumo_pauta: string | null
           sessao_id: number
           texto: string
         }
         Insert: {
           documento_id: number
           id?: number
-          resumo_pauta?: string | null
           sessao_id: number
           texto: string
         }
         Update: {
           documento_id?: number
           id?: number
-          resumo_pauta?: string | null
           sessao_id?: number
           texto?: string
         }
@@ -1127,7 +1124,7 @@ export type Database = {
           hora_agendada: string | null
           id: number
           local: string | null
-          motivo: string | null
+          motivo_cancelamento: string | null
           numero: number | null
           observacoes: string | null
           pauta_pdf_url: string | null
@@ -1146,7 +1143,7 @@ export type Database = {
           hora_agendada?: string | null
           id?: number
           local?: string | null
-          motivo?: string | null
+          motivo_cancelamento?: string | null
           numero?: number | null
           observacoes?: string | null
           pauta_pdf_url?: string | null
@@ -1165,7 +1162,7 @@ export type Database = {
           hora_agendada?: string | null
           id?: number
           local?: string | null
-          motivo?: string | null
+          motivo_cancelamento?: string | null
           numero?: number | null
           observacoes?: string | null
           pauta_pdf_url?: string | null
@@ -1451,7 +1448,7 @@ export type Database = {
         | "Agendada"
         | "Em Andamento"
         | "Realizada"
-        | "Não Realizada"
+        | "Cancelada"
         | "Adiada"
         | "Suspensa"
       status_tramitacao:
@@ -1649,7 +1646,7 @@ export const Constants = {
         "Agendada",
         "Em Andamento",
         "Realizada",
-        "Não Realizada",
+        "Cancelada",
         "Adiada",
         "Suspensa",
       ],

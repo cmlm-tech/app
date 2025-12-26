@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { pdf } from "@react-pdf/renderer";
 import ParecerPDF from "@/components/documentos/pdf/templates/ParecerPDF";
+import { adicionarParecerProximaSessao } from "@/services/parecerService";
 
 export default function EditarParecer() {
     const { id } = useParams();
@@ -210,6 +211,11 @@ export default function EditarParecer() {
                             usuario_id: user.id,
                         } as any);
                 }
+            }
+
+            // 4. Adicionar parecer e matéria à próxima sessão
+            if (parecer.documento_id && materiaOriginal?.id) {
+                await adicionarParecerProximaSessao(parecer.documento_id, materiaOriginal.id);
             }
 
             toast({

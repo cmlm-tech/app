@@ -24,6 +24,7 @@ import SessoesLeg from "./pages/atividade-legislativa/Sessoes";
 import Legislaturas from "./pages/atividade-legislativa/Legislaturas";
 import GerenciarPauta from "./pages/atividade-legislativa/pautas/GerenciarPauta";
 import ConduzirSessao from "./pages/atividade-legislativa/sessoes/ConduzirSessao";
+import DetalhesSessao from "./pages/atividade-legislativa/sessoes/DetalhesSessao";
 import DetalheLegislatura from "./pages/atividade-legislativa/DetalheLegislatura";
 import DetalheComissao from "./pages/plenario/comissoes/[id]";
 import Painel from "./pages/Painel";
@@ -79,6 +80,7 @@ const App = () => (
 
             {/* --- MÓDULO DE ATIVIDADE LEGISLATIVA --- */}
             <Route path="/atividade-legislativa/sessoes" element={<RotaProtegida><SessoesLeg /></RotaProtegida>} />
+            <Route path="/atividade-legislativa/sessoes/:id" element={<RotaProtegida><DetalhesSessao /></RotaProtegida>} />
             <Route path="/atividade-legislativa/sessoes/:id/conduzir" element={<RotaProtegida><ConduzirSessao /></RotaProtegida>} />
             <Route path="/atividade-legislativa/sessoes/:sessaoId/pauta" element={<RotaProtegida><GerenciarPauta /></RotaProtegida>} />
             <Route path="/atividade-legislativa/legislaturas" element={<RotaProtegida><Legislaturas /></RotaProtegida>} />

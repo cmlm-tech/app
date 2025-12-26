@@ -67,6 +67,7 @@ export type { Sessao, TipoSessao as SessaoTipo, StatusSessao as SessaoStatus };
 
 export default function SessoesLeg() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [visualizacao, setVisualizacao] = useState<"calendario" | "lista">("calendario");
   const [sessoes, setSessoes] = useState<Sessao[]>([]);
   const [loading, setLoading] = useState(true);
@@ -328,11 +329,15 @@ export default function SessoesLeg() {
           {/* Visualizar - sempre disponível */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button size="icon" variant="ghost">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => navigate(`/atividade-legislativa/sessoes/${sessao.id}`)}
+              >
                 <EyeIcon className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Visualizar</TooltipContent>
+            <TooltipContent>Visualizar Detalhes</TooltipContent>
           </Tooltip>
 
           {/* Ações para sessão Agendada */}

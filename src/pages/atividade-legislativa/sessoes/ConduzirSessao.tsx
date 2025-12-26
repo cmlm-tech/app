@@ -23,7 +23,7 @@ import {
 import { pdf } from "@react-pdf/renderer";
 import RelatorioVotacaoPDF, { VotoVereador } from "@/components/documentos/pdf/templates/RelatorioVotacaoPDF";
 import AtaPDF from "@/components/documentos/pdf/templates/AtaPDF";
-import PainelAta from "./components/PainelAta";
+import PainelAta from "@/components/sessoes/PainelAta";
 import { getDadosParaAta } from "@/services/ataService";
 import { supabase } from "@/lib/supabaseClient";
 

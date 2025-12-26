@@ -42,7 +42,7 @@ export interface ItemPautaInput {
 }
 
 // Status elegíveis para entrar em pauta (valores do enum status_documento)
-const STATUS_ELEGIVEIS: ("Protocolado" | "Tramitando")[] = ["Protocolado", "Tramitando"];
+const STATUS_ELEGIVEIS: ("Protocolado" | "Tramitando" | "Emitido")[] = ["Protocolado", "Tramitando", "Emitido"];
 
 /**
  * Buscar matérias disponíveis para adicionar à pauta
@@ -90,9 +90,10 @@ export async function getMateriasDisponiveis(sessaoId: number): Promise<MateriaD
             requerimentos ( numero_requerimento, justificativa ),
             mocoes ( numero_mocao, ementa ),
             indicacoes ( numero_indicacao, ementa ),
-            projetosdedecretolegislativo ( numero_decreto, ementa )
+            projetosdedecretolegislativo ( numero_decreto, ementa ),
+            pareceres:pareceres!pareceres_documento_id_fkey ( id, corpo_texto, comissoes ( nome ) )
         `)
-        .in("status", STATUS_ELEGIVEIS)
+        .in("status", STATUS_ELEGIVEIS as any)
         .order("data_protocolo", { ascending: false });
 
     if (error) throw error;
@@ -123,6 +124,11 @@ export async function getMateriasDisponiveis(sessaoId: number): Promise<MateriaD
             } else if (doc.projetosdedecretolegislativo?.[0]) {
                 ementa = doc.projetosdedecretolegislativo[0].ementa;
                 numeroMateria = doc.projetosdedecretolegislativo[0].numero_decreto;
+            } else if (doc.pareceres?.[0]) {
+                // Para pareceres, usamos um trecho do corpo do texto como ementa
+                const corpo = doc.pareceres[0].corpo_texto || "";
+                ementa = corpo.substring(0, 100) + (corpo.length > 100 ? "..." : "");
+                numeroMateria = doc.pareceres[0].id; // Parecer usa ID interno
             }
 
             // Nome do Autor
@@ -135,6 +141,8 @@ export async function getMateriasDisponiveis(sessaoId: number): Promise<MateriaD
                 } else if (agentesMap.has(autor_id)) {
                     nomeAutor = agentesMap.get(autor_id)!;
                 }
+            } else if (doc?.pareceres?.[0]?.comissoes?.nome) {
+                nomeAutor = doc.pareceres[0].comissoes.nome;
             }
 
             // Nome do Tipo
@@ -186,7 +194,8 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
                 requerimentos ( justificativa ),
                 mocoes ( ementa ),
                 indicacoes ( ementa ),
-                projetosdedecretolegislativo ( ementa )
+                projetosdedecretolegislativo ( ementa ),
+                pareceres:pareceres!pareceres_documento_id_fkey ( id, corpo_texto, comissoes ( nome ) )
             )
         `)
         .eq("sessao_id", sessaoId)
@@ -199,12 +208,30 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
 
         // Determinar ementa
         let ementa = "";
-        if (doc?.oficios?.[0]) ementa = doc.oficios[0].assunto;
-        else if (doc?.projetosdelei?.[0]) ementa = doc.projetosdelei[0].ementa;
-        else if (doc?.requerimentos?.[0]) ementa = doc.requerimentos[0].justificativa;
-        else if (doc?.mocoes?.[0]) ementa = doc.mocoes[0].ementa;
-        else if (doc?.indicacoes?.[0]) ementa = doc.indicacoes[0].ementa;
-        else if (doc?.projetosdedecretolegislativo?.[0]) ementa = doc.projetosdedecretolegislativo[0].ementa;
+        let numeroMateria: number | null = null;
+        if (doc?.oficios?.[0]) {
+            ementa = doc.oficios[0].assunto;
+            numeroMateria = doc.oficios[0].numero_oficio;
+        } else if (doc?.projetosdelei?.[0]) {
+            ementa = doc.projetosdelei[0].ementa;
+            numeroMateria = doc.projetosdelei[0].numero_lei;
+        } else if (doc?.requerimentos?.[0]) {
+            ementa = doc.requerimentos[0].justificativa;
+            numeroMateria = doc.requerimentos[0].numero_requerimento;
+        } else if (doc?.mocoes?.[0]) {
+            ementa = doc.mocoes[0].ementa;
+            numeroMateria = doc.mocoes[0].numero_mocao;
+        } else if (doc?.indicacoes?.[0]) {
+            ementa = doc.indicacoes[0].ementa;
+            numeroMateria = doc.indicacoes[0].numero_indicacao;
+        } else if (doc?.projetosdedecretolegislativo?.[0]) {
+            ementa = doc.projetosdedecretolegislativo[0].ementa;
+            numeroMateria = doc.projetosdedecretolegislativo[0].numero_decreto;
+        } else if (doc?.pareceres?.[0]) {
+            const corpo = doc.pareceres[0].corpo_texto || "";
+            ementa = corpo.substring(0, 100) + (corpo.length > 100 ? "..." : "");
+            numeroMateria = doc.pareceres[0].id;
+        }
 
         // Nome do Autor
         const autorRel = doc?.documentoautores?.[0];
@@ -216,10 +243,15 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
             } else if (agentesMap.has(autor_id)) {
                 nomeAutor = agentesMap.get(autor_id)!;
             }
+        } else if (doc?.pareceres?.[0]?.comissoes?.nome) {
+            nomeAutor = doc.pareceres[0].comissoes.nome;
         }
 
         const tipo = doc?.tiposdedocumento?.nome || "Documento";
-        const protocolo = doc ? `${tipo} ${doc.numero_protocolo_geral}/${doc.ano}` : "Documento";
+        // Formatar identificador da matéria (usar número específico ou protocolo como fallback)
+        const numero = numeroMateria || doc?.numero_protocolo_geral;
+        const numeroFormatado = String(numero).padStart(3, '0');
+        const protocolo = doc ? `${tipo} ${numeroFormatado}/${doc.ano}` : "Documento";
 
         return {
             id: item.id,

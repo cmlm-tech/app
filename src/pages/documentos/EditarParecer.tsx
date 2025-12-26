@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Save, CheckCircle, ExternalLink, FileText } from "lucide-react";
+import { Loader2, ArrowLeft, Save, CheckCircle, ExternalLink, FileText, Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { pdf } from "@react-pdf/renderer";
+import ParecerPDF from "@/components/documentos/pdf/templates/ParecerPDF";
 
 export default function EditarParecer() {
     const { id } = useParams();
@@ -20,8 +22,10 @@ export default function EditarParecer() {
     const [parecer, setParecer] = useState<any>(null);
     const [materiaOriginal, setMateriaOriginal] = useState<any>(null);
     const [comissao, setComissao] = useState<any>(null);
+    const [comissaoMembros, setComissaoMembros] = useState<any[]>([]);
     const [corpoTexto, setCorpoTexto] = useState("");
     const [resultado, setResultado] = useState<string>(""); // Favorável, Contrário, Com Emendas
+    const [nomeAutorMateria, setNomeAutorMateria] = useState("Não informado");
 
     useEffect(() => {
         carregarParecer();
@@ -49,7 +53,16 @@ export default function EditarParecer() {
                         id,
                         numero_protocolo_geral,
                         ano,
-                        tiposdedocumento ( nome )
+                        tiposdedocumento ( nome ),
+                        documentoautores ( autor_id, autor_type ),
+                        projetosdelei ( ementa, corpo_texto, justificativa ),
+                        oficios ( assunto, corpo_texto, justificativa ),
+                        requerimentos ( justificativa, corpo_texto ),
+                        mocoes ( ementa, justificativa, homenageado_texto ),
+                        indicacoes ( ementa, justificativa, destinatario_texto ),
+                        projetosdedecretolegislativo ( ementa, corpo_texto, justificativa ),
+                        projetosderesolucao ( ementa, corpo_texto, justificativa ),
+                        projetosdeemendaorganica ( ementa, corpo_texto, justificativa )
                     )
                 `)
                 .eq("documento_id", parseInt(id))
@@ -62,6 +75,53 @@ export default function EditarParecer() {
             setResultado(parecerData.resultado || "");
             setComissao(parecerData.comissao);
             setMateriaOriginal(parecerData.materia);
+
+            // Carregar membros da comissão
+            if (parecerData.comissao?.id) {
+                const { data: membrosData } = await supabase
+                    .from("comissaomembros")
+                    .select(`
+                        cargo,
+                        agente:agentespublicos ( nome_completo )
+                    `)
+                    .eq("comissao_id", parecerData.comissao.id);
+
+                if (membrosData) {
+                    const formatados = membrosData.map((m: any) => ({
+                        nome: m.agente?.nome_completo || "Nome Indisponível",
+                        cargo: m.cargo
+                    }));
+                    setComissaoMembros(formatados);
+                }
+            }
+
+            // Resolver nome do autor da matéria original
+            if (parecerData.materia?.documentoautores?.length > 0) {
+                const autor = parecerData.materia.documentoautores[0];
+                if (autor.autor_id) {
+                    // Tenta buscar em agentes públicos (vereadores)
+                    const { data: agente } = await supabase
+                        .from("agentespublicos")
+                        .select("nome_completo")
+                        .eq("id", autor.autor_id)
+                        .single();
+
+                    if (agente) {
+                        setNomeAutorMateria(agente.nome_completo);
+                    } else {
+                        // Se não achar, tenta comissões (autoria de comissão)
+                        const { data: comissaoAutor } = await supabase
+                            .from("comissoes")
+                            .select("nome")
+                            .eq("id", autor.autor_id)
+                            .single();
+
+                        if (comissaoAutor) {
+                            setNomeAutorMateria(comissaoAutor.nome);
+                        }
+                    }
+                }
+            }
 
         } catch (error: any) {
             console.error(error);
@@ -169,6 +229,122 @@ export default function EditarParecer() {
         }
     }
 
+    async function handleGerarIA() {
+        if (!parecer || !materiaOriginal || !comissao) return;
+
+        setSaving(true);
+        toast({ title: "IA Trabalhando...", description: "Gerando minuta do parecer, aguarde." });
+
+        try {
+            const ementaMateria =
+                materiaOriginal.projetosdelei?.[0]?.ementa ||
+                materiaOriginal.oficios?.[0]?.assunto ||
+                materiaOriginal.requerimentos?.[0]?.justificativa ||
+                materiaOriginal.mocoes?.[0]?.ementa ||
+                materiaOriginal.indicacoes?.[0]?.ementa ||
+                materiaOriginal.projetosdedecretolegislativo?.[0]?.ementa ||
+                materiaOriginal.projetosderesolucao?.[0]?.ementa ||
+                materiaOriginal.projetosdeemendaorganica?.[0]?.ementa ||
+                "Não informado";
+
+            const textoCompletoMateria =
+                materiaOriginal.projetosdelei?.[0]?.corpo_texto ||
+                materiaOriginal.projetosdelei?.[0]?.justificativa ||
+                materiaOriginal.oficios?.[0]?.corpo_texto ||
+                materiaOriginal.oficios?.[0]?.justificativa ||
+                materiaOriginal.requerimentos?.[0]?.corpo_texto ||
+                materiaOriginal.requerimentos?.[0]?.justificativa ||
+                materiaOriginal.mocoes?.[0]?.justificativa ||
+                materiaOriginal.mocoes?.[0]?.homenageado_texto ||
+                materiaOriginal.indicacoes?.[0]?.justificativa ||
+                materiaOriginal.projetosdedecretolegislativo?.[0]?.corpo_texto ||
+                materiaOriginal.projetosdedecretolegislativo?.[0]?.justificativa ||
+                materiaOriginal.projetosderesolucao?.[0]?.corpo_texto ||
+                materiaOriginal.projetosderesolucao?.[0]?.justificativa ||
+                materiaOriginal.projetosdeemendaorganica?.[0]?.corpo_texto ||
+                materiaOriginal.projetosdeemendaorganica?.[0]?.justificativa ||
+                "";
+
+            // Construir contexto rico para a IA
+            const contextoParecer = `
+                Gere um PARECER DA COMISSÃO DE ${comissao.nome.toUpperCase()}.
+                
+                MATÉRIA ANALISADA:
+                - Tipo: ${materiaOriginal.tiposdedocumento?.nome}
+                - Número: ${materiaOriginal.numero_protocolo_geral}/${materiaOriginal.ano}
+                - Autor: ${nomeAutorMateria}
+                - Ementa/Assunto: ${ementaMateria}
+                
+                TEXTO/JUSTIFICATIVA DA MATÉRIA ORIGINAL:
+                "${textoCompletoMateria}"
+                
+                MEMBROS DA COMISSÃO (APENAS PARA CONTEXTO, NÃO INCLUA NO TEXTO FINAL):
+                ${comissaoMembros.map((m: any) => `- ${m.nome} (${m.cargo})`).join("\n")}
+
+                ESTRUTURA DESEJADA DO TEXTO DE SAÍDA:
+                1. RELATÓRIO: Resumo do que trata a matéria, citando o autor.
+                2. ANÁLISE: Análise da constitucionalidade, legalidade e mérito.
+                3. CONCLUSÃO/VOTO: Parecer favorável ou contrário.
+                
+                IMPORTANTE:
+                - Gere texto formal e técnico.
+                - NÃO inclua cabeçalho (já existe no layout).
+                - NÃO inclua lista de assinaturas ou membros ao final (já existe no layout).
+                - NÃO coloque data ou local ao final.
+            `;
+
+            const { data: dataIA, error: erroEdge } = await supabase.functions.invoke('gerar-minuta', {
+                body: {
+                    documento_id: parecer.documento_id,
+                    protocolo_geral: parecer.documento?.numero_protocolo_geral,
+                    tipo: "Parecer",
+                    contexto: contextoParecer,
+                    autor_nome: comissao.nome,
+                }
+            });
+
+            if (erroEdge) throw erroEdge;
+
+            if (dataIA?.texto) {
+                setCorpoTexto(dataIA.texto);
+                toast({ title: "Sucesso!", description: "Texto gerado pela IA." });
+            } else {
+                throw new Error("A IA não retornou texto.");
+            }
+
+        } catch (error: any) {
+            console.error("Erro IA:", error);
+            toast({ title: "Erro na IA", description: error.message, variant: "destructive" });
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    async function handleGerarPDF() {
+        if (!parecer || !materiaOriginal) return;
+
+        try {
+            const blob = await pdf(
+                <ParecerPDF
+                    comissaoNome={comissao?.nome || "Comissão"}
+                    materiaTipo={materiaOriginal.tiposdedocumento?.nome || "Documento"}
+                    materiaNumero={materiaOriginal.numero_protocolo_geral?.toString() || ""}
+                    materiaAno={materiaOriginal.ano}
+                    parecerNumero={`${parecer.id}/${parecer.documento?.ano}`}
+                    texto={corpoTexto}
+                    dataProtocolo={parecer.documento?.data_protocolo}
+                    membros={comissaoMembros}
+                />
+            ).toBlob();
+
+            const url = URL.createObjectURL(blob);
+            window.open(url, "_blank");
+        } catch (error) {
+            console.error("Erro ao gerar PDF:", error);
+            toast({ title: "Erro", description: "Falha ao gerar o PDF.", variant: "destructive" });
+        }
+    }
+
     if (loading) {
         return (
             <AppLayout>
@@ -227,9 +403,15 @@ export default function EditarParecer() {
                             </p>
                         </div>
                     </div>
-                    <Badge className={statusFinalizado ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>
-                        {parecer.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={handleGerarPDF} className="gap-2">
+                            <FileText className="w-4 h-4" />
+                            Visualizar Oficial
+                        </Button>
+                        <Badge className={statusFinalizado ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>
+                            {parecer.status}
+                        </Badge>
+                    </div>
                 </div>
 
                 {/* Matéria Original */}
@@ -300,6 +482,15 @@ export default function EditarParecer() {
                 <div className="flex gap-3 justify-end">
                     {!statusFinalizado && (
                         <>
+                            <Button
+                                variant="outline"
+                                onClick={handleGerarIA}
+                                disabled={saving}
+                                className="border-purple-200 text-purple-700 hover:bg-purple-50"
+                            >
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                Gerar com IA
+                            </Button>
                             <Button
                                 variant="outline"
                                 onClick={handleSalvar}

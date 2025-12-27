@@ -5,13 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import FiltroMaterias from "@/components/materias/FiltroMaterias";
 import TabelaMaterias from "@/components/materias/TabelaMaterias";
+import { TabelaPareceres, Parecer } from "@/components/materias/TabelaPareceres";
 import ModalNovaMateria from "@/components/materias/ModalNovaMateria";
 import { Materia, StatusMateria, TipoMateria } from "@/components/materias/types";
 import { supabase } from "@/lib/supabaseClient";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Materias() {
   const [modalAberto, setModalAberto] = useState(false);
   const [materias, setMaterias] = useState<Materia[]>([]);
+  const [pareceres, setPareceres] = useState<Parecer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [busca, setBusca] = useState("");
@@ -137,6 +140,24 @@ export default function Materias() {
           };
         });
         setMaterias(mappedMaterias);
+
+        // Mapear pareceres separadamente
+        const mappedPareceres: Parecer[] = data
+          .filter((doc: any) => doc.tiposdedocumento?.nome === 'Parecer')
+          .map((doc: any) => {
+            const p = doc.pareceres?.[0];
+            const mat = p?.materia;
+            const protocoloMateria = mat?.protocolos?.numero || 'S/N';
+            const tipoMateria = mat?.tiposdedocumento?.nome || 'Matéria';
+            return {
+              id: doc.id.toString(),
+              materiaRelacionada: `${tipoMateria} ${protocoloMateria}/${mat?.ano || doc.ano}`,
+              comissao: p?.comissao?.nome || 'Sem comissão',
+              status: doc.status,
+              data: new Date(doc.data_protocolo),
+            };
+          });
+        setPareceres(mappedPareceres);
       }
     } catch (err: any) {
       console.error("Erro ao buscar matérias:", err.message);
@@ -150,6 +171,8 @@ export default function Materias() {
     // Atas são listadas em sua própria página/componente
     const tipoStr = m.tipo as string;
     if (tipoStr === "Ata" || tipoStr.includes("Ata")) return false;
+    // Pareceres são listados em aba separada
+    if (tipoStr === "Parecer") return false;
 
     const buscaOk =
       busca === "" ||
@@ -210,39 +233,50 @@ export default function Materias() {
               <Loader2 className="h-8 w-8 animate-spin text-gov-blue-600" />
             </div>
           ) : (
-            <>
-              <TabelaMaterias materias={materiasPaginadas} />
+            <Tabs defaultValue="materias" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="materias">Matérias ({materiasFiltradas.length})</TabsTrigger>
+                <TabsTrigger value="pareceres">Pareceres ({pareceres.length})</TabsTrigger>
+              </TabsList>
 
-              {/* Controles de Paginação */}
-              {materiasFiltradas.length > 0 && (
-                <div className="flex items-center justify-between border-t pt-4">
-                  <div className="text-sm text-gray-500">
-                    Mostrando {inicio + 1} até {Math.min(fim, materiasFiltradas.length)} de {materiasFiltradas.length} resultados
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPagina(p => Math.max(1, p - 1))}
-                      disabled={pagina === 1}
-                    >
-                      Anterior
-                    </Button>
-                    <div className="flex items-center px-4 font-medium text-sm">
-                      Página {pagina} de {totalPaginas}
+              <TabsContent value="materias">
+                <TabelaMaterias materias={materiasPaginadas} />
+
+                {/* Controles de Paginação */}
+                {materiasFiltradas.length > 0 && (
+                  <div className="flex items-center justify-between border-t pt-4">
+                    <div className="text-sm text-gray-500">
+                      Mostrando {inicio + 1} até {Math.min(fim, materiasFiltradas.length)} de {materiasFiltradas.length} resultados
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
-                      disabled={pagina === totalPaginas}
-                    >
-                      Próximo
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPagina(p => Math.max(1, p - 1))}
+                        disabled={pagina === 1}
+                      >
+                        Anterior
+                      </Button>
+                      <div className="flex items-center px-4 font-medium text-sm">
+                        Página {pagina} de {totalPaginas}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                        disabled={pagina === totalPaginas}
+                      >
+                        Próximo
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
+                )}
+              </TabsContent>
+
+              <TabsContent value="pareceres">
+                <TabelaPareceres pareceres={pareceres} />
+              </TabsContent>
+            </Tabs>
           )}
         </div>
       </div>

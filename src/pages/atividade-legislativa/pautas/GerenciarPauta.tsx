@@ -42,6 +42,8 @@ import {
   podeEditarPauta,
   publicarPauta,
   isPautaPublicada,
+  adicionarAtaSessaoAnterior,
+  adicionarPareceresEmitidos,
   MateriaDisponivel,
   ItemPauta,
   TipoItemPauta,
@@ -231,6 +233,21 @@ export default function GerenciarPauta() {
 
       setMateriasDisponiveis(materias);
       setItensPauta(itens);
+
+      // Adicionar automaticamente a ata da sessão anterior se o Expediente estiver vazio
+      if (canEdit) {
+        const ataAdicionada = await adicionarAtaSessaoAnterior(id);
+        const pareceresAdicionados = await adicionarPareceresEmitidos(id);
+
+        // Recarregar itens se algo foi adicionado automaticamente
+        if (ataAdicionada || pareceresAdicionados > 0) {
+          const itensAtualizados = await getItensPauta(id);
+          setItensPauta(itensAtualizados);
+          // Atualizar materias disponíveis (excluir as que foram adicionadas)
+          const materiasAtualizadas = await getMateriasDisponiveis(id);
+          setMateriasDisponiveis(materiasAtualizadas);
+        }
+      }
     } catch (error: any) {
       toast({ title: "Erro ao carregar dados", description: error.message, variant: "destructive" });
     } finally {

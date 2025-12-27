@@ -35,7 +35,6 @@ export interface ItemPauta {
     votacao_secreta?: boolean; // Override opcional
     documento?: {
         id: number;
-        numero_protocolo_geral: number;
         ano: number;
         status: string;
         requer_votacao_secreta: boolean;
@@ -236,8 +235,6 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
       *,
       documento:documentos (
         id,
-        numero_protocolo_geral,
-        ano,
         ano,
         status,
         requer_votacao_secreta,
@@ -245,6 +242,7 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
           nome,
           exige_parecer
         ),
+        protocolos!documentos_protocolo_id_fkey ( numero ),
         projetosdelei ( numero_lei ),
         requerimentos ( numero_requerimento ),
         mocoes ( numero_mocao ),
@@ -596,8 +594,8 @@ export async function encerrarVotacao(
     // Vamos atualizar se precisar, ou já inserir com ele.
     // Vou buscar o sessaopauta para saber
     const { data: pautaItem } = await supabase.from('sessaopauta').select('votacao_secreta').eq('id', itemPautaId).single();
-    if (pautaItem?.votacao_secreta) {
-        await supabase.from('sessaovotacao_resultado').update({ votacao_secreta: true }).eq('id', resultadoData.id);
+    if (pautaItem?.votacao_secreta && resultadoData) {
+        await supabase.from('sessaovotacao_resultado').update({ votacao_secreta: true }).eq('id', (resultadoData as any).id);
     }
 
     // Atualizar status do item da pauta
@@ -684,14 +682,38 @@ export async function marcarComoLido(
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-        await supabase
-            .from("tramitacoes")
-            .insert({
-                documento_id: documentoId,
-                status: "Lido em Plenário",
-                descricao: `Matéria lida em plenário. Encaminhada para: ${novoStatus}`,
-                usuario_id: user.id,
-            } as any);
+        // Se exige parecer, registrar tramitação "Enviado para Comissão"
+        if (exigeParecer && !isParecer) {
+            // Buscar nomes das comissões vinculadas
+            const { data: pareceres } = await supabase
+                .from("pareceres")
+                .select("comissao:comissoes(nome)")
+                .eq("materia_documento_id", documentoId);
+
+            const comissoes = pareceres?.map((p: any) => p.comissao?.nome).filter(Boolean) || [];
+            const descricaoComissoes = comissoes.length > 0
+                ? `Enviado para: ${comissoes.join(", ")}`
+                : "Enviado para comissão";
+
+            await supabase
+                .from("tramitacoes")
+                .insert({
+                    documento_id: documentoId,
+                    status: "Enviado para Comissão",
+                    descricao: descricaoComissoes,
+                    usuario_id: user.id,
+                } as any);
+        } else {
+            // Tramitação padrão de leitura
+            await supabase
+                .from("tramitacoes")
+                .insert({
+                    documento_id: documentoId,
+                    status: "Lido em Plenário",
+                    descricao: `Matéria lida em plenário. Encaminhada para: ${novoStatus}`,
+                    usuario_id: user.id,
+                } as any);
+        }
     }
 }
 

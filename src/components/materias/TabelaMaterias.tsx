@@ -219,7 +219,13 @@ export default function TabelaMaterias({ materias }: Props) {
                   </button>
                   <a href={linkToMateria(mat.id, mat.tipo)} title="Editar" className="hover:text-yellow-700 text-gray-600"><Pencil size={18} /></a>
                   <button title="Baixar anexo" className="hover:text-green-700"><Download size={18} /></button>
-                  <button title="Histórico" className="hover:text-gray-700"><History size={18} /></button>
+                  <a
+                    href={`/documentos/materias/${mat.id}/historico`}
+                    title="Histórico de Tramitação"
+                    className="hover:text-indigo-700 text-gray-600"
+                  >
+                    <History size={18} />
+                  </a>
                 </TableCell>
               </TableRow>
             ))}

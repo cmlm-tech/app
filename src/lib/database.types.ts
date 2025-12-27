@@ -260,7 +260,8 @@ export type Database = {
           criado_por_usuario_id: string
           data_protocolo: string | null
           id: number
-          numero_protocolo_geral: number | null
+          protocolo_id: number | null
+          requer_votacao_secreta: boolean | null
           status: Database["public"]["Enums"]["status_documento"] | null
           tipo_documento_id: number
         }
@@ -271,7 +272,8 @@ export type Database = {
           criado_por_usuario_id: string
           data_protocolo?: string | null
           id?: number
-          numero_protocolo_geral?: number | null
+          protocolo_id?: number | null
+          requer_votacao_secreta?: boolean | null
           status?: Database["public"]["Enums"]["status_documento"] | null
           tipo_documento_id: number
         }
@@ -282,7 +284,8 @@ export type Database = {
           criado_por_usuario_id?: string
           data_protocolo?: string | null
           id?: number
-          numero_protocolo_geral?: number | null
+          protocolo_id?: number | null
+          requer_votacao_secreta?: boolean | null
           status?: Database["public"]["Enums"]["status_documento"] | null
           tipo_documento_id?: number
         }
@@ -292,6 +295,13 @@ export type Database = {
             columns: ["criado_por_usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_protocolo_id_fkey"
+            columns: ["protocolo_id"]
+            isOneToOne: false
+            referencedRelation: "protocolos"
             referencedColumns: ["id"]
           },
           {
@@ -343,8 +353,8 @@ export type Database = {
           data_admissao: string | null
           data_exoneracao: string | null
           tipo_vinculo:
-          | Database["public"]["Enums"]["tipo_vinculo_funcionario"]
-          | null
+            | Database["public"]["Enums"]["tipo_vinculo_funcionario"]
+            | null
         }
         Insert: {
           agente_publico_id: number
@@ -352,8 +362,8 @@ export type Database = {
           data_admissao?: string | null
           data_exoneracao?: string | null
           tipo_vinculo?:
-          | Database["public"]["Enums"]["tipo_vinculo_funcionario"]
-          | null
+            | Database["public"]["Enums"]["tipo_vinculo_funcionario"]
+            | null
         }
         Update: {
           agente_publico_id?: number
@@ -361,8 +371,8 @@ export type Database = {
           data_admissao?: string | null
           data_exoneracao?: string | null
           tipo_vinculo?:
-          | Database["public"]["Enums"]["tipo_vinculo_funcionario"]
-          | null
+            | Database["public"]["Enums"]["tipo_vinculo_funcionario"]
+            | null
         }
         Relationships: [
           {
@@ -738,8 +748,8 @@ export type Database = {
           justificativa: string | null
           numero_decreto: number | null
           tipo_decreto:
-          | Database["public"]["Enums"]["tipo_decreto_legislativo"]
-          | null
+            | Database["public"]["Enums"]["tipo_decreto_legislativo"]
+            | null
           tipo_honraria: Database["public"]["Enums"]["tipo_honraria"] | null
         }
         Insert: {
@@ -752,8 +762,8 @@ export type Database = {
           justificativa?: string | null
           numero_decreto?: number | null
           tipo_decreto?:
-          | Database["public"]["Enums"]["tipo_decreto_legislativo"]
-          | null
+            | Database["public"]["Enums"]["tipo_decreto_legislativo"]
+            | null
           tipo_honraria?: Database["public"]["Enums"]["tipo_honraria"] | null
         }
         Update: {
@@ -766,8 +776,8 @@ export type Database = {
           justificativa?: string | null
           numero_decreto?: number | null
           tipo_decreto?:
-          | Database["public"]["Enums"]["tipo_decreto_legislativo"]
-          | null
+            | Database["public"]["Enums"]["tipo_decreto_legislativo"]
+            | null
           tipo_honraria?: Database["public"]["Enums"]["tipo_honraria"] | null
         }
         Relationships: [
@@ -885,6 +895,48 @@ export type Database = {
           },
         ]
       }
+      protocolos: {
+        Row: {
+          data_hora: string
+          documento_id: number | null
+          hash_documento: string
+          id: number
+          numero: string
+          usuario_id: string | null
+        }
+        Insert: {
+          data_hora?: string
+          documento_id?: number | null
+          hash_documento: string
+          id?: never
+          numero: string
+          usuario_id?: string | null
+        }
+        Update: {
+          data_hora?: string
+          documento_id?: number | null
+          hash_documento?: string
+          id?: never
+          numero?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocolos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       requerimentos: {
         Row: {
           corpo_texto: string | null
@@ -931,6 +983,7 @@ export type Database = {
           sessao_id: number
           status_item: string | null
           tipo_item: string | null
+          votacao_secreta: boolean | null
         }
         Insert: {
           documento_id: number
@@ -939,6 +992,7 @@ export type Database = {
           sessao_id: number
           status_item?: string | null
           tipo_item?: string | null
+          votacao_secreta?: boolean | null
         }
         Update: {
           documento_id?: number
@@ -947,6 +1001,7 @@ export type Database = {
           sessao_id?: number
           status_item?: string | null
           tipo_item?: string | null
+          votacao_secreta?: boolean | null
         }
         Relationships: [
           {
@@ -1015,6 +1070,8 @@ export type Database = {
           observacoes: string | null
           resultado: string | null
           sessao_id: number | null
+          total_votantes: number
+          votacao_secreta: boolean
           voto_minerva_usado: boolean | null
           votos_nao: number | null
           votos_sim: number | null
@@ -1029,6 +1086,8 @@ export type Database = {
           observacoes?: string | null
           resultado?: string | null
           sessao_id?: number | null
+          total_votantes?: number
+          votacao_secreta?: boolean
           voto_minerva_usado?: boolean | null
           votos_nao?: number | null
           votos_sim?: number | null
@@ -1043,6 +1102,8 @@ export type Database = {
           observacoes?: string | null
           resultado?: string | null
           sessao_id?: number | null
+          total_votantes?: number
+          votacao_secreta?: boolean
           voto_minerva_usado?: boolean | null
           votos_nao?: number | null
           votos_sim?: number | null
@@ -1343,26 +1404,40 @@ export type Database = {
         Returns: Json
       }
       create_legislatura_with_periods:
-      | {
+        | {
+            Args: {
+              p_data_fim: string
+              p_data_inicio: string
+              p_descricao: string
+              p_numero: number
+              p_numero_vagas_vereadores: number
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_data_fim: string
+              p_data_inicio: string
+              p_descricao: string
+              p_numero: number
+              p_numero_vagas_vereadores: number
+              p_slug: string
+            }
+            Returns: number
+          }
+      criar_rascunho_documento: {
         Args: {
-          p_data_fim: string
-          p_data_inicio: string
-          p_descricao: string
-          p_numero: number
-          p_numero_vagas_vereadores: number
+          p_ano: number
+          p_autor_id: number
+          p_autor_type: string
+          p_destinatario_cargo?: string
+          p_destinatario_nome?: string
+          p_destinatario_orgao?: string
+          p_texto_resumo: string
+          p_tipo_documento_id: number
+          p_usuario_id: string
         }
-        Returns: number
-      }
-      | {
-        Args: {
-          p_data_fim: string
-          p_data_inicio: string
-          p_descricao: string
-          p_numero: number
-          p_numero_vagas_vereadores: number
-          p_slug: string
-        }
-        Returns: number
+        Returns: Json
       }
       get_agentes_publicos_com_status: {
         Args: never
@@ -1384,6 +1459,10 @@ export type Database = {
       get_my_agente_publico_id: { Args: never; Returns: number }
       get_my_permission: { Args: never; Returns: string }
       is_staff: { Args: never; Returns: boolean }
+      protocolar_documento: {
+        Args: { p_documento_id: number; p_usuario_id: string }
+        Returns: Json
+      }
       protocolar_materia: {
         Args: {
           p_ano: number
@@ -1421,69 +1500,68 @@ export type Database = {
     Enums: {
       cargo_comissao: "Presidente" | "Membro" | "Relator"
       cargo_mesa_diretora:
-      | "Presidente"
-      | "Vice-Presidente"
-      | "1º Secretário"
-      | "2º Secretário"
-      | "1º Tesoureiro"
-      | "2º Tesoureiro"
+        | "Presidente"
+        | "Vice-Presidente"
+        | "1º Secretário"
+        | "2º Secretário"
+        | "1º Tesoureiro"
+        | "2º Tesoureiro"
       condicao_vereador: "Titular" | "Suplente"
       papel_documento_autor:
-      | "Autor Principal"
-      | "Subscritor"
-      | "Relator"
-      | "Autor"
+        | "Autor Principal"
+        | "Subscritor"
+        | "Relator"
+        | "Autor"
       permissao_usuario:
-      | "Admin"
-      | "Assessoria"
-      | "Secretaria"
-      | "Vereador"
-      | "Inativo"
+        | "Admin"
+        | "Assessoria"
+        | "Secretaria"
+        | "Vereador"
+        | "Inativo"
       status_documento:
-      | "Rascunho"
-      | "Protocolado"
-      | "Tramitando"
-      | "Arquivado"
-      | "Emitido"
-      | "Lido"
-      | "Aguardando votação"
+        | "Rascunho"
+        | "Protocolado"
+        | "Tramitando"
+        | "Arquivado"
+        | "Emitido"
+        | "Lido"
       status_presenca: "Presente" | "Ausente" | "Ausente com Justificativa"
       status_sessao:
-      | "Agendada"
-      | "Em Andamento"
-      | "Realizada"
-      | "Não Realizada"
-      | "Adiada"
-      | "Suspensa"
+        | "Agendada"
+        | "Em Andamento"
+        | "Realizada"
+        | "Não Realizada"
+        | "Adiada"
+        | "Suspensa"
       status_tramitacao:
-      | "Protocolado"
-      | "Enviado para Comissão"
-      | "Aguardando Deliberação"
-      | "Aprovado em 1ª Votação"
-      | "Reprovado em 1ª Votação"
-      | "Em Interstício"
-      | "Aprovado em 2ª Votação"
-      | "Reprovado em 2ª Votação"
-      | "Aprovado em Votação Única"
-      | "Reprovado em Votação Única"
-      | "Enviado para Sanção"
-      | "Sancionado"
-      | "Promulgado"
-      | "Arquivado"
+        | "Protocolado"
+        | "Enviado para Comissão"
+        | "Aguardando Deliberação"
+        | "Aprovado em 1ª Votação"
+        | "Reprovado em 1ª Votação"
+        | "Em Interstício"
+        | "Aprovado em 2ª Votação"
+        | "Reprovado em 2ª Votação"
+        | "Aprovado em Votação Única"
+        | "Reprovado em Votação Única"
+        | "Enviado para Sanção"
+        | "Sancionado"
+        | "Promulgado"
+        | "Arquivado"
       tipo_agente_publico: "Vereador" | "Funcionario"
       tipo_autor_externo:
-      | "Executivo Municipal"
-      | "Entidade"
-      | "Cidadão"
-      | "Outros Órgãos"
+        | "Executivo Municipal"
+        | "Entidade"
+        | "Cidadão"
+        | "Outros Órgãos"
       tipo_decreto_legislativo: "Honraria" | "Julgamento de Contas"
       tipo_honraria: "Título de Cidadania" | "Medalha" | "Comenda"
       tipo_mocao:
-      | "Aplausos"
-      | "Solidariedade"
-      | "Pesar"
-      | "Protesto"
-      | "Repúdio"
+        | "Aplausos"
+        | "Solidariedade"
+        | "Pesar"
+        | "Protesto"
+        | "Repúdio"
       tipo_sessao: "Ordinária" | "Extraordinária" | "Solene"
       tipo_vinculo_funcionario: "Efetivo" | "Comissionado" | "Terceirizado"
       voto_vereador: "Sim" | "Não" | "Abstenção" | "Ausente"
@@ -1500,116 +1578,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {
@@ -1644,7 +1722,6 @@ export const Constants = {
         "Arquivado",
         "Emitido",
         "Lido",
-        "Aguardando votação",
       ],
       status_presenca: ["Presente", "Ausente", "Ausente com Justificativa"],
       status_sessao: [

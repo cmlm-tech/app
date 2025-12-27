@@ -48,10 +48,11 @@ export default function Materias() {
         .select(`
           id,
           ano,
-          numero_protocolo_geral,
           data_protocolo,
           status,
+          protocolo_id,
           tiposdedocumento ( nome ),
+          protocolos!documentos_protocolo_id_fkey ( numero ),
           documentoautores ( autor_id, papel ),
           oficios ( assunto ),
           projetosdelei ( ementa ),
@@ -64,8 +65,8 @@ export default function Materias() {
             comissao:comissoes(nome),
             materia:documentos!pareceres_materia_documento_id_fkey (
                 ano, 
-                numero_protocolo_geral,
-                tiposdedocumento ( nome )
+                tiposdedocumento ( nome ),
+                protocolos!documentos_protocolo_id_fkey ( numero )
             )
           )
         `)
@@ -87,7 +88,8 @@ export default function Materias() {
           else if (doc.pareceres?.[0]) {
             const p = doc.pareceres[0];
             const mat = p.materia;
-            resumo = `Parecer sobre ${mat?.tiposdedocumento?.nome || 'Matéria'} ${mat?.numero_protocolo_geral || ''}/${mat?.ano || ''}`;
+            const protocoloMateria = mat?.protocolos?.numero || 'Rascunho';
+            resumo = `Parecer sobre ${mat?.tiposdedocumento?.nome || 'Matéria'} ${protocoloMateria}`;
           }
 
           // Nome do Autor (Combinando Agentes e Comissões)
@@ -119,10 +121,8 @@ export default function Materias() {
           // Nome do Tipo (com fallback)
           const nomeTipo = doc.tiposdedocumento?.nome || "Documento";
 
-          // Formatar Protocolo (Ex: 2025.0000001) requested format
-          const protocoloStr = doc.numero_protocolo_geral
-            ? `${doc.ano}.${doc.numero_protocolo_geral.toString().padStart(7, '0')}`
-            : `${doc.ano}.SEM_PROTOCOLO`;
+          // Formatar Protocolo usando protocolos.numero ou mostrar Rascunho
+          const protocoloStr = doc.protocolos?.numero || `${doc.ano}.Rascunho`;
 
           return {
             id: doc.id.toString(),

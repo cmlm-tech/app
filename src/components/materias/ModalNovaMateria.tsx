@@ -498,14 +498,13 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       }
 
       console.log("3. Chamando RPC no Banco...");
-      setStatusMsg("Reservando numeração...");
+      setStatusMsg("Criando rascunho...");
 
-      const { data, error: erroDB } = await supabase.rpc('protocolar_materia', {
+      const { data, error: erroDB } = await supabase.rpc('criar_rascunho_documento', {
         p_tipo_documento_id: getTipoId(tipo),
         p_ano: new Date().getFullYear(),
-        p_data_protocolo: new Date().toISOString(),
         p_autor_id: autorPrincipal.id,
-        p_autor_type: autorPrincipal.tipoObjeto, // Passa 'AgentePublico' ou 'Comissao' dinamicamente
+        p_autor_type: autorPrincipal.tipoObjeto,
         p_texto_resumo: isMocao ? `Moção de ${tipoMocao} - ${homenageado}` : instrucaoIA,
         p_usuario_id: user.id,
         p_destinatario_nome: destinatario || null,
@@ -518,8 +517,8 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         throw erroDB;
       }
 
-      const dadosProtocolo = data as unknown as RetornoProtocolo;
-      console.log("4. Sucesso Banco:", dadosProtocolo);
+      const dadosRascunho = data as unknown as { documento_id: number; status: string };
+      console.log("4. Sucesso Banco:", dadosRascunho);
 
       // Para Moção: inserir autores adicionais (coautores)
       if (isMocao && autoresSelecionados.length > 1) {
@@ -527,7 +526,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         const coautores = autoresSelecionados.slice(1); // Pula o primeiro (já é principal)
         for (const coautor of coautores) {
           await supabase.from('documentoautores').insert({
-            documento_id: dadosProtocolo.documento_id,
+            documento_id: dadosRascunho.documento_id,
             autor_id: coautor.id,
             autor_type: 'AgentePublico',
             papel: 'Subscritor' // Coautor = Subscritor no ENUM do banco
@@ -541,7 +540,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         await supabase.from('mocoes').update({
           tipo_mocao: tipoMocao,
           homenageado_texto: homenageado
-        }).eq('documento_id', dadosProtocolo.documento_id);
+        }).eq('documento_id', dadosRascunho.documento_id);
       }
 
       // Se for Decreto Legislativo, inserir dados específicos E gerar texto automaticamente
@@ -558,7 +557,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
           tipo_honraria: tipoHonrariaDb as any,
           ementa: ementa,
           justificativa: artigos
-        }).eq('documento_id', dadosProtocolo.documento_id);
+        }).eq('documento_id', dadosRascunho.documento_id);
       }
 
       // Se for Indicação, atualizar dados específicos
@@ -566,7 +565,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         console.log("4.4 Salvando dados específicos de Indicação...");
         await supabase.from('indicacoes').update({
           destinatario_texto: destinatario || "Sr. Prefeito Municipal"
-        }).eq('documento_id', dadosProtocolo.documento_id);
+        }).eq('documento_id', dadosRascunho.documento_id);
       }
 
       setStatusMsg("IA redigindo minuta...");
@@ -576,8 +575,8 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       if (!isDecretoLegislativo) {
         const { data: dataIA, error: erroEdge } = await supabase.functions.invoke('gerar-minuta', {
           body: {
-            documento_id: dadosProtocolo.documento_id,
-            protocolo_geral: dadosProtocolo.protocolo_geral,
+            documento_id: dadosRascunho.documento_id,
+            protocolo_geral: null,
             tipo: tipo,
             contexto: instrucaoIA,
             autor_nome: nomeAutor,
@@ -601,7 +600,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       onClose();
 
       console.log("7. Navegando...");
-      navigate(`/documentos/materias/${dadosProtocolo.documento_id}/editar`);
+      navigate(`/documentos/materias/${dadosRascunho.documento_id}/editar`);
 
     } catch (error: any) {
       console.error("ERRO GERAL:", error);

@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { PainelComissoes } from "@/components/documentos/PainelComissoes";
+import { BotaoProtocolar } from "@/components/materias/BotaoProtocolar";
 
 interface DocumentoDetalhes {
     id: number;
@@ -129,19 +130,18 @@ export default function EditarMateria() {
         try {
             setLoading(true);
 
-            // 1. Fetch main document info
+            // 1. Fetch main document info with protocol data via JOIN
             const { data: docData, error: docError } = await supabase
                 .from("documentos")
                 .select(`
         id,
-        numero_protocolo_geral,
         ano,
         status,
         data_protocolo,
-        status,
-        data_protocolo,
+        protocolo_id,
         requer_votacao_secreta,
-        tiposdedocumento ( nome )
+        tiposdedocumento ( nome ),
+        protocolos!documentos_protocolo_id_fkey ( id, numero, data_hora, usuario_id )
         `)
                 .eq("id", Number(docId))
                 .single();
@@ -699,7 +699,7 @@ export default function EditarMateria() {
                         </Button>
                         <div className="min-w-0">
                             <h1 className="text-xl sm:text-2xl font-bold text-gray-800 truncate">
-                                {doc.tiposdedocumento?.nome} {doc.ano}.{doc.numero_protocolo_geral.toString().padStart(7, '0')}
+                                {doc.tiposdedocumento?.nome} {(doc as any).protocolos ? (doc as any).protocolos.numero : '(Rascunho)'}
                             </h1>
                             <p className="text-sm text-gray-500 truncate">
                                 Autor: {autorNome || "Carregando..."} • Status: <span className="font-semibold text-indigo-600">{doc.status}</span>
@@ -707,6 +707,11 @@ export default function EditarMateria() {
                         </div>
                     </div>
                     <div className="flex gap-2 flex-wrap">
+                        <BotaoProtocolar
+                            documentoId={doc.id}
+                            statusAtual={doc.status}
+                            onSuccess={() => carregarDados(id!)}
+                        />
                         <Button variant="outline" onClick={handleGerarPDF} disabled={generatingPDF} className="flex-1 sm:flex-none">
                             {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
                             <span className="hidden sm:inline">Visualizar Oficial</span>
@@ -770,15 +775,29 @@ export default function EditarMateria() {
                             <CardContent className="space-y-4">
                                 <div>
                                     <label className="text-xs font-semibold text-slate-500">Protocolo Geral</label>
-                                    <Input disabled value={`${doc.ano}.${doc.numero_protocolo_geral.toString().padStart(7, '0')}`} className="bg-slate-100 opacity-100 font-medium text-slate-700" />
+                                    <Input disabled value={(doc as any).protocolos?.numero || 'Aguardando protocolação'} className="bg-slate-100 opacity-100 font-medium text-slate-700" />
                                 </div>
                                 <div>
                                     <label className="text-xs font-semibold text-slate-500">Autor</label>
                                     <Input readOnly value={autorNome} className="bg-slate-50" />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-semibold text-slate-500">Data Protocolo</label>
-                                    <Input readOnly value={new Date(doc.data_protocolo).toLocaleDateString('pt-BR')} className="bg-slate-50" />
+                                    <label className="text-xs font-semibold text-slate-500">Data e Hora Protocolo</label>
+                                    <Input
+                                        readOnly
+                                        value={
+                                            (doc as any).protocolos?.data_hora
+                                                ? new Date((doc as any).protocolos.data_hora).toLocaleString('pt-BR', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })
+                                                : 'Aguardando protocolação'
+                                        }
+                                        className="bg-slate-50"
+                                    />
                                 </div>
                             </CardContent>
                         </Card>

@@ -32,11 +32,13 @@ export interface ItemPauta {
     ordem: number;
     tipo_item: string;
     status_item: string;
+    votacao_secreta?: boolean; // Override opcional
     documento?: {
         id: number;
         numero_protocolo_geral: number;
         ano: number;
         status: string;
+        requer_votacao_secreta: boolean;
         tipo?: {
             nome: string;
             exige_parecer?: boolean;
@@ -236,7 +238,9 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
         id,
         numero_protocolo_geral,
         ano,
+        ano,
         status,
+        requer_votacao_secreta,
         tipo:tiposdedocumento (
           nome,
           exige_parecer
@@ -353,10 +357,38 @@ export async function iniciarVotacao(
     sessaoId: number,
     itemPautaId: number
 ): Promise<void> {
-    // Atualizar status do item para "Em Votação"
-    await atualizarStatusItem(itemPautaId, "Em Votação");
+    // 1. Obter configuração de votação
+    const { data: itemData, error: itemDataError } = await supabase
+        .from("sessaopauta")
+        .select(`
+        documento_id,
+        votacao_secreta,
+        documento:documentos(requer_votacao_secreta)
+      `)
+        .eq("id", itemPautaId)
+        .single();
 
-    // Buscar o item para pegar o documento_id
+    if (itemDataError) throw itemDataError;
+
+    // Determinar se é secreta: Se sessaopauta.votacao_secreta não for nulo, usa ele.
+    // Caso contrário, usa documentos.requer_votacao_secreta.
+    const isSecreta = itemData.votacao_secreta !== null
+        ? itemData.votacao_secreta
+        : (itemData.documento as any)?.requer_votacao_secreta || false;
+
+    // Atualizar status do item para "Em Votação" e salvar o modo de votação definitivo se não estiver setado
+    // Se votacao_secreta for nulo, setamos explicitamente para travar o modo durante a votação
+    const updateData: any = { status_item: "Em Votação" };
+    if (itemData.votacao_secreta === null) {
+        updateData.votacao_secreta = isSecreta;
+    }
+
+    await atualizarStatusItem(itemPautaId, "Em Votação"); // Using helper, but we might need to update votacao_secreta too.
+
+    // Custom update to ensure votacao_secreta is set
+    await supabase.from("sessaopauta").update(updateData).eq("id", itemPautaId);
+
+    // Buscar o item para pegar o documento_id (redundant but safe)
     const { data: item, error: itemError } = await supabase
         .from("sessaopauta")
         .select("documento_id")
@@ -557,6 +589,16 @@ export async function encerrarVotacao(
         .single();
 
     if (resultadoError) throw resultadoError;
+
+    // Se for votação secreta, certificar que sessaovotacao_resultado tem flag true
+    // (Embora devia ter pego do sessaopauta, mas garantimos aqui ou no init)
+    // Na verdade o sessaovotacao_resultado deve ter votacao_secreta. 
+    // Vamos atualizar se precisar, ou já inserir com ele.
+    // Vou buscar o sessaopauta para saber
+    const { data: pautaItem } = await supabase.from('sessaopauta').select('votacao_secreta').eq('id', itemPautaId).single();
+    if (pautaItem?.votacao_secreta) {
+        await supabase.from('sessaovotacao_resultado').update({ votacao_secreta: true }).eq('id', resultadoData.id);
+    }
 
     // Atualizar status do item da pauta
     await atualizarStatusItem(itemPautaId, "Votado");

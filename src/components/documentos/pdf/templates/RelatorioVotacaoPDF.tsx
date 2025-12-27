@@ -166,6 +166,7 @@ export interface RelatorioVotacaoPDFProps {
     };
     votosDetalhados: VotoVereador[];
     presidenteNome: string;
+    votacaoSecreta?: boolean;
 }
 
 function formatarData(dataISO: string): string {
@@ -200,6 +201,7 @@ export default function RelatorioVotacaoPDF({
     votos,
     votosDetalhados,
     presidenteNome,
+    votacaoSecreta = false,
 }: RelatorioVotacaoPDFProps) {
     const isAprovado = resultado === 'Aprovado';
     const dataEmissao = new Date().toLocaleDateString('pt-BR', {
@@ -261,27 +263,41 @@ export default function RelatorioVotacaoPDF({
                 </View>
 
                 {/* Tabela de Votos */}
-                <Text style={votacaoStyles.sectionTitle}>Votos Nominais</Text>
-
-                <View style={votacaoStyles.tableHeader}>
-                    <Text style={[votacaoStyles.tableHeaderCell, votacaoStyles.colNome]}>
-                        Vereador(a)
-                    </Text>
-                    <Text style={[votacaoStyles.tableHeaderCell, votacaoStyles.colVoto]}>
-                        Voto
-                    </Text>
-                </View>
-
-                {votosDetalhados.map((voto, index) => (
-                    <View key={index} style={votacaoStyles.tableRow}>
-                        <Text style={[votacaoStyles.tableCell, votacaoStyles.colNome]}>
-                            {voto.nome}
+                {votacaoSecreta ? (
+                    <View style={[votacaoStyles.infoBlock, { marginTop: 20 }]}>
+                        <Text style={{ textAlign: 'center', fontSize: 12, fontFamily: 'Times-Bold', color: '#B45309' }}>
+                            VOTAÇÃO SECRETA
                         </Text>
-                        <Text style={[votacaoStyles.tableCell, votacaoStyles.colVoto, getVotoStyle(voto.voto)]}>
-                            {getVotoIcon(voto.voto)} {voto.voto}
+                        <Text style={{ textAlign: 'center', fontSize: 10, marginTop: 5, color: '#555' }}>
+                            Os votos individuais são mantidos sob sigilo conforme regimento interno.
+                            Apenas o resultado consolidado é exibido neste relatório.
                         </Text>
                     </View>
-                ))}
+                ) : (
+                    <>
+                        <Text style={votacaoStyles.sectionTitle}>Votos Nominais</Text>
+
+                        <View style={votacaoStyles.tableHeader}>
+                            <Text style={[votacaoStyles.tableHeaderCell, votacaoStyles.colNome]}>
+                                Vereador(a)
+                            </Text>
+                            <Text style={[votacaoStyles.tableHeaderCell, votacaoStyles.colVoto]}>
+                                Voto
+                            </Text>
+                        </View>
+
+                        {votosDetalhados.map((voto, index) => (
+                            <View key={index} style={votacaoStyles.tableRow}>
+                                <Text style={[votacaoStyles.tableCell, votacaoStyles.colNome]}>
+                                    {voto.nome}
+                                </Text>
+                                <Text style={[votacaoStyles.tableCell, votacaoStyles.colVoto, getVotoStyle(voto.voto)]}>
+                                    {getVotoIcon(voto.voto)} {voto.voto}
+                                </Text>
+                            </View>
+                        ))}
+                    </>
+                )}
 
                 {/* Assinatura do Presidente */}
                 <View style={votacaoStyles.signatureContainer}>

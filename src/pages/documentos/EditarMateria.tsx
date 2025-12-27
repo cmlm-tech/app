@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ArrowLeft, Save, FileText } from "lucide-react";
+import { Loader2, ArrowLeft, Save, FileText, Lock } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { PainelComissoes } from "@/components/documentos/PainelComissoes";
 
@@ -20,6 +22,7 @@ interface DocumentoDetalhes {
     status: string;
     autor: { nome: string } | null;
     data_protocolo: string;
+    requer_votacao_secreta: boolean;
 }
 
 export default function EditarMateria() {
@@ -39,6 +42,7 @@ export default function EditarMateria() {
 
     // Metadata fields that might be editable
     const [ementa, setEmenta] = useState("");
+    const [requerSecreta, setRequerSecreta] = useState(false);
 
     async function handleGerarPDF() {
         if (!doc) return;
@@ -134,6 +138,9 @@ export default function EditarMateria() {
         ano,
         status,
         data_protocolo,
+        status,
+        data_protocolo,
+        requer_votacao_secreta,
         tiposdedocumento ( nome )
         `)
                 .eq("id", Number(docId))
@@ -261,6 +268,7 @@ export default function EditarMateria() {
             }
 
             setDoc(docData as any);
+            setRequerSecreta(docData.requer_votacao_secreta || false);
 
         } catch (error: any) {
             console.error("Erro ao carregar:", error);
@@ -633,6 +641,25 @@ export default function EditarMateria() {
         }
     }
 
+    async function handleToggleSecreta(checked: boolean) {
+        if (!doc) return;
+        setSaving(true);
+        try {
+            const { error } = await supabase
+                .from("documentos")
+                .update({ requer_votacao_secreta: checked })
+                .eq("id", doc.id);
+
+            if (error) throw error;
+            setRequerSecreta(checked);
+            toast({ title: "Atualizado", description: `Votação secreta ${checked ? "ativada" : "desativada"}.` });
+        } catch (error: any) {
+            toast({ title: "Erro", description: error.message, variant: "destructive" });
+        } finally {
+            setSaving(false);
+        }
+    }
+
     if (loading) {
         return (
             <AppLayout>
@@ -770,6 +797,34 @@ export default function EditarMateria() {
                                 <Button variant="ghost" size="sm" className="w-full mt-2 text-xs text-indigo-600" onClick={handleSalvarEmenta} disabled={saving}>
                                     {saving ? "Salvando..." : "Atualizar Resumo"}
                                 </Button>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-slate-200 shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-sm font-semibold text-gray-700">Configurações de Votação</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-start space-x-3 p-3 bg-slate-50 rounded-md border text-sm">
+                                    <Checkbox
+                                        id="secret-vote"
+                                        checked={requerSecreta}
+                                        onCheckedChange={(checked) => handleToggleSecreta(checked as boolean)}
+                                        disabled={saving}
+                                    />
+                                    <div className="space-y-1 leading-none">
+                                        <Label
+                                            htmlFor="secret-vote"
+                                            className="font-medium cursor-pointer flex items-center gap-2"
+                                        >
+                                            <Lock className="w-3 h-3" />
+                                            Requer Votação Secreta
+                                        </Label>
+                                        <p className="text-xs text-slate-500">
+                                            Se marcado, a votação deste documento será secreta por padrão.
+                                        </p>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
 

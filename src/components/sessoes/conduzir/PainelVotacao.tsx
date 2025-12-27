@@ -22,8 +22,13 @@ import {
     Minus,
     CheckCircle2,
     XCircle,
-    Loader2
+    Loader2,
+    Lock,
+    Unlock,
+    Eye,
+    EyeOff
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { ItemPauta, VotoIndividual, Presenca, calcularResultadoParcial } from "@/services/sessaoConduzirService";
 
 interface PainelVotacaoProps {
@@ -44,6 +49,15 @@ export default function PainelVotacao({
     const [saving, setSaving] = useState<number | null>(null);
     const [confirmEncerrar, setConfirmEncerrar] = useState(false);
     const [encerrando, setEncerrando] = useState(false);
+
+    // Determine voting mode
+    // If defined in item, use it. If not, fallback to document requirement.
+    const isSecretDefault = item.votacao_secreta !== undefined
+        ? item.votacao_secreta
+        : (item.documento as any)?.requer_votacao_secreta || false;
+
+    const [isSecret, setIsSecret] = useState<boolean>(!!isSecretDefault);
+    const isForcedSecret = (item.documento as any)?.requer_votacao_secreta;
 
     // Filtrar apenas vereadores presentes
     const vereadoresPresentes = presencas.filter(p => p.status === "Presente");
@@ -108,12 +122,24 @@ export default function PainelVotacao({
                         <div>
                             <CardTitle className="text-xl">Votação em Andamento</CardTitle>
                             <p className="text-lg font-semibold text-gov-blue-700 mt-1">
-                                {formatProtocolo()}
                             </p>
                         </div>
-                        <Badge className="bg-amber-100 text-amber-700 animate-pulse">
-                            Item {item.ordem} da Pauta
-                        </Badge>
+                        <div className="flex flex-col items-end gap-2">
+                            <Badge className="bg-amber-100 text-amber-700 animate-pulse">
+                                Item {item.ordem} da Pauta
+                            </Badge>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-xs font-semibold ${isSecret ? "text-amber-700" : "text-gray-500"}`}>
+                                    {isSecret ? "Votação Secreta" : "Votação Aberta"}
+                                </span>
+                                <Switch
+                                    checked={isSecret}
+                                    onCheckedChange={setIsSecret}
+                                    disabled={isForcedSecret}
+                                />
+                                {isSecret ? <Lock className="w-4 h-4 text-amber-600" /> : <Unlock className="w-4 h-4 text-gray-400" />}
+                            </div>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -137,29 +163,35 @@ export default function PainelVotacao({
                     <div className="grid grid-cols-3 gap-4 text-center">
                         <div className="p-4 bg-green-50 rounded-lg">
                             <ThumbsUp className="w-8 h-8 mx-auto text-green-600 mb-2" />
-                            <p className="text-3xl font-bold text-green-700">{resultado.sim}</p>
+                            <p className="text-3xl font-bold text-green-700">
+                                {isSecret ? "?" : resultado.sim}
+                            </p>
                             <p className="text-sm text-green-600">SIM</p>
-                            {totalVotosValidos > 0 && (
+                            {!isSecret && totalVotosValidos > 0 && (
                                 <p className="text-xs text-gray-500">{percentualSim.toFixed(0)}%</p>
                             )}
                         </div>
                         <div className="p-4 bg-red-50 rounded-lg">
                             <ThumbsDown className="w-8 h-8 mx-auto text-red-600 mb-2" />
-                            <p className="text-3xl font-bold text-red-700">{resultado.nao}</p>
+                            <p className="text-3xl font-bold text-red-700">
+                                {isSecret ? "?" : resultado.nao}
+                            </p>
                             <p className="text-sm text-red-600">NÃO</p>
-                            {totalVotosValidos > 0 && (
+                            {!isSecret && totalVotosValidos > 0 && (
                                 <p className="text-xs text-gray-500">{percentualNao.toFixed(0)}%</p>
                             )}
                         </div>
                         <div className="p-4 bg-gray-50 rounded-lg">
                             <Minus className="w-8 h-8 mx-auto text-gray-600 mb-2" />
-                            <p className="text-3xl font-bold text-gray-700">{resultado.abstencao}</p>
+                            <p className="text-3xl font-bold text-gray-700">
+                                {isSecret ? "?" : resultado.abstencao}
+                            </p>
                             <p className="text-sm text-gray-600">ABSTENÇÃO</p>
                         </div>
                     </div>
 
-                    {/* Indicador de tendência */}
-                    {totalVotosValidos > 0 && (
+                    {/* Indicador de tendência (Oculto se secreto) */}
+                    {totalVotosValidos > 0 && !isSecret && (
                         <div className="mt-4 p-3 rounded-lg text-center border">
                             {resultado.sim > resultado.nao ? (
                                 <div className="flex items-center justify-center gap-2 text-green-700">
@@ -177,6 +209,14 @@ export default function PainelVotacao({
                                     <span className="font-medium">EMPATE (voto de minerva decide)</span>
                                 </div>
                             )}
+                        </div>
+                    )}
+                    {isSecret && (
+                        <div className="mt-4 p-3 rounded-lg text-center border bg-gray-100 text-gray-500">
+                            <div className="flex items-center justify-center gap-2">
+                                <EyeOff className="w-5 h-5" />
+                                <span className="font-medium">Resultados ocultos durante votação secreta</span>
+                            </div>
                         </div>
                     )}
                 </CardContent>
@@ -211,14 +251,16 @@ export default function PainelVotacao({
                                             {votoAtual && (
                                                 <Badge
                                                     className={
-                                                        votoAtual === "Sim"
-                                                            ? "bg-green-100 text-green-700"
-                                                            : votoAtual === "Não"
-                                                                ? "bg-red-100 text-red-700"
-                                                                : "bg-gray-100 text-gray-700"
+                                                        isSecret
+                                                            ? "bg-slate-100 text-slate-700 border-slate-300"
+                                                            : votoAtual === "Sim"
+                                                                ? "bg-green-100 text-green-700"
+                                                                : votoAtual === "Não"
+                                                                    ? "bg-red-100 text-red-700"
+                                                                    : "bg-gray-100 text-gray-700"
                                                     }
                                                 >
-                                                    {votoAtual}
+                                                    {isSecret ? <><Lock className="w-3 h-3 mr-1" /> Voto Registrado</> : votoAtual}
                                                 </Badge>
                                             )}
                                         </div>
@@ -240,8 +282,8 @@ export default function PainelVotacao({
                                                     <Label
                                                         htmlFor={`sim-${presenca.id}`}
                                                         className={`px-3 py-2 rounded cursor-pointer transition-colors ${votoAtual === "Sim"
-                                                                ? "bg-green-600 text-white"
-                                                                : "bg-green-100 text-green-700 hover:bg-green-200"
+                                                            ? "bg-green-600 text-white"
+                                                            : "bg-green-100 text-green-700 hover:bg-green-200"
                                                             }`}
                                                     >
                                                         <ThumbsUp className="w-4 h-4" />
@@ -252,8 +294,8 @@ export default function PainelVotacao({
                                                     <Label
                                                         htmlFor={`nao-${presenca.id}`}
                                                         className={`px-3 py-2 rounded cursor-pointer transition-colors ${votoAtual === "Não"
-                                                                ? "bg-red-600 text-white"
-                                                                : "bg-red-100 text-red-700 hover:bg-red-200"
+                                                            ? "bg-red-600 text-white"
+                                                            : "bg-red-100 text-red-700 hover:bg-red-200"
                                                             }`}
                                                     >
                                                         <ThumbsDown className="w-4 h-4" />
@@ -264,8 +306,8 @@ export default function PainelVotacao({
                                                     <Label
                                                         htmlFor={`abst-${presenca.id}`}
                                                         className={`px-3 py-2 rounded cursor-pointer transition-colors ${votoAtual === "Abstenção"
-                                                                ? "bg-gray-600 text-white"
-                                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                            ? "bg-gray-600 text-white"
+                                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                                             }`}
                                                     >
                                                         <Minus className="w-4 h-4" />
@@ -307,9 +349,11 @@ export default function PainelVotacao({
                             <p>
                                 Deseja encerrar a votação de {formatProtocolo()}?
                             </p>
-                            <p className="mt-2">
-                                <strong>Resultado atual:</strong> {resultado.sim} SIM, {resultado.nao} NÃO, {resultado.abstencao} ABSTENÇÕES
-                            </p>
+                            <div className="mt-2 text-sm">
+                                <strong>Resultado atual:</strong> {isSecret
+                                    ? "CONFIDENCIAL (Será revelado ao confirmar)"
+                                    : `${resultado.sim} SIM, ${resultado.nao} NÃO, ${resultado.abstencao} ABSTENÇÕES`}
+                            </div>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

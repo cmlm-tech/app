@@ -15,6 +15,7 @@ export interface MateriaDisponivel {
     autor: string;
     status: string;
     dataProtocolo: string;
+    requer_votacao_secreta?: boolean;
 }
 
 export interface ItemPauta {
@@ -91,7 +92,8 @@ export async function getMateriasDisponiveis(sessaoId: number): Promise<MateriaD
             mocoes ( numero_mocao, ementa ),
             indicacoes ( numero_indicacao, ementa ),
             projetosdedecretolegislativo ( numero_decreto, ementa ),
-            pareceres:pareceres!pareceres_documento_id_fkey ( id, corpo_texto, comissoes ( nome ) )
+            pareceres:pareceres!pareceres_documento_id_fkey ( id, corpo_texto, comissoes ( nome ) ),
+            requer_votacao_secreta
         `)
         .in("status", STATUS_ELEGIVEIS as any)
         .order("data_protocolo", { ascending: false });
@@ -161,6 +163,7 @@ export async function getMateriasDisponiveis(sessaoId: number): Promise<MateriaD
                 autor: nomeAutor,
                 status: doc.status,
                 dataProtocolo: doc.data_protocolo,
+                requer_votacao_secreta: doc.requer_votacao_secreta,
             };
         });
 

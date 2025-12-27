@@ -3,13 +3,19 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Gavel, Calendar } from "lucide-react";
+import { FileText, Gavel, Calendar, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
-const nextSessionDate = "Segunda-feira, 16 de Junho de 2025, às 19:00";
-const countdown = "Faltam 1 dia e 5 horas";
-const pautaId = "123";
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+// Remove static constants
+// const nextSessionDate = "Segunda-feira, 16 de Junho de 2025, às 19:00";
+// const countdown = "Faltam 1 dia e 5 horas";
+// const pautaId = "123";
 
 const pendencias = [
   { id: "PL15", titulo: "Projeto de Lei nº 15/2025", status: "Aguardando parecer da Comissão de Justiça", link: "/documentos/materias/15" },
@@ -39,6 +45,88 @@ export default function Painel() {
     year: 'numeric'
   }).format(new Date());
 
+  const [metrics, setMetrics] = useState({
+    protocoladasMes: 0,
+    emVotacao: 0,
+    sessoesRealizadas: 0,
+
+    proximaSessao: null as { id: number; data: string; itensPauta: number } | null,
+    loading: true
+  });
+
+  useEffect(() => {
+    fetchMetrics();
+  }, []);
+
+  async function fetchMetrics() {
+    try {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      // Fim do mês: Dia 0 do próximo mês
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+
+      // 1. Matérias Protocoladas no Mês
+      const { count: countProt } = await supabase
+        .from('documentos')
+        .select('*', { count: 'exact', head: true })
+        .gte('data_protocolo', firstDay)
+        .lte('data_protocolo', lastDay);
+
+      // 2. Matérias em Votação (Considerando status "Aguardando votação")
+      const { count: countVot } = await supabase
+        .from('documentos')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Aguardando votação');
+
+      // 3. Sessões Realizadas no Mês
+      const { count: countSess } = await supabase
+        .from('sessoes')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Realizada')
+        .gte('data_abertura', firstDay)
+        .lte('data_abertura', lastDay);
+
+      setMetrics({
+        protocoladasMes: countProt || 0,
+        emVotacao: countVot || 0,
+        sessoesRealizadas: countSess || 0,
+        proximaSessao: null,
+        loading: false
+      });
+
+      // 4. Buscar Próxima Sessão
+      const { data: nextSessao } = await supabase
+        .from('sessoes')
+        .select('id, data_abertura')
+        .eq('status', 'Agendada')
+        .gte('data_abertura', now.toISOString())
+        .order('data_abertura', { ascending: true })
+        .limit(1)
+        .maybeSingle(); // Usar maybeSingle para não estourar erro se não houver
+
+      if (nextSessao) {
+        // Contar itens de pauta
+        const { count: countPauta } = await supabase
+          .from('sessaopauta')
+          .select('*', { count: 'exact', head: true })
+          .eq('sessao_id', nextSessao.id);
+
+        setMetrics(prev => ({
+          ...prev,
+          proximaSessao: {
+            id: nextSessao.id,
+            data: nextSessao.data_abertura,
+            itensPauta: countPauta || 0
+          }
+        }));
+      }
+
+    } catch (error) {
+      console.error("Erro ao buscar métricas:", error);
+      setMetrics(prev => ({ ...prev, loading: false }));
+    }
+  }
+
   return (
     <AppLayout>
       {/* Cabeçalho */}
@@ -60,7 +148,9 @@ export default function Painel() {
             <FileText className="w-7 h-7" />
           </div>
           <div>
-            <div className="text-2xl font-bold">42</div>
+            <div className="text-2xl font-bold">
+              {metrics.loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : metrics.protocoladasMes}
+            </div>
             <div className="text-sm text-gray-500">Matérias Protocoladas no Mês</div>
           </div>
         </Card>
@@ -69,7 +159,9 @@ export default function Painel() {
             <Gavel className="w-7 h-7" />
           </div>
           <div>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">
+              {metrics.loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : metrics.emVotacao}
+            </div>
             <div className="text-sm text-gray-500">Matérias em Votação</div>
           </div>
         </Card>
@@ -78,7 +170,9 @@ export default function Painel() {
             <Calendar className="w-7 h-7" />
           </div>
           <div>
-            <div className="text-2xl font-bold">4</div>
+            <div className="text-2xl font-bold">
+              {metrics.loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-400" /> : metrics.sessoesRealizadas}
+            </div>
             <div className="text-sm text-gray-500">Sessões Realizadas no Mês</div>
           </div>
         </Card>
@@ -96,12 +190,43 @@ export default function Painel() {
             <CardDescription>Reunião ordinária do Plenário</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-2 text-xl md:text-2xl font-bold text-gov-blue-800">{nextSessionDate}</div>
-            <div className="mb-1 text-base md:text-lg text-gray-700">{countdown}</div>
-            <div className="text-gray-600 mb-4">12 matérias na pauta</div>
-            <Button asChild size="lg" className="w-full mt-4 bg-gov-blue-700 hover:bg-gov-blue-900 text-white text-base font-bold py-3 rounded animate-scale-in">
-              <Link to={`/atividade-legislativa/pautas/${pautaId}`}>Ver Pauta Completa</Link>
-            </Button>
+            {metrics.loading ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-gov-blue-600 mb-2" />
+                <span className="text-gray-500">Buscando agenda...</span>
+              </div>
+            ) : metrics.proximaSessao ? (
+              <>
+                <div className="mb-2 text-xl md:text-2xl font-bold text-gov-blue-800 capitalize">
+                  {new Intl.DateTimeFormat('pt-BR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }).format(new Date(metrics.proximaSessao.data))}
+                </div>
+                <div className="mb-1 text-base md:text-lg text-gray-700">
+                  {formatDistanceToNow(new Date(metrics.proximaSessao.data), { locale: ptBR, addSuffix: true })}
+                </div>
+                <div className="text-gray-600 mb-4">
+                  {metrics.proximaSessao.itensPauta} matérias na pauta
+                </div>
+                <Button asChild size="lg" className="w-full mt-4 bg-gov-blue-700 hover:bg-gov-blue-900 text-white text-base font-bold py-3 rounded animate-scale-in">
+                  <Link to={`/atividade-legislativa/sessoes/${metrics.proximaSessao.id}`}>
+                    Ver Detalhes da Sessão
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-lg text-gray-600">Nenhuma sessão agendada para os próximos dias.</p>
+                <Button asChild variant="outline" className="mt-4">
+                  <Link to="/atividade-legislativa/sessoes">Ver Todas as Sessões</Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -177,16 +177,14 @@ export default function SessoesLeg() {
   const handleIniciarSessao = async (sessao: Sessao) => {
     // Verificar se a pauta está montada
     try {
-      const { data: itensPauta, error } = await supabase
+      const { count, error } = await supabase
         .from("sessaopauta")
-        .select("id", { count: "exact", head: true })
+        .select("*", { count: "exact", head: true })
         .eq("sessao_id", sessao.id);
 
       if (error) throw error;
 
-      const count = itensPauta?.length || 0;
-
-      if (count === 0) {
+      if (!count || count === 0) {
         toast({
           title: "Pauta não montada",
           description: "Para iniciar a sessão, é necessário montar a pauta primeiro. Clique em 'Montar Pauta' para adicionar itens.",

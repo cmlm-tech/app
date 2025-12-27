@@ -28,7 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Printer, Save, FileUp, Search, Loader2, Plus, Trash2, GripVertical } from 'lucide-react';
+import { ArrowLeft, Printer, Save, FileUp, Search, Loader2, Plus, Trash2, GripVertical, Lock } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -145,7 +145,17 @@ function MateriaDisponivelCard({
       <CardContent className="p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-gov-blue-700">{materia.protocolo}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-sm text-gov-blue-700">{materia.protocolo}</p>
+              {materia.requer_votacao_secreta && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Lock className="w-3 h-3 text-amber-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>Requer voto secreto</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
             <p className="text-xs text-gray-600 line-clamp-2 mt-1">{materia.ementa || "Sem ementa"}</p>
             <p className="text-xs text-gray-500 mt-1">Autor: {materia.autor}</p>
           </div>

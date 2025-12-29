@@ -15,9 +15,9 @@ export async function podeRetirarMateria(
             .select(`
         id,
         status,
-        documentoautores!inner (autor_id, papel),
+        documentoautores (autor_id, papel),
         sessaopauta (
-          sessoes!inner (pauta_publicada)
+          sessoes (pauta_publicada)
         )
       `)
             .eq('id', materiaId)
@@ -38,16 +38,15 @@ export async function podeRetirarMateria(
             };
         }
 
-        // 3. Buscar agente público e permissão do usuário
-        const agenteQuery: any = await supabase
-            .from('agentespublicos')
-            .select('id')
-            .eq('user_id', usuarioId)
+        // 3. Buscar agente público do usuário através da tabela usuarios
+        const { data: usuario, error: usuarioError } = await supabase
+            .from('usuarios')
+            .select('agente_publico_id, permissao')
+            .eq('id', usuarioId)
             .maybeSingle();
-        const { data: agente, error: agenteError } = agenteQuery;
 
-        if (agenteError) throw agenteError;
-        if (!agente) {
+        if (usuarioError) throw usuarioError;
+        if (!usuario || !usuario.agente_publico_id) {
             return {
                 pode: false,
                 ehAdmin: false,
@@ -55,13 +54,9 @@ export async function podeRetirarMateria(
             };
         }
 
-        // 4. Verificar se é admin
-        const { data: usuario } = await supabase
-            .from('usuarios')
-            .select('permissao')
-            .eq('id', usuarioId)
-            .maybeSingle();
+        const agentePublicoId = usuario.agente_publico_id;
 
+        // 4. Verificar se é admin (já temos permissao da query anterior)
         const ehAdmin = usuario?.permissao === 'Admin';
 
         // 5. Admin sempre pode (escolhe em nome de quem)
@@ -71,7 +66,7 @@ export async function podeRetirarMateria(
 
         // 6. Verificar se usuário é autor
         const ehAutor = materia?.documentoautores?.some(
-            (da: any) => da.autor_id === agente.id
+            (da: any) => da.autor_id === agentePublicoId
         );
 
         if (ehAutor) {
@@ -88,7 +83,7 @@ export async function podeRetirarMateria(
             .is('data_fim', null)
             .maybeSingle();
 
-        const ehLiderGoverno = (liderAtual as any)?.agente_publico_id === agente.id;
+        const ehLiderGoverno = (liderAtual as any)?.agente_publico_id === agentePublicoId;
         const ehMateriaExecutivo = materia?.documentoautores?.some(
             (da: any) => da.papel === 'Executivo'
         );
@@ -120,21 +115,22 @@ export async function podePrejudicarMateria(
     usuarioId: string
 ): Promise<boolean> {
     try {
-        // Buscar agente público
-        const agenteQuery2: any = await supabase
-            .from('agentespublicos')
-            .select('id')
-            .eq('user_id', usuarioId)
-            .single();
-        const { data: agente } = agenteQuery2;
+        // Buscar agente público através da tabela usuarios
+        const { data: usuario } = await supabase
+            .from('usuarios')
+            .select('agente_publico_id')
+            .eq('id', usuarioId)
+            .maybeSingle();
 
-        if (!agente) return false;
+        if (!usuario || !usuario.agente_publico_id) return false;
+
+        const agentePublicoId = usuario.agente_publico_id;
 
         // Verificar se é membro da Mesa atual
         const membroQuery: any = await supabase
             .from('mesadiretoramembros')
             .select('id')
-            .eq('agente_id', agente.id)
+            .eq('agente_publico_id', agentePublicoId)
             .maybeSingle();
         const { data: membro } = membroQuery;
 

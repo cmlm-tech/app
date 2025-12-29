@@ -6,9 +6,10 @@ interface VereadorAvatarListProps {
   title: string;
   vereadores: VereadorComCondicao[];
   emptyMessage: string;
+  liderancasMap?: Record<number, 'governo' | 'oposicao'>;
 }
 
-export function VereadorAvatarList({ title, vereadores, emptyMessage }: VereadorAvatarListProps) {
+export function VereadorAvatarList({ title, vereadores, emptyMessage, liderancasMap = {} }: VereadorAvatarListProps) {
   return (
     <div>
       <h3 className="text-lg font-medium">
@@ -17,12 +18,17 @@ export function VereadorAvatarList({ title, vereadores, emptyMessage }: Vereador
       <div className="mt-4 flex flex-wrap gap-3">
         {vereadores.length > 0 ? (
           vereadores.map((vereador) => (
-            <CardVereadorCompacto key={vereador.id} vereador={vereador} />
+            <CardVereadorCompacto
+              key={vereador.id}
+              vereador={vereador}
+              lideranca={liderancasMap[(vereador as any).agente_publico_id] || null}
+            />
           ))
         ) : (
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
-        )}
-      </div>
-    </div>
+        )
+        }
+      </div >
+    </div >
   );
 }

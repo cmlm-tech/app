@@ -8,12 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ArrowLeft, Save, FileText, Lock } from "lucide-react";
+import { Loader2, ArrowLeft, Save, FileText, Lock, XCircle, AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { PainelComissoes } from "@/components/documentos/PainelComissoes";
 import { BotaoProtocolar } from "@/components/materias/BotaoProtocolar";
+import { ModalRetirarMateria } from "@/components/materias/ModalRetirarMateria";
+import { ModalPrejudicarMateria } from "@/components/materias/ModalPrejudicarMateria";
+import { podeRetirarMateria, podePrejudicarMateria } from "@/services/materiasService";
 
 interface DocumentoDetalhes {
     id: number;
@@ -44,6 +47,13 @@ export default function EditarMateria() {
     // Metadata fields that might be editable
     const [ementa, setEmenta] = useState("");
     const [requerSecreta, setRequerSecreta] = useState(false);
+
+    // Estados para retirada e prejud icada
+    const [modalRetirarAberto, setModalRetirarAberto] = useState(false);
+    const [modalPrejudicarAberto, setModalPrejudicarAberto] = useState(false);
+    const [podeRetirar, setPodeRetirar] = useState(false);
+    const [ehAdmin, setEhAdmin] = useState(false);
+    const [podePrejudicar, setPodePrejudicar] = useState(false);
 
     async function handleGerarPDF() {
         if (!doc) return;
@@ -269,6 +279,17 @@ export default function EditarMateria() {
 
             setDoc(docData as any);
             setRequerSecreta(docData.requer_votacao_secreta || false);
+
+            // Verificar permissões para retirada e prejud icada
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const permissaoRetirar = await podeRetirarMateria(Number(docId), user.id);
+                setPodeRetirar(permissaoRetirar.pode);
+                setEhAdmin(permissaoRetirar.ehAdmin);
+
+                const permissaoPrejudicar = await podePrejudicarMateria(user.id);
+                setPodePrejudicar(permissaoPrejudicar);
+            }
 
         } catch (error: any) {
             console.error("Erro ao carregar:", error);
@@ -722,6 +743,32 @@ export default function EditarMateria() {
                             <span className="hidden sm:inline">Salvar Alterações</span>
                             <span className="sm:hidden">Salvar</span>
                         </Button>
+
+                        {/* Botão Retirar Matéria */}
+                        {podeRetirar && doc.status !== 'Retirado' && doc.status !== 'Prejudicado' && (
+                            <Button
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => setModalRetirarAberto(true)}
+                            >
+                                <XCircle className="w-4 h-4 mr-2" />
+                                <span className="hidden sm:inline">Retirar Matéria</span>
+                                <span className="sm:hidden">Retirar</span>
+                            </Button>
+                        )}
+
+                        {/* Botão Declarar Prejudicada */}
+                        {podePrejudicar && doc.status !== 'Retirado' && doc.status !== 'Prejudicado' && (
+                            <Button
+                                variant="outline"
+                                className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                onClick={() => setModalPrejudicarAberto(true)}
+                            >
+                                <AlertTriangle className="w-4 h-4 mr-2" />
+                                <span className="hidden sm:inline">Declarar Prejudicada</span>
+                                <span className="sm:hidden">Prejudicada</span>
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -857,6 +904,28 @@ export default function EditarMateria() {
                 </div>
 
             </div>
+
+            {/* Modals de Retirada e Prejudicada */}
+            {doc && (
+                <>
+                    <ModalRetirarMateria
+                        materiaId={doc.id}
+                        protocolo={(doc as any).protocolos ? (doc as any).protocolos.numero : 'Rascunho'}
+                        autor={autorNome}
+                        ehAdmin={ehAdmin}
+                        aberto={modalRetirarAberto}
+                        onClose={() => setModalRetirarAberto(false)}
+                        onSucesso={() => carregarDados(id!)}
+                    />
+                    <ModalPrejudicarMateria
+                        materiaId={doc.id}
+                        protocolo={(doc as any).protocolos ? (doc as any).protocolos.numero : 'Rascunho'}
+                        aberto={modalPrejudicarAberto}
+                        onClose={() => setModalPrejudicarAberto(false)}
+                        onSucesso={() => carregarDados(id!)}
+                    />
+                </>
+            )}
         </AppLayout>
     );
 }

@@ -5,11 +5,13 @@ import { VereadorAvatarList } from "./VereadorAvatarList";
 interface ComposicaoAtualProps {
   emExercicio: VereadorComCondicao[]
   licenciados: VereadorComCondicao[]
+  liderancasMap?: Record<number, 'governo' | 'oposicao'>;
 }
 
 export function ComposicaoAtual({
   emExercicio,
   licenciados,
+  liderancasMap = {},
 }: ComposicaoAtualProps) {
   return (
     <Accordion type="single" collapsible className="w-full mb-6" defaultValue="item-1">
@@ -23,11 +25,13 @@ export function ComposicaoAtual({
               title="Vereadores em Exercício"
               vereadores={emExercicio}
               emptyMessage="Nenhum vereador em exercício no momento."
+              liderancasMap={liderancasMap}
             />
             <VereadorAvatarList
               title="Vereadores Titulares Licenciados"
               vereadores={licenciados}
               emptyMessage="Nenhum titular licenciado no momento."
+              liderancasMap={liderancasMap}
             />
           </div>
         </AccordionContent>

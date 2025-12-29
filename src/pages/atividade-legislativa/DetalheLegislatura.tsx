@@ -12,6 +12,7 @@ import { Database } from "@/lib/database.types";
 import { useAuth } from '@/contexts/AuthContext';
 import { CorpoLegislativo } from "@/components/legislaturas/CorpoLegislativo";
 import { ModalAdicionarVereador } from "@/components/legislaturas/ModalAdicionarVereador";
+import { ModalEditarLideranca } from "@/components/legislaturas/ModalEditarLideranca";
 import { ModalConfirmarRemocaoVereador } from '@/components/legislaturas/ModalConfirmarRemocaoVereador';
 import { ComposicaoAtual } from "@/components/legislaturas/ComposicaoAtual";
 import { VereadorComCondicao, LegislaturaComPeriodos, PeriodoRow, AgentePublicoRow } from "@/components/legislaturas/types";
@@ -23,12 +24,15 @@ export default function DetalheLegislatura() {
 
     const [legislatura, setLegislatura] = useState<LegislaturaComPeriodos | null>(null);
     const [vereadores, setVereadores] = useState<VereadorComCondicao[]>([]);
+    const [liderancasMap, setLiderancasMap] = useState<Record<number, 'governo' | 'oposicao'>>({});
     const [loading, setLoading] = useState(true);
     const [modalPeriodoOpen, setModalPeriodoOpen] = useState(false);
     const [modalVereadorOpen, setModalVereadorOpen] = useState(false);
     const [modalRemocaoOpen, setModalRemocaoOpen] = useState(false);
     const [vereadorSelecionado, setVereadorSelecionado] = useState<VereadorComCondicao | null>(null);
     const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoRow | null>(null);
+    const [modalLiderancaOpen, setModalLiderancaOpen] = useState(false);
+    const [vereadorParaLideranca, setVereadorParaLideranca] = useState<VereadorComCondicao | null>(null);
     const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null);
 
     const isAdmin = permissaoLogado?.toLowerCase() === 'admin';
@@ -42,32 +46,51 @@ export default function DetalheLegislatura() {
 
             const [periodosResult, verResult] = await Promise.all([
                 supabase.from('periodossessao').select('*').eq('legislatura_id', legislaturaId),
-                supabase.from('legislaturavereadores').select('id, condicao, data_posse, data_afastamento, agentespublicos:agente_publico_id (*, vereadores:vereadores!inner(nome_parlamentar))').eq('legislatura_id', legislaturaId).order('nome_completo', { referencedTable: 'agentespublicos', ascending: true })
+                supabase.from('legislaturavereadores').select('id, condicao, partido, data_posse, data_afastamento, agentespublicos:agente_publico_id (*, vereadores:vereadores!inner(nome_parlamentar))').eq('legislatura_id', legislaturaId).order('nome_completo', { referencedTable: 'agentespublicos', ascending: true })
             ]);
 
             if (periodosResult.error) throw periodosResult.error;
             if (verResult.error) throw verResult.error;
 
-            const dadosVereadores = verResult.data.map((item: any) => ({
-                ...(item.agentespublicos as AgentePublicoRow),
-                id: item.id,
-                condicao: item.condicao,
-                data_posse: item.data_posse,
-                data_afastamento: item.data_afastamento,
-                nome_parlamentar: item.agentespublicos?.vereadores?.nome_parlamentar || null,
-                vereadores: item.agentespublicos as AgentePublicoRow
-            }));
+            const dadosVereadores = verResult.data
+                .filter((item: any) => item.agentespublicos) // Garante que temos dados do agente
+                .map((item: any) => ({
+                    ...(item.agentespublicos as AgentePublicoRow),
+                    id: item.id,
+                    agente_publico_id: item.agentespublicos.id,
+                    condicao: item.condicao,
+                    partido: item.partido,
+                    data_posse: item.data_posse,
+                    data_afastamento: item.data_afastamento,
+                    nome_parlamentar: item.agentespublicos?.vereadores?.nome_parlamentar || null,
+                    vereadores: item.agentespublicos as AgentePublicoRow
+                }));
 
             setLegislatura({ ...legData, periodos: periodosResult.data || [] });
 
 
             // Garante a ordenação no front-end após receber os dados.
             const vereadoresOrdenados = dadosVereadores.sort((a, b) => {
-                const nomeA = a.nome_parlamentar || a.nome_completo;
-                const nomeB = b.nome_parlamentar || b.nome_completo;
+                const nomeA = a.nome_parlamentar || a.nome_completo || '';
+                const nomeB = b.nome_parlamentar || b.nome_completo || '';
                 return nomeA.localeCompare(nomeB);
             });
             setVereadores(vereadoresOrdenados);
+
+            // Buscar lideranças da legislatura
+            const { data: liderancasData } = await supabase
+                .from('liderancaslegislativas' as any)
+                .select('agente_publico_id, tipo')
+                .eq('legislatura_id', legislaturaId)
+                .is('data_fim', null);
+
+            if (liderancasData) {
+                const map: Record<number, 'governo' | 'oposicao'> = {};
+                liderancasData.forEach((lideranca: any) => {
+                    map[lideranca.agente_publico_id] = lideranca.tipo;
+                });
+                setLiderancasMap(map);
+            }
 
         } catch (error: any) {
             toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -131,7 +154,7 @@ export default function DetalheLegislatura() {
             const { error } = await supabase
                 .from('legislaturavereadores')
                 .delete()
-                .match({ legislatura_id: legislatura.id, agente_publico_id: vereadorSelecionado.id });
+                .eq('id', vereadorSelecionado.id);
 
             if (error) throw error;
 
@@ -143,6 +166,11 @@ export default function DetalheLegislatura() {
 
         setModalRemocaoOpen(false);
         setVereadorSelecionado(null);
+    };
+
+    const handleEditVereador = (vereador: VereadorComCondicao) => {
+        setVereadorParaLideranca(vereador);
+        setModalLiderancaOpen(true);
     };
 
     if (loading) return <AppLayout><div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
@@ -196,9 +224,15 @@ export default function DetalheLegislatura() {
                 isAdmin={isAdmin}
                 onAdicionarClick={() => setModalVereadorOpen(true)}
                 onRemove={handleOpenModalRemocao}
+                onEdit={handleEditVereador}
+                liderancasMap={liderancasMap}
             />
 
-            <ComposicaoAtual emExercicio={emExercicio} licenciados={licenciados} />
+            <ComposicaoAtual
+                emExercicio={emExercicio}
+                licenciados={licenciados}
+                liderancasMap={liderancasMap}
+            />
 
             <Accordion type="single" collapsible defaultValue="item-1">
                 <AccordionItem value="item-1">
@@ -231,19 +265,36 @@ export default function DetalheLegislatura() {
                         vereadores={vereadores}
                         onSave={handleSavePeriodo}
                     />
-                    <ModalAdicionarVereador
-                        open={modalVereadorOpen}
-                        onOpenChange={setModalVereadorOpen}
-                        legislaturaId={legislatura.id}
-                        vereadoresAtuais={vereadores}
-                        onSuccess={() => fetchData(parseInt(legislaturaNumero!, 10))}
-                    />
-                    <ModalConfirmarRemocaoVereador
-                        isOpen={modalRemocaoOpen}
-                        onOpenChange={setModalRemocaoOpen}
-                        onConfirm={handleConfirmarRemocao}
-                        vereadorNome={vereadorSelecionado?.nome_completo || ''}
-                    />
+                    {legislatura && (
+                        <>
+                            <ModalAdicionarVereador
+                                open={modalVereadorOpen}
+                                onOpenChange={setModalVereadorOpen}
+                                legislaturaId={legislatura.id}
+                                vereadoresAtuais={vereadores}
+                                onSuccess={() => fetchData(parseInt(legislaturaNumero!, 10))}
+                            />
+                            <ModalConfirmarRemocaoVereador
+                                isOpen={modalRemocaoOpen}
+                                onOpenChange={setModalRemocaoOpen}
+                                onConfirm={handleConfirmarRemocao}
+                                vereadorNome={vereadorSelecionado?.nome_completo || ''}
+                            />
+                            {vereadorParaLideranca && (
+                                <ModalEditarLideranca
+                                    open={modalLiderancaOpen}
+                                    onOpenChange={(open) => {
+                                        setModalLiderancaOpen(open);
+                                        if (!open) setVereadorParaLideranca(null);
+                                    }}
+                                    legislaturaId={legislatura.id}
+                                    vereador={vereadorParaLideranca}
+                                    liderancaAtual={liderancasMap[vereadorParaLideranca.agente_publico_id] || null}
+                                    onSuccess={() => fetchData(parseInt(legislaturaNumero!, 10))}
+                                />
+                            )}
+                        </>
+                    )}
                 </>
             )}
         </AppLayout>

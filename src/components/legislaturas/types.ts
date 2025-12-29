@@ -18,5 +18,7 @@ export type VereadorComCondicao = AgentePublicoRow & {
   data_afastamento: LegislaturaVereadorRow['data_afastamento'];
   nome_parlamentar: string | null;
   id: LegislaturaVereadorRow['id'];
-  vereadores: AgentePublicoRow
+  vereadores: AgentePublicoRow;
+  agente_publico_id: number;
+  partido?: string;
 };

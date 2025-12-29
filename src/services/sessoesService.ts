@@ -300,6 +300,10 @@ export async function criarSessao(sessao: {
 
     if (error) throw error;
 
+    // Registrar atividade no log
+    const { registrarAgendamentoSessao } = await import("@/services/atividadeLogService");
+    await registrarAgendamentoSessao(data.id, sessao.tipoSessao, sessao.dataAbertura);
+
     return {
         ...data,
         titulo: gerarTituloSimplificado(data.tipo_sessao || "Ordinária", data.data_abertura || ""),

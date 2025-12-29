@@ -44,24 +44,24 @@ export default function EditarParecer() {
                     *,
                     documento:documentos!pareceres_documento_id_fkey (
                         id,
-                        numero_protocolo_geral,
                         ano,
                         data_protocolo,
-                        status
+                        status,
+                        protocolos!documentos_protocolo_id_fkey ( numero )
                     ),
                     comissao:comissoes ( id, nome ),
                     materia:documentos!pareceres_materia_documento_id_fkey (
                         id,
-                        numero_protocolo_geral,
                         ano,
                         tiposdedocumento ( nome ),
+                        protocolos!documentos_protocolo_id_fkey ( numero ),
                         documentoautores ( autor_id, autor_type ),
-                        projetosdelei ( ementa, corpo_texto, justificativa ),
-                        oficios ( assunto, corpo_texto, justificativa ),
-                        requerimentos ( justificativa, corpo_texto ),
-                        mocoes ( ementa, justificativa, homenageado_texto ),
-                        indicacoes ( ementa, justificativa, destinatario_texto ),
-                        projetosdedecretolegislativo ( ementa, corpo_texto, justificativa ),
+                        projetosdelei ( numero_lei, ementa, corpo_texto, justificativa ),
+                        oficios ( numero_oficio, assunto, corpo_texto, justificativa ),
+                        requerimentos ( numero_requerimento, justificativa, corpo_texto ),
+                        mocoes ( numero_mocao, ementa, justificativa, homenageado_texto ),
+                        indicacoes ( numero_indicacao, ementa, justificativa, destinatario_texto ),
+                        projetosdedecretolegislativo ( numero_decreto, ementa, corpo_texto, justificativa ),
                         projetosderesolucao ( ementa, corpo_texto, justificativa ),
                         projetosdeemendaorganica ( ementa, corpo_texto, justificativa )
                     )
@@ -199,7 +199,7 @@ export default function EditarParecer() {
                     // Non-blocking but should be logged
                 }
 
-                // 3. Add Tramitação
+                // 2.3 Add Tramitação
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     await supabase
@@ -217,6 +217,25 @@ export default function EditarParecer() {
             if (parecer.documento_id && materiaOriginal?.id) {
                 await adicionarParecerProximaSessao(parecer.documento_id, materiaOriginal.id);
             }
+
+            // 5. Registrar atividade no log
+            const { registrarParecer } = await import("@/services/atividadeLogService");
+            const numeroMateria = materiaOriginal?.projetosdelei?.[0]?.numero_lei ||
+                materiaOriginal?.oficios?.[0]?.numero_oficio ||
+                materiaOriginal?.requerimentos?.[0]?.numero_requerimento ||
+                materiaOriginal?.mocoes?.[0]?.numero_mocao ||
+                materiaOriginal?.indicacoes?.[0]?.numero_indicacao ||
+                materiaOriginal?.projetosdedecretolegislativo?.[0]?.numero_decreto ||
+                materiaOriginal?.protocolos?.numero ||
+                materiaOriginal?.id;
+
+            await registrarParecer(
+                parecer.documento_id,
+                comissao?.nome || "Comissão",
+                numeroMateria,
+                materiaOriginal?.ano || new Date().getFullYear(),
+                materiaOriginal?.tiposdedocumento?.nome || "Matéria"
+            );
 
             toast({
                 title: "Parecer Finalizado!",
@@ -271,13 +290,21 @@ export default function EditarParecer() {
                 materiaOriginal.projetosdeemendaorganica?.[0]?.justificativa ||
                 "";
 
+            const numeroMateria = materiaOriginal.projetosdelei?.[0]?.numero_lei ||
+                materiaOriginal.oficios?.[0]?.numero_oficio ||
+                materiaOriginal.requerimentos?.[0]?.numero_requerimento ||
+                materiaOriginal.mocoes?.[0]?.numero_mocao ||
+                materiaOriginal.indicacoes?.[0]?.numero_indicacao ||
+                materiaOriginal.projetosdedecretolegislativo?.[0]?.numero_decreto ||
+                materiaOriginal.protocolos?.numero || "S/N";
+
             // Construir contexto rico para a IA
             const contextoParecer = `
                 Gere um PARECER DA COMISSÃO DE ${comissao.nome.toUpperCase()}.
                 
                 MATÉRIA ANALISADA:
                 - Tipo: ${materiaOriginal.tiposdedocumento?.nome}
-                - Número: ${materiaOriginal.numero_protocolo_geral}/${materiaOriginal.ano}
+                - Número: ${numeroMateria}/${materiaOriginal.ano}
                 - Autor: ${nomeAutorMateria}
                 - Ementa/Assunto: ${ementaMateria}
                 
@@ -302,7 +329,7 @@ export default function EditarParecer() {
             const { data: dataIA, error: erroEdge } = await supabase.functions.invoke('gerar-minuta', {
                 body: {
                     documento_id: parecer.documento_id,
-                    protocolo_geral: parecer.documento?.numero_protocolo_geral,
+                    protocolo_geral: parecer.documento?.protocolos?.numero,
                     tipo: "Parecer",
                     contexto: contextoParecer,
                     autor_nome: comissao.nome,
@@ -330,13 +357,21 @@ export default function EditarParecer() {
         if (!parecer || !materiaOriginal) return;
 
         try {
+            const numeroMateria = materiaOriginal.projetosdelei?.[0]?.numero_lei ||
+                materiaOriginal.oficios?.[0]?.numero_oficio ||
+                materiaOriginal.requerimentos?.[0]?.numero_requerimento ||
+                materiaOriginal.mocoes?.[0]?.numero_mocao ||
+                materiaOriginal.indicacoes?.[0]?.numero_indicacao ||
+                materiaOriginal.projetosdedecretolegislativo?.[0]?.numero_decreto ||
+                materiaOriginal.protocolos?.numero || "";
+
             const blob = await pdf(
                 <ParecerPDF
                     comissaoNome={comissao?.nome || "Comissão"}
                     materiaTipo={materiaOriginal.tiposdedocumento?.nome || "Documento"}
-                    materiaNumero={materiaOriginal.numero_protocolo_geral?.toString() || ""}
+                    materiaNumero={numeroMateria?.toString()}
                     materiaAno={materiaOriginal.ano}
-                    parecerNumero={`${parecer.id}/${parecer.documento?.ano}`}
+                    parecerNumero={`${parecer.documento?.protocolos?.numero || parecer.id}/${parecer.documento?.ano}`}
                     texto={corpoTexto}
                     dataProtocolo={parecer.documento?.data_protocolo}
                     membros={comissaoMembros}

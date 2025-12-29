@@ -731,6 +731,7 @@ export default function EditarMateria() {
                         <BotaoProtocolar
                             documentoId={doc.id}
                             statusAtual={doc.status}
+                            tipoDocumento={doc.tiposdedocumento?.nome}
                             onSuccess={() => carregarDados(id!)}
                         />
                         <Button variant="outline" onClick={handleGerarPDF} disabled={generatingPDF} className="flex-1 sm:flex-none">

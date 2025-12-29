@@ -195,9 +195,9 @@ export async function getItensPauta(sessaoId: number): Promise<ItemPauta[]> {
                 oficios ( assunto ),
                 projetosdelei ( ementa ),
                 requerimentos ( justificativa ),
-                mocoes ( ementa ),
-                indicacoes ( ementa ),
-                projetosdedecretolegislativo ( ementa ),
+                mocoes ( numero_mocao, ementa ),
+                indicacoes ( numero_indicacao, ementa ),
+                projetosdedecretolegislativo ( numero_decreto, ementa ),
                 pareceres:pareceres!pareceres_documento_id_fkey ( id, corpo_texto, comissoes ( nome ) ),
                 atas:atas!atas_documento_id_fkey ( resumo_pauta, texto, sessao_id, sessoes:sessoes!atas_sessao_id_fkey ( numero, tipo_sessao ) )
             )
@@ -431,13 +431,32 @@ export async function removerItemPauta(itemId: number): Promise<void> {
         }
     }
 
-    // 3. Remover todos os itens identificados
-    const { error } = await supabase
-        .from("sessaopauta")
-        .delete()
-        .in("id", idsParaRemover);
+    // 3. Marcar o parecer como removido manualmente (se for um parecer)
+    if (tipoDoc === "Parecer") {
+        // Buscar o parecer pelo documento_id
+        const { data: parecer } = await supabase
+            .from("pareceres")
+            .select("id")
+            .eq("documento_id", docId)
+            .maybeSingle();
 
-    if (error) throw error;
+        if (parecer) {
+            await supabase
+                .from("pareceres" as any)
+                .update({ removido_pauta_manualmente: true })
+                .eq("id", parecer.id);
+        }
+    }
+
+    // 4. Remover todos os itens identificados
+    for (const id of idsParaRemover) {
+        const { error } = await supabase
+            .from("sessaopauta")
+            .delete()
+            .eq("id", id);
+
+        if (error) throw error;
+    }
 }
 
 /**
@@ -587,6 +606,16 @@ export async function publicarPauta(sessaoId: number): Promise<void> {
         .eq("id", sessaoId);
 
     if (updateError) throw updateError;
+
+    // 4. Registrar atividade no log
+    const { data: sessaoData } = await supabase
+        .from("sessoes")
+        .select("numero")
+        .eq("id", sessaoId)
+        .single();
+
+    const { registrarPublicacaoPauta } = await import("@/services/atividadeLogService");
+    await registrarPublicacaoPauta(sessaoId, sessaoData?.numero || 0);
 }
 
 /**
@@ -701,7 +730,7 @@ export async function adicionarPareceresEmitidos(sessaoId: number): Promise<numb
             (pautasAtivas || []).map((p: any) => p.documento_id)
         );
 
-        // 2. Buscar pareceres com status "Emitido" que ainda não estão em pauta
+        // 2. Buscar pareceres com status "Emitido" que ainda não estão em pauta e não foram removidos manualmente
         const { data: pareceresEmitidos, error } = await supabase
             .from("pareceres")
             .select(`
@@ -709,6 +738,7 @@ export async function adicionarPareceresEmitidos(sessaoId: number): Promise<numb
                 documento_id,
                 materia_documento_id,
                 resultado,
+                removido_pauta_manualmente,
                 documentos!pareceres_documento_id_fkey (
                     status
                 )
@@ -718,9 +748,13 @@ export async function adicionarPareceresEmitidos(sessaoId: number): Promise<numb
         if (error) throw error;
         if (!pareceresEmitidos || pareceresEmitidos.length === 0) return 0;
 
-        // 3. Filtrar apenas os que ainda não estão em pauta
+        // 3. Filtrar apenas os que:
+        // - Ainda não estão em pauta
+        // - Não foram removidos manualmente
         const pareceresParaAdicionar = pareceresEmitidos.filter(
-            (p: any) => !idsEmPauta.has(p.documento_id) && !idsEmPauta.has(p.materia_documento_id)
+            (p: any) => !idsEmPauta.has(p.documento_id) &&
+                !idsEmPauta.has(p.materia_documento_id) &&
+                !p.removido_pauta_manualmente
         );
 
         if (pareceresParaAdicionar.length === 0) return 0;

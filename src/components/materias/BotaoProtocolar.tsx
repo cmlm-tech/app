@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Stamp } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { registrarProtocolo } from "@/services/atividadeLogService";
 
 interface BotaoProtocolarProps {
     documentoId: number;
     statusAtual: string;
+    tipoDocumento?: string;
     onSuccess?: () => void;
 }
 
-export function BotaoProtocolar({ documentoId, statusAtual, onSuccess }: BotaoProtocolarProps) {
+export function BotaoProtocolar({ documentoId, statusAtual, tipoDocumento, onSuccess }: BotaoProtocolarProps) {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -49,6 +51,27 @@ export function BotaoProtocolar({ documentoId, statusAtual, onSuccess }: BotaoPr
                 status: string;
                 mensagem: string;
             };
+
+            // Registrar atividade no log
+            // Registrar atividade no log
+            // Buscar AUTOR do documento (vereador propositor)
+            const { data: autorData } = await supabase
+                .from('documentoautores')
+                .select('autor_id')
+                .eq('documento_id', documentoId)
+                .limit(1)
+                .maybeSingle();
+
+            const agenteId = autorData?.autor_id;
+
+            const ano = new Date().getFullYear();
+            await registrarProtocolo(
+                documentoId,
+                tipoDocumento || 'Documento',
+                resultado.numero_protocolo_geral,
+                ano,
+                agenteId || undefined
+            );
 
             toast({
                 title: "Documento Protocolado!",

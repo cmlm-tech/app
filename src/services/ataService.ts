@@ -84,19 +84,19 @@ export async function getDadosParaAta(sessaoId: number): Promise<DadosAta> {
                 resultado
             ),
             documentos (
-                numero_protocolo_geral,
                 ano,
                 tiposdedocumento ( nome ),
+                protocolos!documentos_protocolo_id_fkey ( numero ),
                 documentoautores (
                     autor_id,
                     autor_type
                 ),
-                projetosdelei ( ementa ),
-                oficios ( assunto ),
-                requerimentos ( justificativa ),
-                mocoes ( ementa ),
-                indicacoes ( ementa ),
-                projetosdedecretolegislativo ( ementa ),
+                projetosdelei ( numero_lei, ementa ),
+                oficios ( numero_oficio, assunto ),
+                requerimentos ( numero_requerimento, justificativa ),
+                mocoes ( numero_mocao, ementa ),
+                indicacoes ( numero_indicacao, ementa ),
+                projetosdedecretolegislativo ( numero_decreto, ementa ),
                 projetosderesolucao ( ementa ),
                 projetosdeemendaorganica ( ementa ),
                 pareceres!pareceres_materia_documento_id_fkey ( comissoes ( nome ) )
@@ -112,7 +112,18 @@ export async function getDadosParaAta(sessaoId: number): Promise<DadosAta> {
         (pautaData || []).map(async (item: any) => {
             const doc = item.documentos;
             const tipo = doc?.tiposdedocumento?.nome || "Documento";
-            const numero = `${doc?.numero_protocolo_geral || "S/N"}/${doc?.ano || ""}`;
+
+            // Buscar número específico do tipo de documento
+            let numeroMateria: number | string | null = null;
+            if (doc?.projetosdelei?.[0]?.numero_lei) numeroMateria = doc.projetosdelei[0].numero_lei;
+            else if (doc?.oficios?.[0]?.numero_oficio) numeroMateria = doc.oficios[0].numero_oficio;
+            else if (doc?.requerimentos?.[0]?.numero_requerimento) numeroMateria = doc.requerimentos[0].numero_requerimento;
+            else if (doc?.mocoes?.[0]?.numero_mocao) numeroMateria = doc.mocoes[0].numero_mocao;
+            else if (doc?.indicacoes?.[0]?.numero_indicacao) numeroMateria = doc.indicacoes[0].numero_indicacao;
+            else if (doc?.projetosdedecretolegislativo?.[0]?.numero_decreto) numeroMateria = doc.projetosdedecretolegislativo[0].numero_decreto;
+            else if (doc?.protocolos?.numero) numeroMateria = doc.protocolos.numero;
+
+            const numero = `${numeroMateria || "S/N"}/${doc?.ano || ""}`;
 
             // Buscar autor
             let autor = "Não informado";
@@ -367,7 +378,6 @@ export async function salvarAta(
             .from("documentos")
             .insert({
                 tipo_documento_id: tipoDoc.id,
-                numero_protocolo_geral: null, // Atas não têm protocolo geral
                 ano: ano,
                 data_protocolo: sessaoData.data_abertura,
                 status: "Rascunho",

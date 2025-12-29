@@ -23,15 +23,7 @@ const pendencias = [
   { id: "PL12", titulo: "Projeto de Lei nº 12/2025", status: "Aguardando parecer da Comissão de Finanças", link: "/documentos/materias/12" },
 ];
 
-const atividadeRecente = [
-  "Joaquim Silva protocolou o Ofício nº 130/2025.",
-  "A Comissão de Justiça emitiu parecer sobre o PL nº 14/2025.",
-  "A Pauta da próxima sessão foi publicada.",
-  "A Vereadora Maria Oliveira foi adicionada à Comissão de Cultura, Educação e Assistência Social.",
-  "Sessão extraordinária agendada para o dia 20/06/2025.",
-];
-
-// ... (array 'atalhos' não utilizado no JSX, pode ser removido se não for usado em outro lugar)
+// Atividades agora são buscadas do banco de dados
 
 export default function Painel() {
   const { user } = useAuth();
@@ -49,13 +41,27 @@ export default function Painel() {
     protocoladasMes: 0,
     emVotacao: 0,
     sessoesRealizadas: 0,
-
     proximaSessao: null as { id: number; data: string; itensPauta: number } | null,
     loading: true
   });
 
+  // State para atividades recentes
+  interface AtividadeLog {
+    id: number;
+    tipo: string;
+    descricao: string;
+    entidade_tipo: string | null;
+    entidade_id: number | null;
+    agente_publico_id: number | null;
+    created_at: string;
+    agentespublicos: { nome_completo: string } | null;
+  }
+  const [atividades, setAtividades] = useState<AtividadeLog[]>([]);
+  const [atividadesLoading, setAtividadesLoading] = useState(true);
+
   useEffect(() => {
     fetchMetrics();
+    fetchAtividades();
   }, []);
 
   async function fetchMetrics() {
@@ -76,7 +82,7 @@ export default function Painel() {
       const { count: countVot } = await supabase
         .from('documentos')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'Aguardando votação');
+        .eq('status', 'Aguardando votação' as any);
 
       // 3. Sessões Realizadas no Mês
       const { count: countSess } = await supabase
@@ -124,6 +130,48 @@ export default function Painel() {
     } catch (error) {
       console.error("Erro ao buscar métricas:", error);
       setMetrics(prev => ({ ...prev, loading: false }));
+    }
+  }
+
+  async function fetchAtividades() {
+    try {
+      // Buscar atividades sem join
+      const { data: atividadesData, error } = await supabase
+        .from('atividade_log' as any)
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      if (!atividadesData || atividadesData.length === 0) {
+        setAtividades([]);
+        return;
+      }
+
+      // Buscar nomes dos agentes públicos
+      const agentIds = [...new Set(atividadesData.filter((a: any) => a.agente_publico_id).map((a: any) => a.agente_publico_id))];
+
+      let agentesMap = new Map<number, string>();
+      if (agentIds.length > 0) {
+        const { data: agentesData } = await supabase
+          .from('agentespublicos')
+          .select('id, nome_completo')
+          .in('id', agentIds);
+
+        agentesMap = new Map((agentesData || []).map((a: any) => [a.id, a.nome_completo]));
+      }
+
+      // Combinar dados
+      const atividadesComNomes = atividadesData.map((a: any) => ({
+        ...a,
+        agentespublicos: a.agente_publico_id ? { nome_completo: agentesMap.get(a.agente_publico_id) } : null
+      }));
+
+      setAtividades(atividadesComNomes);
+    } catch (error) {
+      console.error("Erro ao buscar atividades:", error);
+    } finally {
+      setAtividadesLoading(false);
     }
   }
 
@@ -276,14 +324,28 @@ export default function Painel() {
             <CardTitle className="text-lg">Atividade Recente no Sistema</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-4">
-              {atividadeRecente.map((item, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span className="inline-block w-2 h-2 rounded-full bg-gov-gold-500 mt-2 mr-2 flex-shrink-0" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+            {atividadesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-gov-blue-600 mr-2" />
+                <span className="text-gray-500">Carregando atividades...</span>
+              </div>
+            ) : atividades.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">Nenhuma atividade recente registrada.</p>
+            ) : (
+              <ul className="space-y-4">
+                {atividades.map((item) => (
+                  <li key={item.id} className="flex items-start gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-gov-gold-500 mt-2 mr-2 flex-shrink-0" />
+                    <span>
+                      {item.agentespublicos?.nome_completo && (
+                        <strong>{item.agentespublicos.nome_completo} </strong>
+                      )}
+                      {item.descricao}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>

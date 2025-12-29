@@ -201,7 +201,7 @@ export default function GerenciarPauta() {
   );
 
   // Carregar dados
-  const fetchDados = useCallback(async () => {
+  const fetchDados = useCallback(async (skipAutoAdd = false) => {
     if (!sessaoId) return;
 
     try {
@@ -234,8 +234,8 @@ export default function GerenciarPauta() {
       setMateriasDisponiveis(materias);
       setItensPauta(itens);
 
-      // Adicionar automaticamente a ata da sessão anterior se o Expediente estiver vazio
-      if (canEdit) {
+      // Adicionar automaticamente a ata da sessão anterior e pareceres (apenas no carregamento inicial)
+      if (canEdit && !skipAutoAdd) {
         const ataAdicionada = await adicionarAtaSessaoAnterior(id);
         const pareceresAdicionados = await adicionarPareceresEmitidos(id);
 
@@ -254,6 +254,18 @@ export default function GerenciarPauta() {
       setLoading(false);
     }
   }, [sessaoId, navigate, toast]);
+
+  // Refresh apenas itens (sem adição automática) - para uso após remoções
+  const refreshItens = useCallback(async () => {
+    if (!sessaoId) return;
+    const id = parseInt(sessaoId);
+    const [materias, itens] = await Promise.all([
+      getMateriasDisponiveis(id),
+      getItensPauta(id),
+    ]);
+    setMateriasDisponiveis(materias);
+    setItensPauta(itens);
+  }, [sessaoId]);
 
   useEffect(() => {
     fetchDados();
@@ -303,7 +315,7 @@ export default function GerenciarPauta() {
 
     try {
       await removerItemPauta(itemId);
-      await fetchDados();
+      await refreshItens(); // Usar refreshItens para não readicionar automaticamente
       setHasChanges(true);
       toast({ title: "Item removido da pauta" });
     } catch (error: any) {

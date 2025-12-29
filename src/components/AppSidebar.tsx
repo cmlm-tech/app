@@ -79,15 +79,24 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
       <NavLink
         to={item.to!}
         onClick={handleMobileNavClick}
-        className={({ isActive }) => cn(
-          "relative flex items-center gap-3 px-3 py-3 rounded-md transition-colors font-medium w-full",
-          isActive
-            ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
-            : "hover:bg-gov-blue-700/70",
-          isCollapsed && "justify-center px-3"
-        )}
+        className={({ isActive }) => {
+          if (isCollapsed) {
+            return cn(
+              "relative flex items-center justify-center w-full px-3 py-3 rounded-md transition-colors",
+              isActive
+                ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
+                : "hover:bg-gov-blue-700/70"
+            );
+          }
+          return cn(
+            "relative flex items-center gap-3 px-3 py-3 rounded-md transition-colors font-medium w-full",
+            isActive
+              ? "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
+              : "hover:bg-gov-blue-700/70"
+          );
+        }}
       >
-        <item.icon className="w-5 h-5 flex-shrink-0" />
+        <item.icon className="w-5 h-5" />
         {!isCollapsed && <span>{item.label}</span>}
       </NavLink>
     );

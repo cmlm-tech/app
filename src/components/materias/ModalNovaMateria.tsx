@@ -3,12 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { FormEvent, useState, useEffect, useMemo } from "react";
+import { FormEvent, useState, useEffect, useMemo, useRef } from "react";
 import { Wand2, Paperclip, Loader2, X, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { TipoMateria, RetornoProtocolo } from "./types";
+import { buscarDestinatarios, criarDestinatario, Destinatario } from "@/services/destinatariosService";
 
 const tiposCriacao: TipoMateria[] = ["Projeto de Lei", "Ofício", "Requerimento", "Moção", "Projeto de Decreto Legislativo", "Indicação"];
 
@@ -91,6 +93,37 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
   const [destinatario, setDestinatario] = useState("");
   const [cargo, setCargo] = useState("");
   const [orgao, setOrgao] = useState("");
+
+  // Estados para busca inteligente de destinatários
+  const [sugestoesDestinatarios, setSugestoesDestinatarios] = useState<Destinatario[]>([]);
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
+  const [salvarNovoDestinatario, setSalvarNovoDestinatario] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  async function handleBuscaDestinatario(termo: string) {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    if (termo.length < 2) {
+      setSugestoesDestinatarios([]);
+      setMostrarSugestoes(false);
+      return;
+    }
+
+    // Pequeno delay para evitar muitas requisições (debounce)
+    searchTimeoutRef.current = setTimeout(async () => {
+      const resultados = await buscarDestinatarios(termo);
+      setSugestoesDestinatarios(resultados);
+      setMostrarSugestoes(resultados.length > 0);
+    }, 300);
+  }
+
+  function selecionarDestinatario(dest: Destinatario) {
+    setDestinatario(dest.nome);
+    setCargo(dest.cargo);
+    setOrgao(dest.orgao);
+    setMostrarSugestoes(false);
+    setSalvarNovoDestinatario(false); // Já existe, não precisa salvar
+  }
 
   // Estados para armazenar os autores vindos do banco
   const [autores, setAutores] = useState<Autor[]>([]);
@@ -500,6 +533,12 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       console.log("3. Chamando RPC no Banco...");
       setStatusMsg("Criando rascunho...");
 
+      // Salvar novo destinatário se solicitado
+      if (salvarNovoDestinatario && destinatario.length > 3 && cargo && orgao) {
+        console.log("Salvando novo destinatário...");
+        await criarDestinatario(destinatario, cargo, orgao);
+      }
+
       const { data, error: erroDB } = await supabase.rpc('criar_rascunho_documento', {
         p_tipo_documento_id: getTipoId(tipo),
         p_ano: new Date().getFullYear(),
@@ -885,10 +924,35 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
 
           {/* DESTINATÁRIO: Para Ofício e Requerimento */}
           {precisaDestinatario && (
-            <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 space-y-2">
+            <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 space-y-2 relative">
               <div className="grid grid-cols-12 gap-2">
-                <div className="col-span-12">
-                  <Input value={destinatario} onChange={e => setDestinatario(e.target.value)} placeholder="Nome do Destinatário" className="bg-white h-8 text-xs" />
+                <div className="col-span-12 relative">
+                  <Input
+                    value={destinatario}
+                    onChange={e => {
+                      setDestinatario(e.target.value);
+                      handleBuscaDestinatario(e.target.value);
+                    }}
+                    onFocus={() => destinatario && handleBuscaDestinatario(destinatario)}
+                    placeholder="Nome do Destinatário (Digite para buscar...)"
+                    className="bg-white h-8 text-xs"
+                    autoComplete="off"
+                  />
+                  {/* Sugestões de Autocomplete */}
+                  {mostrarSugestoes && sugestoesDestinatarios.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
+                      {sugestoesDestinatarios.map((sugestao) => (
+                        <div
+                          key={sugestao.id}
+                          className="px-3 py-2 text-xs hover:bg-slate-100 cursor-pointer flex flex-col"
+                          onClick={() => selecionarDestinatario(sugestao)}
+                        >
+                          <span className="font-semibold text-gray-700">{sugestao.nome}</span>
+                          <span className="text-gray-500 text-[10px]">{sugestao.cargo} - {sugestao.orgao}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="col-span-6">
                   <Input value={cargo} onChange={e => setCargo(e.target.value)} placeholder="Cargo" className="bg-white h-8 text-xs" />
@@ -896,6 +960,23 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
                 <div className="col-span-6">
                   <Input value={orgao} onChange={e => setOrgao(e.target.value)} placeholder="Órgão" className="bg-white h-8 text-xs" />
                 </div>
+
+                {/* Checkbox para Salvar Novo Destinatário */}
+                {destinatario.length > 3 && !sugestoesDestinatarios.find(s => s.nome.toLowerCase() === destinatario.toLowerCase()) && (
+                  <div className="col-span-12 flex items-center gap-2 mt-1 px-1">
+                    <Checkbox
+                      id="salvar-destinatario"
+                      checked={salvarNovoDestinatario}
+                      onCheckedChange={(checked) => setSalvarNovoDestinatario(checked === true)}
+                    />
+                    <label
+                      htmlFor="salvar-destinatario"
+                      className="text-xs text-gray-600 cursor-pointer select-none"
+                    >
+                      Salvar como novo destinatário frequente
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -932,7 +1013,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </DialogContent >
+    </Dialog >
   );
 }

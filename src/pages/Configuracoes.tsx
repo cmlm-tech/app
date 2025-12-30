@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AbaGeral } from "@/components/configuracoes/Gerais";
 import { AbaDadosCamara } from "@/components/configuracoes/DadosCamara";
 import { AbaTiposMateria } from "@/components/configuracoes/TiposMateria";
+import { AbaDestinatarios } from "@/components/configuracoes/Destinatarios";
 
 const Configuracoes = () => {
   return (
@@ -11,7 +12,7 @@ const Configuracoes = () => {
         Configurações do Sistema
       </h1>
       <Tabs defaultValue="geral" className="flex flex-col md:flex-row gap-8">
-        
+
         <div className="relative w-full overflow-x-auto md:w-60 md:overflow-x-visible">
           {/* ALTERAÇÃO: Removido 'w-full' e 'justify-start' do modo mobile.
             Adicionado 'inline-flex' para que a lista de abas tenha a largura do seu conteúdo,
@@ -27,6 +28,9 @@ const Configuracoes = () => {
             <TabsTrigger value="tipos-materia" className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-gov-blue-800 data-[state=active]:shadow-sm">
               Tipos de Matéria
             </TabsTrigger>
+            <TabsTrigger value="destinatarios" className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-gov-blue-800 data-[state=active]:shadow-sm">
+              Destinatários
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -39,6 +43,9 @@ const Configuracoes = () => {
           </TabsContent>
           <TabsContent value="tipos-materia" className="mt-0">
             <AbaTiposMateria />
+          </TabsContent>
+          <TabsContent value="destinatarios" className="mt-0">
+            <AbaDestinatarios />
           </TabsContent>
         </div>
       </Tabs>

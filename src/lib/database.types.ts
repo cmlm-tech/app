@@ -277,6 +277,146 @@ export type Database = {
         }
         Relationships: []
       }
+      ocupacao_cargo: {
+        Row: {
+          ativo: boolean | null
+          cargo_id: number | null
+          criado_em: string | null
+          data_fim: string | null
+          data_inicio: string
+          id: number
+          pessoa_id: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cargo_id?: number | null
+          criado_em?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          id?: number
+          pessoa_id?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cargo_id?: number | null
+          criado_em?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          id?: number
+          pessoa_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocupacao_cargo_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "cargo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocupacao_cargo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      orgao: {
+        Row: {
+          criado_em: string | null
+          endereco_cidade: string | null
+          endereco_logradouro: string | null
+          endereco_uf: string | null
+          id: number
+          nome: string
+          tipo_orgao: string | null
+        }
+        Insert: {
+          criado_em?: string | null
+          endereco_cidade?: string | null
+          endereco_logradouro?: string | null
+          endereco_uf?: string | null
+          id?: number
+          nome: string
+          tipo_orgao?: string | null
+        }
+        Update: {
+          criado_em?: string | null
+          endereco_cidade?: string | null
+          endereco_logradouro?: string | null
+          endereco_uf?: string | null
+          id?: number
+          nome?: string
+          tipo_orgao?: string | null
+        }
+        Relationships: []
+      }
+      pessoa: {
+        Row: {
+          atualizado_em: string | null
+          cpf: string | null
+          criado_em: string | null
+          email: string | null
+          id: number
+          nome: string
+          telefone: string | null
+          tipo_pessoa: string | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          cpf?: string | null
+          criado_em?: string | null
+          email?: string | null
+          id?: number
+          nome: string
+          telefone?: string | null
+          tipo_pessoa?: string | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          cpf?: string | null
+          criado_em?: string | null
+          email?: string | null
+          id?: number
+          nome?: string
+          telefone?: string | null
+          tipo_pessoa?: string | null
+        }
+        Relationships: []
+      }
+      cargo: {
+        Row: {
+          criado_em: string | null
+          id: number
+          nome: string
+          orgao_id: number | null
+          permite_generico: boolean | null
+        }
+        Insert: {
+          criado_em?: string | null
+          id?: number
+          nome: string
+          orgao_id?: number | null
+          permite_generico?: boolean | null
+        }
+        Update: {
+          criado_em?: string | null
+          id?: number
+          nome?: string
+          orgao_id?: number | null
+          permite_generico?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cargo_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgao"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       destinatarios: {
         Row: {
           ativo: boolean | null

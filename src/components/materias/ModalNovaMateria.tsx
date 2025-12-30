@@ -534,9 +534,13 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       setStatusMsg("Criando rascunho...");
 
       // Salvar novo destinatário se solicitado
+      let destinatarioFoiSalvo = false;
       if (salvarNovoDestinatario && destinatario.length > 3 && cargo && orgao) {
         console.log("Salvando novo destinatário...");
-        await criarDestinatario(destinatario, cargo, orgao);
+        const resultado = await criarDestinatario(destinatario, cargo, orgao);
+        if (resultado) {
+          destinatarioFoiSalvo = true;
+        }
       }
 
       const { data, error: erroDB } = await supabase.rpc('criar_rascunho_documento', {
@@ -638,6 +642,15 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       limparForm();  // Limpar apenas quando houver sucesso
       onClose();
 
+      // Mostrar toast de destinatário salvo antes de navegar
+      if (destinatarioFoiSalvo) {
+        toast({
+          title: "Destinatário salvo!",
+          description: `${destinatario} foi adicionado aos destinatários frequentes.`,
+          duration: 4000
+        });
+      }
+
       console.log("7. Navegando...");
       navigate(`/documentos/materias/${dadosRascunho.documento_id}/editar`);
 
@@ -655,8 +668,22 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
     }
   }
 
+  // Função para limpar campos ao fechar o modal
+  function handleCloseModal() {
+    // Limpar campos de destinatário
+    setDestinatario("");
+    setCargo("");
+    setOrgao("");
+    setSugestoesDestinatarios([]);
+    setMostrarSugestoes(false);
+    setSalvarNovoDestinatario(false);
+
+    // Chamar onClose original
+    onClose();
+  }
+
   return (
-    <Dialog open={aberto} onOpenChange={v => !v && !isLoading && onClose()}>
+    <Dialog open={aberto} onOpenChange={v => !v && !isLoading && handleCloseModal()}>
       {/* CORREÇÃO 1: aria-describedby remove o aviso amarelo */}
       <DialogContent className="sm:max-w-[650px]" aria-describedby={undefined}>
         <DialogHeader>

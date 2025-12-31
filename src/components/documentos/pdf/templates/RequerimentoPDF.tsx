@@ -3,6 +3,7 @@ import { pdfStyles } from '../shared/PDFStyles';
 import { PDFHeader } from '../shared/PDFHeader';
 import { PDFFooter } from '../shared/PDFFooter';
 import { PDFSignature } from '../shared/PDFSignature';
+import Watermark from '../shared/Watermark';
 
 interface RequerimentoPDFProps {
     numero: string;
@@ -14,6 +15,7 @@ interface RequerimentoPDFProps {
     destinatarioNome?: string;
     destinatarioCargo?: string;
     destinatarioOrgao?: string;
+    isRascunho?: boolean;
 }
 
 // TEMPLATE PARA REQUERIMENTO (usa formato padrão com destinatário)
@@ -27,6 +29,7 @@ export default function RequerimentoPDF({
     destinatarioNome,
     destinatarioCargo,
     destinatarioOrgao,
+    isRascunho = false,
 }: RequerimentoPDFProps) {
     const dataObj = new Date(dataProtocolo);
     const dia = dataObj.getDate();
@@ -43,6 +46,7 @@ export default function RequerimentoPDF({
         <Document>
             <Page size="A4" style={pdfStyles.page}>
                 <PDFHeader />
+                <Watermark isRascunho={isRascunho} />
 
                 <Text style={pdfStyles.dateLocation}>
                     {dataExtenso}

@@ -142,6 +142,7 @@ export default function EditarMateria() {
                 ementa={ementa}
                 autores={autoresArray.length > 0 ? autoresArray : undefined}
                 membrosComissao={membrosComissao}
+                isRascunho={doc.status === 'Rascunho'}
             />
         ).toBlob();
 
@@ -226,22 +227,44 @@ export default function EditarMateria() {
                     setCorpoTexto(childData[colunaTexto] || "");
                     setEmenta(childData[colunaEmenta] || childData['contexto'] || "");
 
-                    // Capture official number if exists
-                    if (childData['numero_oficio']) (docData as any).numero_oficial = childData['numero_oficio'];
-                    if (childData['numero_lei']) (docData as any).numero_oficial = childData['numero_lei'];
-                    if (childData['numero_requerimento']) (docData as any).numero_oficial = childData['numero_requerimento'];
-                    if (childData['numero_mocao']) (docData as any).numero_oficial = childData['numero_mocao'];
+                    // Capture official number if exists (sempre com 3 dígitos)
+                    if (childData['numero_oficio']) {
+                        const numStr = String(childData['numero_oficio']);
+                        const numOnly = numStr.split('/')[0];
+                        const numPadded = numOnly.padStart(3, '0');
+                        (docData as any).numero_oficial = `${numPadded}/${docData.ano}`;
+                    }
+                    if (childData['numero_lei']) {
+                        const numStr = String(childData['numero_lei']);
+                        const numOnly = numStr.split('/')[0];
+                        const numPadded = numOnly.padStart(3, '0');
+                        (docData as any).numero_oficial = `${numPadded}/${docData.ano}`;
+                    }
+                    if (childData['numero_requerimento']) {
+                        const numStr = String(childData['numero_requerimento']);
+                        const numOnly = numStr.split('/')[0];
+                        const numPadded = numOnly.padStart(3, '0');
+                        (docData as any).numero_oficial = `${numPadded}/${docData.ano}`;
+                    }
+                    if (childData['numero_mocao']) {
+                        const numStr = String(childData['numero_mocao']);
+                        const numOnly = numStr.split('/')[0];
+                        const numPadded = numOnly.padStart(3, '0');
+                        (docData as any).numero_oficial = `${numPadded}/${docData.ano}`;
+                    }
                     // numero_decreto: extrair apenas o número inteiro (pode vir como 14, "14", ou "14/2025")
                     if (childData['numero_decreto']) {
                         const numStr = String(childData['numero_decreto']);
-                        // Extrair apenas a parte numérica antes da barra (se houver)
                         const numOnly = numStr.split('/')[0];
                         const numPadded = numOnly.padStart(3, '0');
                         (docData as any).numero_oficial = `${numPadded}/${docData.ano}`;
                     }
                     // numero_indicacao: mesma lógica
                     if (childData['numero_indicacao']) {
-                        (docData as any).numero_oficial = `${childData['numero_indicacao']}/${docData.ano}`;
+                        const numStr = String(childData['numero_indicacao']);
+                        const numOnly = numStr.split('/')[0];
+                        const numPadded = numOnly.padStart(3, '0');
+                        (docData as any).numero_oficial = `${numPadded}/${docData.ano}`;
                     }
                 }
             }
@@ -624,10 +647,8 @@ export default function EditarMateria() {
                 throw new Error(`Geração automática não suportada para o tipo "${tipoNome}". Tipos válidos: Ofício, Projeto de Lei, Requerimento, Moção, Projeto de Decreto Legislativo, Indicação.`);
             }
 
-            // Formatar número para exibição
-            const numeroFormatado = tipoNome === "Projeto de Decreto Legislativo"
-                ? `${String(novoNumero).padStart(3, '0')}/${doc.ano}`
-                : `${novoNumero}/${doc.ano}`;
+            // Formatar número para exibição (sempre com 3 dígitos)
+            const numeroFormatado = `${String(novoNumero).padStart(3, '0')}/${doc.ano}`;
 
             toast({ title: "Oficializado!", description: `${tipoNome} recebeu o número ${numeroFormatado}.`, className: "bg-blue-600 text-white" });
 
@@ -768,7 +789,9 @@ export default function EditarMateria() {
 
                         <Button variant="outline" onClick={handleGerarPDF} disabled={generatingPDF} className="flex-1 sm:flex-none">
                             {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
-                            <span className="hidden sm:inline">Visualizar PDF</span>
+                            <span className="hidden sm:inline">
+                                {doc.status === 'Rascunho' ? 'Visualizar Rascunho' : 'Visualizar PDF'}
+                            </span>
                             <span className="sm:hidden">Ver</span>
                         </Button>
 
@@ -877,12 +900,12 @@ export default function EditarMateria() {
                                 </div>
                                 <div>
                                     <label className="text-xs font-semibold text-slate-500">Autor</label>
-                                    <Input readOnly value={autorNome} className="bg-slate-50" />
+                                    <Input disabled value={autorNome} className="bg-slate-100 opacity-100 font-medium text-slate-700" />
                                 </div>
                                 <div>
                                     <label className="text-xs font-semibold text-slate-500">Data e Hora Protocolo</label>
                                     <Input
-                                        readOnly
+                                        disabled
                                         value={
                                             (doc as any).protocolos?.data_hora
                                                 ? new Date((doc as any).protocolos.data_hora).toLocaleString('pt-BR', {
@@ -894,7 +917,7 @@ export default function EditarMateria() {
                                                 })
                                                 : 'Aguardando protocolação'
                                         }
-                                        className="bg-slate-50"
+                                        className="bg-slate-100 opacity-100 font-medium text-slate-700"
                                     />
                                 </div>
                             </CardContent>
@@ -906,14 +929,11 @@ export default function EditarMateria() {
                             </CardHeader>
                             <CardContent>
                                 <Textarea
+                                    disabled
                                     value={ementa}
-                                    onChange={e => setEmenta(e.target.value)}
-                                    className="min-h-[120px] text-sm"
+                                    className="min-h-[120px] text-sm bg-slate-100 opacity-100 text-slate-700"
                                     placeholder="Resumo do pedido..."
                                 />
-                                <Button variant="ghost" size="sm" className="w-full mt-2 text-xs text-indigo-600" onClick={handleSalvarEmenta} disabled={saving}>
-                                    {saving ? "Salvando..." : "Atualizar Resumo"}
-                                </Button>
                             </CardContent>
                         </Card>
 

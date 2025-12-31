@@ -3,6 +3,7 @@ import { pdfStyles } from '../shared/PDFStyles';
 import { PDFHeader } from '../shared/PDFHeader';
 import { PDFFooter } from '../shared/PDFFooter';
 import { PDFSignature } from '../shared/PDFSignature';
+import Watermark from '../shared/Watermark';
 
 interface IndicacaoPDFProps {
     numero: string;
@@ -12,6 +13,7 @@ interface IndicacaoPDFProps {
     autorCargo: string;
     destinatario?: string;
     indicacao?: string; // O texto da indicação em si
+    isRascunho?: boolean;
 }
 
 // TEMPLATE PARA INDICAÇÃO
@@ -24,6 +26,7 @@ export default function IndicacaoPDF({
     autorCargo,
     destinatario = "Sr. Prefeito Municipal",
     indicacao = "",
+    isRascunho = false,
 }: IndicacaoPDFProps) {
     const dataObj = new Date(dataProtocolo);
     const dia = dataObj.getDate();
@@ -45,6 +48,7 @@ export default function IndicacaoPDF({
         <Document>
             <Page size="A4" style={pdfStyles.page}>
                 <PDFHeader />
+                <Watermark isRascunho={isRascunho} />
 
                 {/* Título centralizado */}
                 <Text style={pdfStyles.documentNumberText}>

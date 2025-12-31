@@ -3,6 +3,7 @@ import { pdfStyles } from '../shared/PDFStyles';
 import { PDFHeader } from '../shared/PDFHeader';
 import { PDFFooter } from '../shared/PDFFooter';
 import { PDFSignature } from '../shared/PDFSignature';
+import Watermark from '../shared/Watermark';
 
 interface DecretoLegislativoPDFProps {
     numero: string;
@@ -12,6 +13,7 @@ interface DecretoLegislativoPDFProps {
     autorCargo: string;
     ementa?: string;
     membrosComissao?: { nome: string; cargo: string }[];
+    isRascunho?: boolean;
 }
 
 // TEMPLATE EXTRAÍDO DO PLANO DE IMPLEMENTAÇÃO
@@ -22,7 +24,8 @@ export default function DecretoLegislativoPDF({
     autor,
     autorCargo,
     ementa,
-    membrosComissao
+    membrosComissao,
+    isRascunho = false,
 }: DecretoLegislativoPDFProps) {
     const dataObj = new Date(dataProtocolo);
     const dia = dataObj.getDate();
@@ -56,6 +59,7 @@ export default function DecretoLegislativoPDF({
         <Document>
             <Page size="A4" style={pdfStyles.page}>
                 <PDFHeader />
+                <Watermark isRascunho={isRascunho} />
 
                 <Text style={[pdfStyles.documentNumberText, { textAlign: 'center', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 10 }]}>
                     PROJETO DE DECRETO LEGISLATIVO N° {numeroLimpo}

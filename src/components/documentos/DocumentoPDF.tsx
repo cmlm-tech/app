@@ -20,6 +20,7 @@ interface DocumentoPDFProps {
     ementa?: string;
     autores?: string[] | any[];
     membrosComissao?: { nome: string; cargo: string }[];
+    isRascunho?: boolean;
 }
 
 /**
@@ -31,7 +32,7 @@ interface DocumentoPDFProps {
  * - pdf/templates: templates específicos por tipo de documento
  */
 export function DocumentoPDF(props: DocumentoPDFProps) {
-    const { tipo, autorCargo = "Vereador(a)", pronomeTratamento = "Ao Ilmo. Sr." } = props;
+    const { tipo, autorCargo = "Vereador(a)", pronomeTratamento = "Ao Ilmo. Sr.", isRascunho = false } = props;
 
     switch (tipo) {
         case 'Moção':
@@ -43,6 +44,7 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     autorCargo={autorCargo}
                     ementa={props.ementa}
                     autores={props.autores}
+                    isRascunho={isRascunho}
                 />
             );
 
@@ -58,6 +60,7 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     destinatarioNome={props.destinatarioNome}
                     destinatarioCargo={props.destinatarioCargo}
                     destinatarioOrgao={props.destinatarioOrgao}
+                    isRascunho={isRascunho}
                 />
             );
 
@@ -70,6 +73,7 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     autor={props.autor}
                     autorCargo={autorCargo}
                     ementa={props.ementa}
+                    isRascunho={isRascunho}
                 />
             );
 
@@ -85,6 +89,7 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     destinatarioNome={props.destinatarioNome}
                     destinatarioCargo={props.destinatarioCargo}
                     destinatarioOrgao={props.destinatarioOrgao}
+                    isRascunho={isRascunho}
                 />
             );
 
@@ -98,6 +103,7 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     autorCargo={autorCargo}
                     ementa={props.ementa}
                     membrosComissao={props.membrosComissao}
+                    isRascunho={isRascunho}
                 />
             );
 
@@ -111,6 +117,7 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     autorCargo={autorCargo}
                     destinatario={props.destinatarioNome}
                     indicacao={props.ementa}
+                    isRascunho={isRascunho}
                 />
             );
 
@@ -128,6 +135,7 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     destinatarioNome={props.destinatarioNome}
                     destinatarioCargo={props.destinatarioCargo}
                     destinatarioOrgao={props.destinatarioOrgao}
+                    isRascunho={isRascunho}
                 />
             );
     }

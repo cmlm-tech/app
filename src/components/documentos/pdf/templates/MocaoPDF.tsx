@@ -3,6 +3,7 @@ import { pdfStyles } from '../shared/PDFStyles';
 import { PDFHeader } from '../shared/PDFHeader';
 import { PDFFooter } from '../shared/PDFFooter';
 import { PDFSignature } from '../shared/PDFSignature';
+import Watermark from '../shared/Watermark';
 
 interface MocaoPDFProps {
     numero: string;
@@ -11,6 +12,7 @@ interface MocaoPDFProps {
     autorCargo: string;
     ementa?: string;
     autores?: string[];
+    isRascunho?: boolean;
 }
 
 // TEMPLATE EXTRAÍDO DO DocumentoPDF.tsx ORIGINAL (seção Moção)
@@ -21,6 +23,7 @@ export default function MocaoPDF({
     autorCargo,
     ementa,
     autores,
+    isRascunho = false,
 }: MocaoPDFProps) {
     const dataObj = new Date(dataProtocolo);
     const dia = dataObj.getDate();
@@ -36,6 +39,7 @@ export default function MocaoPDF({
         <Document>
             <Page size="A4" style={pdfStyles.page}>
                 <PDFHeader />
+                <Watermark isRascunho={isRascunho} />
 
                 <Text style={pdfStyles.documentNumberText}>
                     Projeto de Moção N° {numeroLimpo}

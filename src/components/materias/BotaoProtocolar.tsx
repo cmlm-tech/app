@@ -43,13 +43,30 @@ export function BotaoProtocolar({
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [etapa, setEtapa] = useState<string>("");
+    const [confirmOpen, setConfirmOpen] = useState(false);
 
     // Só mostra o botão se o documento estiver em estado de rascunho
     if (statusAtual !== 'Rascunho') {
         return null;
     }
 
+    const handlePreValidacao = () => {
+        if (!numeroOficial) {
+            toast({
+                title: "Número Oficial Necessário",
+                description: "Clique no botão 'Gerar Número' antes de protocolar o documento.",
+                variant: "destructive",
+                duration: 5000
+            });
+            return;
+        }
+        setConfirmOpen(true);
+    };
+
     const handleProtocolar = async () => {
+        // Fechar modal primeiro
+        setConfirmOpen(false);
+
         try {
             setIsLoading(true);
             setEtapa("Autenticando...");
@@ -192,21 +209,27 @@ export function BotaoProtocolar({
     }
 
     return (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                >
-                    {buttonContent}
-                </Button>
-            </AlertDialogTrigger>
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <Button
+                onClick={handlePreValidacao}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+                {buttonContent}
+            </Button>
+
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Confirmar Protocolação?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Esta ação oficializa o documento no sistema.
-                        Após protocolar, o documento receberá um número oficial e <strong>não poderá mais ser editado</strong>.
-                    </AlertDialogDescription>
+                    <div className="text-sm text-muted-foreground space-y-3 pt-2">
+                        <p>Ao protocolar este documento:</p>
+                        <ul className="list-disc pl-5 space-y-1">
+                            <li>Será atribuído número de protocolo permanente</li>
+                            <li>O PDF oficial será gerado e salvo</li>
+                            <li>O status mudará para <strong className="text-foreground">Protocolado</strong></li>
+                            <li className="text-red-500 font-medium">⚠️ NÃO poderá mais ser editado</li>
+                        </ul>
+                        <p className="pt-2">Confirma o protocolamento?</p>
+                    </div>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>

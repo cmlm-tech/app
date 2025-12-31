@@ -1,16 +1,18 @@
-
-import { useState } from "react";
-import { pdf } from '@react-pdf/renderer';
-import { DocumentoPDF } from "@/components/documentos/DocumentoPDF";
-import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
-import { Eye, Pencil, Download, History, Loader2 } from "lucide-react";
+import { Eye, Pencil, Download, History } from "lucide-react";
 import { Materia } from "./types";
 import { cn } from "@/lib/utils";
 import { CardMateria } from "./CardMateria";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   materias: Materia[];
@@ -36,146 +38,15 @@ function linkToMateria(id: string, tipo: string) {
   return `/documentos/materias/${id}/editar`;
 }
 
+
+
 export default function TabelaMaterias({ materias }: Props) {
   const { toast } = useToast();
-  const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  async function handleVisualizarPDF(mat: Materia) {
-    // Se já existe arquivo oficial no bucket, abrir direto
+  function handleVisualizarPDF(mat: Materia) {
     if (mat.arquivo_url) {
       console.log('[Visualizar PDF] Abrindo do Storage:', mat.arquivo_url);
       window.open(mat.arquivo_url, '_blank');
-      return;
-    }
-
-    console.log('[Visualizar PDF] Gerando dinamicamente para matéria', mat.id);
-    setLoadingId(mat.id);
-    try {
-      // 1. Fetch details (Text + Official Number)
-      let tabelaFilha = "";
-      let colunaTexto = "";
-      let colunaNumero = "";
-
-      if (mat.tipo === "Ofício") {
-        tabelaFilha = "oficios"; colunaTexto = "corpo_texto"; colunaNumero = "numero_oficio";
-      } else if (mat.tipo === "Projeto de Lei") {
-        tabelaFilha = "projetosdelei"; colunaTexto = "corpo_texto"; colunaNumero = "numero_lei";
-      } else if (mat.tipo === "Requerimento") {
-        tabelaFilha = "requerimentos"; colunaTexto = "corpo_texto"; colunaNumero = "numero_requerimento";
-      } else if (mat.tipo === "Projeto de Decreto Legislativo") {
-        tabelaFilha = "projetosdedecretolegislativo"; colunaTexto = "justificativa"; colunaNumero = "numero_decreto_legislativo";
-      } else if (mat.tipo === "Moção") {
-        tabelaFilha = "mocoes"; colunaTexto = "corpo_texto"; colunaNumero = "numero_mocao";
-      } else if (mat.tipo === "Indicação") {
-        tabelaFilha = "indicacoes"; colunaTexto = "justificativa"; colunaNumero = "numero_indicacao";
-      } else if (mat.tipo === "Parecer") {
-        tabelaFilha = "pareceres"; colunaTexto = "corpo_texto"; colunaNumero = "id"; // Pareceres usam ID interno como número por enquanto
-      }
-
-      if (!tabelaFilha) {
-        toast({ title: "Erro", description: "Tipo de documento não suporta visualização.", variant: "destructive" });
-        setLoadingId(null);
-        return;
-      }
-
-      // Fetch child data
-      const { data: childData, error } = await supabase
-        .from(tabelaFilha as any)
-        .select('*')
-        .eq('documento_id', Number(mat.id))
-        .single();
-
-      if (error) throw error;
-
-      // Fetch Main doc for Protocol General Number and Year (if needed more precision than 'mat')
-      // We use 'mat' for speed, but 'ano' and exact protocol number might be safer from DB.
-      // Assuming 'mat.protocolo' string format is "ANO.NUMERO".
-      const [anoStr, numStr] = mat.protocolo.split('.');
-
-      const numeroOficial = childData[colunaNumero]
-        ? `${mat.tipo} nº ${childData[colunaNumero].toString().padStart(3, '0')}/${anoStr}`
-        : "Sem Numeração Oficial";
-
-      let membrosComissao: any[] = [];
-
-      // Se for Projeto de Decreto Legislativo, verificar se menciona Finanças
-      if (mat.tipo === 'Projeto de Decreto Legislativo') {
-        // Normalizar texto para ignorar acentos
-        const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-        const textoCompleto = normalize((childData[colunaTexto] || '') + ' ' + (mat.ementa || ''));
-        const mencionaFinancas = textoCompleto.includes('financas') || textoCompleto.includes('comissao');
-
-        console.log('[PDF DEBUG] Tipo:', mat.tipo);
-        console.log('[PDF DEBUG] Texto normalizado contém financas?', mencionaFinancas);
-
-        if (mencionaFinancas) {
-          console.log('[PDF] Documento pode ser de Comissão - buscando comissão de finanças...');
-
-          // Buscar a comissão de finanças diretamente
-          const { data: comissao } = await supabase
-            .from('comissoes')
-            .select('id')
-            .or('nome.ilike.%finanças%,nome.ilike.%financas%')
-            .limit(1)
-            .single();
-
-          if (comissao) {
-            console.log(`[PDF] Comissão encontrada ID: ${comissao.id}`);
-
-            // Buscar membros
-            const { data: membrosRef } = await supabase
-              .from('comissaomembros')
-              .select('cargo, agente_publico_id')
-              .eq('comissao_id', comissao.id);
-
-            if (membrosRef && membrosRef.length > 0) {
-              console.log(`[PDF] Membros encontrados: ${membrosRef.length}`);
-
-              const agenteIds = membrosRef.map(m => m.agente_publico_id);
-              const { data: agentes } = await supabase
-                .from('agentespublicos')
-                .select('id, nome_completo')
-                .in('id', agenteIds);
-
-              if (agentes) {
-                const agentesMap = new Map(agentes.map(a => [a.id, a.nome_completo]));
-                membrosComissao = membrosRef.map(m => ({
-                  nome: agentesMap.get(m.agente_publico_id) || "Nome não encontrado",
-                  cargo: m.cargo
-                }));
-                console.log(`[PDF] Membros processados:`, membrosComissao);
-              }
-            } else {
-              console.warn('[PDF] Nenhum membro cadastrado para esta comissão');
-            }
-          } else {
-            console.warn('[PDF] Comissão de Finanças não encontrada no banco');
-          }
-        }
-      }
-
-      // Generate PDF
-      const blob = await pdf(
-        <DocumentoPDF
-          tipo={mat.tipo}
-          numero={numeroOficial}
-          dataProtocolo={mat.dataProtocolo.toISOString()}
-          texto={childData[colunaTexto] || ""}
-          autor={mat.autor}
-          autorCargo={membrosComissao.length > 0 ? "Comissão Permanente" : undefined}
-          autores={membrosComissao.length > 0 ? membrosComissao : undefined}
-          membrosComissao={membrosComissao}
-        />
-      ).toBlob();
-
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-
-    } catch (err) {
-      console.error(err);
-      toast({ title: "Erro", description: "Falha ao gerar PDF. Tente editar e salvar novamente.", variant: "destructive" });
-    } finally {
-      setLoadingId(null);
     }
   }
 
@@ -197,7 +68,7 @@ export default function TabelaMaterias({ materias }: Props) {
           <TableBody>
             {materias.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                <TableCell colSpan={7} className="text-center text-gray-400 py-8">
                   Nenhuma matéria encontrada.
                 </TableCell>
               </TableRow>
@@ -216,21 +87,34 @@ export default function TabelaMaterias({ materias }: Props) {
                     {mat.status}
                   </span>
                 </TableCell>
-                <TableCell className="flex gap-2 justify-end">
-                  <button
-                    title="Visualizar PDF"
-                    className="hover:text-gov-blue-900 disabled:opacity-50"
-                    onClick={() => handleVisualizarPDF(mat)}
-                    disabled={loadingId === mat.id}
-                  >
-                    {loadingId === mat.id ? <Loader2 size={18} className="animate-spin" /> : <Eye size={18} />}
-                  </button>
-                  <a href={linkToMateria(mat.id, mat.tipo)} title="Editar" className="hover:text-yellow-700 text-gray-600"><Pencil size={18} /></a>
-                  <button title="Baixar anexo" className="hover:text-green-700"><Download size={18} /></button>
+                <TableCell className="flex gap-2 justify-end items-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="inline-block">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hover:text-gov-blue-900 disabled:opacity-30"
+                            onClick={() => handleVisualizarPDF(mat)}
+                            disabled={!mat.arquivo_url}
+                          >
+                            <Eye size={18} />
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{mat.arquivo_url ? "Visualizar PDF oficial" : "PDF disponível após protocolar"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  <a href={linkToMateria(mat.id, mat.tipo)} title="Editar" className="hover:text-yellow-700 text-gray-600 p-2"><Pencil size={18} /></a>
+                  <button title="Baixar anexo" className="hover:text-green-700 p-2"><Download size={18} /></button>
                   <a
                     href={`/documentos/materias/${mat.id}/historico`}
                     title="Histórico de Tramitação"
-                    className="hover:text-indigo-700 text-gray-600"
+                    className="hover:text-indigo-700 text-gray-600 p-2"
                   >
                     <History size={18} />
                   </a>

@@ -8,8 +8,8 @@
  */
 
 import { supabase } from "@/lib/supabaseClient";
+import { getBucketForDocumentType } from "@/lib/buckets";
 
-const BUCKET_MATERIAS = 'materias-oficiais';
 const CUSTOM_STORAGE_DOMAIN = 'https://documentos.cmlm.tech';
 
 /**
@@ -81,9 +81,13 @@ export async function uploadMateriaPDF(
     // 2. Gerar caminho do arquivo
     const filePath = gerarCaminhoArquivo(tipoDocumento, numero, ano, documentoId);
 
-    // 3. Fazer upload
+    // 3. Definir bucket correto
+    const bucketName = getBucketForDocumentType(tipoDocumento);
+    console.log(`[Storage] Uploading to bucket: ${bucketName}`);
+
+    // 4. Fazer upload
     const { data, error } = await supabase.storage
-        .from(BUCKET_MATERIAS)
+        .from(bucketName)
         .upload(filePath, pdfBlob, {
             contentType: 'application/pdf',
             upsert: false, // Não sobrescrever se existir
@@ -95,7 +99,8 @@ export async function uploadMateriaPDF(
         throw new Error(`Falha ao fazer upload do PDF: ${error.message}`);
     }
 
-    // 4. Gerar URL pública (usando domínio customizado via Cloudflare Worker)
+    // 5. Gerar URL pública (usando domínio customizado via Cloudflare Worker)
+    // Nota: O Cloudflare Worker deve estar configurado para mapear/rotear para os buckets corretos
     const publicUrl = `${CUSTOM_STORAGE_DOMAIN}/${filePath}`;
 
     return {

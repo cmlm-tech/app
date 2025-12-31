@@ -57,6 +57,16 @@ export default function EditarMateria() {
 
     async function handleGerarPDF() {
         if (!doc) return;
+
+        // Se documento já tem PDF no Storage, abrir direto
+        if ((doc as any).arquivo_pdf_url) {
+            console.log('[EditarMateria] Abrindo PDF do Storage:', (doc as any).arquivo_pdf_url);
+            window.open((doc as any).arquivo_pdf_url, '_blank');
+            return;
+        }
+
+        // Caso contrário, gerar PDF dinamicamente
+        console.log('[EditarMateria] Gerando PDF dinamicamente (arquivo_pdf_url não encontrado)');
         setGeneratingPDF(true);
         try {
             const blob = await gerarPdfBlob();
@@ -156,6 +166,7 @@ export default function EditarMateria() {
         data_protocolo,
         protocolo_id,
         requer_votacao_secreta,
+        arquivo_pdf_url,
         tiposdedocumento ( nome ),
         protocolos!documentos_protocolo_id_fkey ( id, numero, data_hora, usuario_id )
         `)

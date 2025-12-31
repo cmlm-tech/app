@@ -41,6 +41,14 @@ export default function TabelaMaterias({ materias }: Props) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   async function handleVisualizarPDF(mat: Materia) {
+    // Se já existe arquivo oficial no bucket, abrir direto
+    if (mat.arquivo_url) {
+      console.log('[Visualizar PDF] Abrindo do Storage:', mat.arquivo_url);
+      window.open(mat.arquivo_url, '_blank');
+      return;
+    }
+
+    console.log('[Visualizar PDF] Gerando dinamicamente para matéria', mat.id);
     setLoadingId(mat.id);
     try {
       // 1. Fetch details (Text + Official Number)

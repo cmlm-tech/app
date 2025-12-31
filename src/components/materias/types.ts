@@ -32,6 +32,7 @@ export interface Materia {
   destinatario?: string;
   cargo?: string;
   orgao?: string;
+  arquivo_url?: string; // URL do PDF armazenado no Supabase Storage
 }
 
 // --- tipar o retorno da Procedure SQL ---

@@ -18,11 +18,16 @@ const CUSTOM_STORAGE_DOMAIN = 'https://documentos.cmlm.tech';
  * @returns Hash SHA-256 em formato hexadecimal
  */
 export async function calcularHashSHA256(blob: Blob): Promise<string> {
-    const arrayBuffer = await blob.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
+    try {
+        const arrayBuffer = await blob.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    } catch (error) {
+        console.error('[Storage] Erro ao calcular hash:', error);
+        throw new Error(`Falha ao calcular hash SHA-256: ${error}`);
+    }
 }
 
 /**
@@ -109,17 +114,20 @@ export async function atualizarUrlPDF(
     documentoId: number,
     pdfUrl: string
 ): Promise<void> {
-    // Nota: O nome da coluna pode ser arquivo_url ou arquivo_pdf_url dependendo da versão dos tipos
-    // Usando type assertion para compatibilidade
+    console.log(`[Storage] 💾 Atualizando arquivo_pdf_url no documento ${documentoId}...`);
+    console.log(`[Storage] URL a ser salva: ${pdfUrl}`);
+
     const { error } = await supabase
         .from('documentos')
-        .update({ arquivo_url: pdfUrl } as any)
+        .update({ arquivo_pdf_url: pdfUrl } as any)
         .eq('id', documentoId);
 
     if (error) {
-        console.error('Erro ao atualizar URL do PDF:', error);
+        console.error('[Storage] ❌ Erro ao atualizar URL do PDF:', error);
         throw new Error(`Falha ao salvar URL do PDF: ${error.message}`);
     }
+
+    console.log('[Storage] ✅ URL salva com sucesso no banco de dados');
 }
 
 /**

@@ -30,6 +30,18 @@ export default function Materias() {
     fetchMaterias();
   }, []);
 
+  // Recarregar dados quando a página se torna visível (volta da aba de edição)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchMaterias();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   // Resetar página ao filtrar
   useEffect(() => {
     setPagina(1);
@@ -54,6 +66,7 @@ export default function Materias() {
           data_protocolo,
           status,
           protocolo_id,
+          arquivo_pdf_url,
           tiposdedocumento ( nome ),
           protocolos!documentos_protocolo_id_fkey ( numero ),
           documentoautores ( autor_id, papel ),
@@ -67,7 +80,8 @@ export default function Materias() {
             status, 
             comissao:comissoes(nome),
             materia:documentos!pareceres_materia_documento_id_fkey (
-                ano, 
+                ano,
+                arquivo_pdf_url,
                 tiposdedocumento ( nome ),
                 protocolos!documentos_protocolo_id_fkey ( numero )
             )
@@ -137,9 +151,14 @@ export default function Materias() {
             autorTipo: autorTipo,
             dataProtocolo: new Date(doc.data_protocolo),
             status: doc.status as StatusMateria,
+            arquivo_url: doc.arquivo_pdf_url || undefined,
           };
         });
         setMaterias(mappedMaterias);
+
+        // Log para debug: quantas matérias têm PDF armazenado
+        const comPDF = mappedMaterias.filter(m => m.arquivo_url).length;
+        console.log(`[Materias] ${comPDF} de ${mappedMaterias.length} matérias têm PDF no Storage`);
 
         // Mapear pareceres separadamente
         const mappedPareceres: Parecer[] = data

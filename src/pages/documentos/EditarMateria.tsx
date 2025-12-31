@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ArrowLeft, Save, FileText, Lock, XCircle, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowLeft, Save, FileText, Lock, XCircle, AlertTriangle, Download } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
@@ -59,77 +59,83 @@ export default function EditarMateria() {
         if (!doc) return;
         setGeneratingPDF(true);
         try {
-            const numeroOficial = (doc as any).numero_oficial
-                ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial.toString().padStart(3, '0')}/${doc.ano}`
-                : "Sem Numeração";
-
-            // Buscar membros da comissão se for Projeto de Decreto Legislativo
-            let membrosComissao: { nome: string; cargo: string }[] = [];
-
-            if (doc.tiposdedocumento?.nome === 'Projeto de Decreto Legislativo') {
-                // Normalizar texto para ignorar acentos
-                const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-                const textoCompleto = normalize((corpoTexto || '') + ' ' + (ementa || ''));
-                const mencionaFinancas = textoCompleto.includes('financas') || textoCompleto.includes('comissao');
-
-                if (mencionaFinancas) {
-                    // Buscar a comissão de finanças
-                    const { data: comissao } = await supabase
-                        .from('comissoes')
-                        .select('id')
-                        .or('nome.ilike.%finanças%,nome.ilike.%financas%')
-                        .limit(1)
-                        .single();
-
-                    if (comissao) {
-                        // Buscar membros
-                        const { data: membrosRef } = await supabase
-                            .from('comissaomembros')
-                            .select('cargo, agente_publico_id')
-                            .eq('comissao_id', comissao.id);
-
-                        if (membrosRef && membrosRef.length > 0) {
-                            const agenteIds = membrosRef.map(m => m.agente_publico_id);
-                            const { data: agentes } = await supabase
-                                .from('agentespublicos')
-                                .select('id, nome_completo')
-                                .in('id', agenteIds);
-
-                            if (agentes) {
-                                const agentesMap = new Map(agentes.map(a => [a.id, a.nome_completo]));
-                                membrosComissao = membrosRef.map(m => ({
-                                    nome: agentesMap.get(m.agente_publico_id) || "Nome não encontrado",
-                                    cargo: m.cargo
-                                }));
-                            }
-                        }
-                    }
-                }
-            }
-
-            const blob = await pdf(
-                <DocumentoPDF
-                    tipo={doc.tiposdedocumento?.nome || "Documento"}
-                    numero={numeroOficial}
-                    dataProtocolo={doc.data_protocolo}
-                    texto={corpoTexto}
-                    autor={autorNome}
-                    autorCargo={membrosComissao.length > 0 ? "Comissão Permanente" : undefined}
-                    ementa={ementa}
-                    autores={autoresArray.length > 0 ? autoresArray : undefined}
-                    membrosComissao={membrosComissao}
-                />
-            ).toBlob();
-
+            const blob = await gerarPdfBlob();
             const url = URL.createObjectURL(blob);
             window.open(url, '_blank');
-
         } catch (err) {
             console.error(err);
             toast({ title: "Erro", description: "Falha ao gerar PDF.", variant: "destructive" });
         } finally {
             setGeneratingPDF(false);
         }
+    }
+
+    /**
+     * Gera o PDF como Blob - usado tanto para visualização quanto para upload
+     */
+    async function gerarPdfBlob(): Promise<Blob> {
+        if (!doc) throw new Error("Documento não carregado");
+
+        const numeroOficial = (doc as any).numero_oficial
+            ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial.toString().padStart(3, '0')}/${doc.ano}`
+            : "Sem Numeração";
+
+        // Buscar membros da comissão se for Projeto de Decreto Legislativo
+        let membrosComissao: { nome: string; cargo: string }[] = [];
+
+        if (doc.tiposdedocumento?.nome === 'Projeto de Decreto Legislativo') {
+            const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            const textoCompleto = normalize((corpoTexto || '') + ' ' + (ementa || ''));
+            const mencionaFinancas = textoCompleto.includes('financas') || textoCompleto.includes('comissao');
+
+            if (mencionaFinancas) {
+                const { data: comissao } = await supabase
+                    .from('comissoes')
+                    .select('id')
+                    .or('nome.ilike.%finanças%,nome.ilike.%financas%')
+                    .limit(1)
+                    .single();
+
+                if (comissao) {
+                    const { data: membrosRef } = await supabase
+                        .from('comissaomembros')
+                        .select('cargo, agente_publico_id')
+                        .eq('comissao_id', comissao.id);
+
+                    if (membrosRef && membrosRef.length > 0) {
+                        const agenteIds = membrosRef.map(m => m.agente_publico_id);
+                        const { data: agentes } = await supabase
+                            .from('agentespublicos')
+                            .select('id, nome_completo')
+                            .in('id', agenteIds);
+
+                        if (agentes) {
+                            const agentesMap = new Map(agentes.map(a => [a.id, a.nome_completo]));
+                            membrosComissao = membrosRef.map(m => ({
+                                nome: agentesMap.get(m.agente_publico_id) || "Nome não encontrado",
+                                cargo: m.cargo
+                            }));
+                        }
+                    }
+                }
+            }
+        }
+
+        const blob = await pdf(
+            <DocumentoPDF
+                tipo={doc.tiposdedocumento?.nome || "Documento"}
+                numero={numeroOficial}
+                dataProtocolo={doc.data_protocolo}
+                texto={corpoTexto}
+                autor={autorNome}
+                autorCargo={membrosComissao.length > 0 ? "Comissão Permanente" : undefined}
+                ementa={ementa}
+                autores={autoresArray.length > 0 ? autoresArray : undefined}
+                membrosComissao={membrosComissao}
+            />
+        ).toBlob();
+
+        return blob;
     }
 
     useEffect(() => {
@@ -732,18 +738,37 @@ export default function EditarMateria() {
                             documentoId={doc.id}
                             statusAtual={doc.status}
                             tipoDocumento={doc.tiposdedocumento?.nome}
+                            ano={doc.ano}
+                            numeroOficial={(doc as any).numero_oficial}
+                            gerarPdfBlob={gerarPdfBlob}
                             onSuccess={() => carregarDados(id!)}
                         />
+
+                        {/* Botão Baixar PDF Oficial - só aparece se já foi protocolado e tem URL */}
+                        {(doc as any).arquivo_url && (
+                            <a href={(doc as any).arquivo_url} target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" className="text-green-600 hover:bg-green-50">
+                                    <Download className="w-4 h-4 mr-2" />
+                                    <span className="hidden sm:inline">Baixar PDF Oficial</span>
+                                    <span className="sm:hidden">PDF</span>
+                                </Button>
+                            </a>
+                        )}
+
                         <Button variant="outline" onClick={handleGerarPDF} disabled={generatingPDF} className="flex-1 sm:flex-none">
                             {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
-                            <span className="hidden sm:inline">Visualizar Oficial</span>
-                            <span className="sm:hidden">PDF</span>
+                            <span className="hidden sm:inline">Visualizar PDF</span>
+                            <span className="sm:hidden">Ver</span>
                         </Button>
-                        <Button onClick={handleSalvar} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 flex-1 sm:flex-none">
-                            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                            <span className="hidden sm:inline">Salvar Alterações</span>
-                            <span className="sm:hidden">Salvar</span>
-                        </Button>
+
+                        {/* Botões de edição - só aparecem se NÃO estiver protocolado */}
+                        {doc.status === 'Rascunho' && (
+                            <Button onClick={handleSalvar} disabled={saving} className="bg-indigo-600 hover:bg-indigo-700 flex-1 sm:flex-none">
+                                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                                <span className="hidden sm:inline">Salvar Alterações</span>
+                                <span className="sm:hidden">Salvar</span>
+                            </Button>
+                        )}
 
                         {/* Botão Retirar Matéria */}
                         {podeRetirar && doc.status !== 'Retirado' && doc.status !== 'Prejudicado' && (
@@ -781,19 +806,33 @@ export default function EditarMateria() {
                             <CardTitle className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-2">
                                 Redação Oficial (Minuta)
                             </CardTitle>
+                            {/* Aviso de documento bloqueado */}
+                            {doc.status !== 'Rascunho' && (
+                                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
+                                    <Lock className="w-4 h-4" />
+                                    <span>
+                                        <strong>Documento protocolado.</strong> Este documento não pode mais ser editado.
+                                        Para correções, utilize Emenda ou Substitutivo.
+                                    </span>
+                                </div>
+                            )}
                         </CardHeader>
                         <CardContent>
-                            <div className="bg-slate-50 p-4 rounded-md border border-slate-200 min-h-[600px]">
+                            <div className={`p-4 rounded-md border min-h-[600px] ${doc.status !== 'Rascunho' ? 'bg-gray-100 border-gray-300' : 'bg-slate-50 border-slate-200'}`}>
                                 <textarea
-                                    className="w-full h-full min-h-[550px] bg-transparent resize-none outline-none text-base leading-relaxed text-gray-800 font-serif"
+                                    className={`w-full h-full min-h-[550px] bg-transparent resize-none outline-none text-base leading-relaxed font-serif ${doc.status !== 'Rascunho' ? 'text-gray-600 cursor-not-allowed' : 'text-gray-800'}`}
                                     value={corpoTexto}
                                     onChange={(e) => setCorpoTexto(e.target.value)}
                                     placeholder="O texto da matéria aparecerá aqui..."
+                                    disabled={doc.status !== 'Rascunho'}
+                                    readOnly={doc.status !== 'Rascunho'}
                                 />
                             </div>
-                            <p className="text-xs text-slate-400 mt-2 text-right">
-                                Suporta HTML básico se gerado pela IA. Edição livre.
-                            </p>
+                            {doc.status === 'Rascunho' && (
+                                <p className="text-xs text-slate-400 mt-2 text-right">
+                                    Suporta HTML básico se gerado pela IA. Edição livre.
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
 

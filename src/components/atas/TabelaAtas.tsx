@@ -35,11 +35,20 @@ export default function TabelaAtas({ atas }: TabelaAtasProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   async function handleVisualizarPDF(ata: Ata) {
+    console.log('[TabelaAtas] handleVisualizarPDF chamado:', {
+      ataId: ata.id,
+      linkPDF: ata.linkPDF,
+      hasLink: !!ata.linkPDF
+    });
+
     // Se já tem linkPDF salvo, abrir direto
     if (ata.linkPDF) {
+      console.log('[TabelaAtas] ✅ Abrindo link salvo:', ata.linkPDF);
       window.open(ata.linkPDF, "_blank");
       return;
     }
+
+    console.log('[TabelaAtas] ⚠️ Sem link salvo, gerando PDF dinamicamente...');
 
     // Gerar PDF dinamicamente
     setLoadingId(ata.id);
@@ -130,8 +139,8 @@ export default function TabelaAtas({ atas }: TabelaAtasProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${ata.status === "Realizada" ? "bg-green-100 text-green-800" :
-                        ata.status === "Agendada" ? "bg-yellow-100 text-yellow-800" :
-                          "bg-red-100 text-red-800"
+                      ata.status === "Agendada" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-red-100 text-red-800"
                       }`}>
                       {ata.status}
                     </span>

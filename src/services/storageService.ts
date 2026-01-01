@@ -55,8 +55,8 @@ function gerarCaminhoArquivo(
     // Formatar número com zeros à esquerda
     const numeroFormatado = String(numero).padStart(3, '0');
 
-    // Estrutura: ano/tipo/numero-docId.pdf
-    return `${ano}/${tipoNormalizado}/${numeroFormatado}-${documentoId}.pdf`;
+    // Estrutura: ano/tipo/numero-ano.pdf
+    return `${ano}/${tipoNormalizado}/${numeroFormatado}-${ano}.pdf`;
 }
 
 /**
@@ -90,8 +90,8 @@ export async function uploadMateriaPDF(
         .from(bucketName)
         .upload(filePath, pdfBlob, {
             contentType: 'application/pdf',
-            upsert: false, // Não sobrescrever se existir
-            cacheControl: '31536000' // Cache de 1 ano (imutável)
+            upsert: true, // Permitir sobrescrever (atualizações)
+            cacheControl: '3600' // Cache reduzido para 1h para permitir atualizações
         });
 
     if (error) {
@@ -99,9 +99,11 @@ export async function uploadMateriaPDF(
         throw new Error(`Falha ao fazer upload do PDF: ${error.message}`);
     }
 
-    // 5. Gerar URL pública (usando domínio customizado via Cloudflare Worker)
-    // Nota: O Cloudflare Worker deve estar configurado para mapear/rotear para os buckets corretos
+    // 5. Gerar URL pública usando domínio customizado
+    // O Cloudflare Worker roteia automaticamente para o bucket correto baseado no tipo
     const publicUrl = `${CUSTOM_STORAGE_DOMAIN}/${filePath}`;
+
+    console.log(`[Storage] 🌐 URL gerada: ${publicUrl}`);
 
     return {
         url: publicUrl,

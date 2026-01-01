@@ -98,9 +98,33 @@ export default function PainelAta({ sessaoId, presencas }: PainelAtaProps) {
 
         setLoading(true);
         try {
-            await salvarAta(sessaoId, textoAta);
-            toast({ title: "Salvo!", description: "Ata salva com sucesso." });
+            // 1. Gerar o Blob do PDF
+            const dados = await getDadosParaAta(sessaoId);
+
+            const pdfBlob = await pdf(
+                <AtaPDF
+                    sessaoNumero={`${dados.sessao.numero}ª`}
+                    sessaoTipo={dados.sessao.tipo}
+                    data={new Date(dados.sessao.data).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                    })}
+                    textoAta={textoAta}
+                    presidente={dados.presidente}
+                    secretario={dados.secretario}
+                />
+            ).toBlob();
+
+            // 2. Salvar Texto + Upload do PDF
+            await salvarAta(sessaoId, textoAta, undefined, pdfBlob);
+
+            toast({
+                title: "Salvo com sucesso!",
+                description: "Ata salva e arquivo PDF armazenado na nuvem."
+            });
         } catch (error: any) {
+            console.error("Erro ao salvar ata:", error);
             toast({
                 title: "Erro ao salvar",
                 description: error.message,

@@ -319,7 +319,8 @@ REGRAS IMPORTANTES:
 export async function salvarAta(
     sessaoId: number,
     texto: string,
-    resumoPauta?: string
+    resumoPauta?: string,
+    pdfBlob?: Blob
 ): Promise<void> {
     // Gerar resumo automaticamente se não fornecido (primeiros 150 caracteres limpos)
     const resumoFinal = resumoPauta || texto.replace(/<[^>]*>/g, "").substring(0, 150) + "...";
@@ -404,7 +405,33 @@ export async function salvarAta(
         if (ataError) throw ataError;
     }
 
-    // 6. Adicionar ata ao Expediente da próxima sessão agendada
+    // 6. Se houver PDF, fazer upload e atualizar URL
+    if (pdfBlob) {
+        try {
+            const { uploadMateriaPDF } = await import("./storageService");
+            const ano = new Date(sessaoData.data_abertura).getFullYear();
+
+            const { url } = await uploadMateriaPDF(
+                pdfBlob,
+                "Ata",
+                sessaoData.numero, // Usa o número da sessão como número da ata
+                ano,
+                documentoId
+            );
+
+            // Atualizar URL no documento
+            await supabase
+                .from("documentos")
+                .update({ arquivo_pdf_url: url } as any)
+                .eq("id", documentoId);
+
+        } catch (uploadError) {
+            console.error("Erro ao fazer upload do PDF da ata:", uploadError);
+            // Não falhar o salvamento se o upload falhar, mas logar erro
+        }
+    }
+
+    // 7. Adicionar ata ao Expediente da próxima sessão agendada
     await adicionarAtaProximaSessao(documentoId, sessaoId);
 }
 

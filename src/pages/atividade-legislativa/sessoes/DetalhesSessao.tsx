@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import {
     ArrowLeft,
     Calendar,
@@ -71,6 +72,7 @@ const STATUS_CONFIG = {
 export default function DetalhesSessao() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [sessao, setSessao] = useState<any>(null);
 
@@ -80,11 +82,16 @@ export default function DetalhesSessao() {
 
     async function carregarDetalhes() {
         if (!id) {
-            console.error("ID não fornecido");
+            console.error("[DetalhesSessao] ❌ ID não fornecido na URL");
+            toast({
+                title: "Erro",
+                description: "ID da sessão não fornecido na URL",
+                variant: "destructive"
+            });
             return;
         }
 
-        console.log("Carregando sessão com ID:", id);
+        console.log("[DetalhesSessao] 🔍 Carregando sessão com ID:", id);
 
         try {
             setLoading(true);
@@ -97,15 +104,15 @@ export default function DetalhesSessao() {
           presencas:sessaopresenca(
             id,
             status,
-            agente:agentespublicos(nome_completo)
+            agente_publico:agentespublicos(nome_completo)
           ),
           pauta:sessaopauta(
             id,
             ordem,
             tipo_item,
             documento:documentos(
-              numero_protocolo_geral,
               ano,
+              protocolo:protocolos!documentos_protocolo_id_fkey(numero),
               tiposdedocumento(nome)
             )
           ),
@@ -118,21 +125,40 @@ export default function DetalhesSessao() {
                 .eq("id", parseInt(id))
                 .single();
 
-            console.log("Resultado da query:", { data, error });
+            console.log("[DetalhesSessao] 📦 Resultado da consulta:", { data, error });
 
             if (error) {
-                console.error("Erro na query Supabase:", error);
-                throw error;
+                console.error("[DetalhesSessao] ❌ Erro na query Supabase:", error);
+                toast({
+                    title: "Erro ao carregar sessão",
+                    description: error.message,
+                    variant: "destructive"
+                });
+                setSessao(null);
+                return;
             }
 
             if (!data) {
-                console.error("Nenhum dado retornado para ID:", id);
+                console.warn("[DetalhesSessao] ⚠️ Nenhum dado retornado para ID:", id);
+                toast({
+                    title: "Sessão não encontrada",
+                    description: `Nenhuma sessão encontrada com ID ${id}`,
+                    variant: "destructive"
+                });
+                setSessao(null);
+                return;
             }
 
+            console.log("[DetalhesSessao] ✅ Sessão carregada com sucesso");
             setSessao(data);
         } catch (error: any) {
-            console.error("Erro ao carregar sessão:", error);
-            // Não jogar erro, apenas logar
+            console.error("[DetalhesSessao] ❌ Erro inesperado ao carregar sessão:", error);
+            toast({
+                title: "Erro inesperado",
+                description: error?.message || "Falha ao carregar detalhes da sessão",
+                variant: "destructive"
+            });
+            setSessao(null);
         } finally {
             setLoading(false);
         }
@@ -325,7 +351,7 @@ export default function DetalhesSessao() {
                                             </div>
                                             <div className="flex-1">
                                                 <p className="font-medium text-gray-800">
-                                                    {item.documento?.tiposdedocumento?.nome} {item.documento?.numero_protocolo_geral}/{item.documento?.ano}
+                                                    {item.documento?.tiposdedocumento?.nome} {item.documento?.protocolo?.numero}/{item.documento?.ano}
                                                 </p>
                                                 <p className="text-sm text-gray-600">{item.tipo_item}</p>
                                             </div>

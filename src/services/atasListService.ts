@@ -63,6 +63,14 @@ export async function getAtasParaListagem(): Promise<Ata[]> {
             const resumoPauta = ata.resumo_pauta ||
                 (ata.texto ? ata.texto.substring(0, 150).replace(/<[^>]*>/g, "") + "..." : "Ata sem conteúdo");
 
+            const extractedUrl = (Array.isArray(ata.documentos) ? ata.documentos[0]?.arquivo_pdf_url : ata.documentos?.arquivo_pdf_url) || undefined;
+
+            console.log(`[AtasList] Ata ID ${ata.id}:`, {
+                documentos: ata.documentos,
+                extractedUrl,
+                isArray: Array.isArray(ata.documentos)
+            });
+
             return {
                 id: ata.id.toString(),
                 numeroSessao: sessao.numero || 0,
@@ -72,7 +80,7 @@ export async function getAtasParaListagem(): Promise<Ata[]> {
                 resumoPauta,
                 materiasDeliberadas: materiasDeliberadas || 0,
                 presentes: presentes || 0,
-                linkPDF: ata.documentos?.arquivo_pdf_url || undefined,
+                linkPDF: extractedUrl,
             } as Ata;
         })
     );

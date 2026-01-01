@@ -300,6 +300,8 @@ export default function SessoesLeg() {
     }
   };
 
+
+
   // Utility functions
   function sessoesNoDia(day: Date) {
     return sessoes.filter(s => {
@@ -486,6 +488,7 @@ export default function SessoesLeg() {
           >
             <RefreshIcon className="w-5 h-5" /> Gerar Sessões do Mês
           </Button>
+
         </div>
         <div className="flex gap-2 ml-auto mt-2 md:mt-0">
           <Button

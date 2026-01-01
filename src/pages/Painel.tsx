@@ -41,7 +41,7 @@ export default function Painel() {
     protocoladasMes: 0,
     emVotacao: 0,
     sessoesRealizadas: 0,
-    proximaSessao: null as { id: number; data: string; itensPauta: number } | null,
+    proximaSessao: null as { id: number; data: string; hora: string; itensPauta: number } | null,
     loading: true
   });
 
@@ -103,7 +103,7 @@ export default function Painel() {
       // 4. Buscar Próxima Sessão
       const { data: nextSessao } = await supabase
         .from('sessoes')
-        .select('id, data_abertura')
+        .select('id, data_abertura, hora_agendada')
         .eq('status', 'Agendada')
         .gte('data_abertura', now.toISOString())
         .order('data_abertura', { ascending: true })
@@ -122,6 +122,7 @@ export default function Painel() {
           proximaSessao: {
             id: nextSessao.id,
             data: nextSessao.data_abertura,
+            hora: nextSessao.hora_agendada?.slice(0, 5) || "16:00",
             itensPauta: countPauta || 0
           }
         }));
@@ -245,15 +246,13 @@ export default function Painel() {
               </div>
             ) : metrics.proximaSessao ? (
               <>
-                <div className="mb-2 text-xl md:text-2xl font-bold text-gov-blue-800 capitalize">
+                <div className="mb-2 text-xl md:text-2xl font-bold text-gov-blue-800">
                   {new Intl.DateTimeFormat('pt-BR', {
                     weekday: 'long',
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  }).format(new Date(metrics.proximaSessao.data))}
+                  }).format(new Date(metrics.proximaSessao.data))} às {metrics.proximaSessao.hora}
                 </div>
                 <div className="mb-1 text-base md:text-lg text-gray-700">
                   {formatDistanceToNow(new Date(metrics.proximaSessao.data), { locale: ptBR, addSuffix: true })}

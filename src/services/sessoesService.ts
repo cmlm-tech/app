@@ -579,10 +579,15 @@ export async function gerarSessoesDoMes(
     // Create new sessions
     const createdSessions: Sessao[] = [];
     for (const tuesday of newTuesdays) {
+        // Set the session time to 16:00 Brazil time (UTC-3)
+        // 16:00 BRT = 19:00 UTC
+        const sessionDateTime = new Date(tuesday);
+        sessionDateTime.setHours(19, 0, 0, 0); // 19:00 UTC = 16:00 BRT
+
         const sessao = await criarSessao({
             periodoId,
             tipoSessao: "Ordinária",
-            dataAbertura: tuesday.toISOString().split("T")[0],
+            dataAbertura: sessionDateTime.toISOString(),
             horaAgendada: "16:00:00",
         });
         createdSessions.push(sessao);
@@ -595,4 +600,26 @@ export async function gerarSessoesDoMes(
 export async function autoGerarSessoesAtual(periodoId: number): Promise<Sessao[]> {
     const today = new Date();
     return gerarSessoesDoMes(periodoId, today.getFullYear(), today.getMonth());
+}
+
+// Remove generated sessions (Ordinária + Agendada) for a specific month
+// Useful for fixing timezone issues
+export async function limparSessoesGeradas(
+    periodoId: number,
+    year: number,
+    month: number
+): Promise<void> {
+    const startOfMonth = new Date(year, month, 1).toISOString();
+    const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+
+    const { error } = await supabase
+        .from("sessoes")
+        .delete()
+        .eq("periodo_sessao_id", periodoId)
+        .eq("tipo_sessao", "Ordinária")
+        .eq("status", "Agendada")
+        .gte("data_abertura", startOfMonth)
+        .lte("data_abertura", endOfMonth);
+
+    if (error) throw error;
 }

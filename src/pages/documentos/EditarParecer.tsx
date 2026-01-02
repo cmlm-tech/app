@@ -27,6 +27,7 @@ export default function EditarParecer() {
     const [comissaoMembros, setComissaoMembros] = useState<any[]>([]);
     const [corpoTexto, setCorpoTexto] = useState("");
     const [resultado, setResultado] = useState<string>(""); // Favorável, Contrário, Com Emendas
+    const [instrucoesEmendas, setInstrucoesEmendas] = useState("");
     const [nomeAutorMateria, setNomeAutorMateria] = useState("Não informado");
 
     useEffect(() => {
@@ -345,9 +346,14 @@ export default function EditarParecer() {
                 ESTRUTURA DESEJADA DO TEXTO DE SAÍDA:
                 1. RELATÓRIO: Resumo do que trata a matéria, citando o autor.
                 2. ANÁLISE: Análise da constitucionalidade, legalidade e mérito.
-                3. CONCLUSÃO/VOTO: Parecer favorável ou contrário.
+                3. CONCLUSÃO/VOTO: O parecer DEVE ser ${resultado ? resultado.toUpperCase() : "baseado na análise técnica"}.
+
+                DECISÃO DA COMISSÃO: ${resultado ? resultado.toUpperCase() : "AINDA NÃO DEFINIDA"}
                 
                 IMPORTANTE:
+                ${resultado === 'Contrário' ? "- FUNDAMENTAL: A IA DEVE ARGUMENTAR PELA REJEIÇÃO/ARQUIVAMENTO DA MATÉRIA." : ""}
+                ${resultado === 'Favorável' ? "- A IA DEVE OPINAR PELA APROVAÇÃO DA MATÉRIA." : ""}
+                ${resultado === 'Com Emendas' ? `- FUNDAMENTAL: A IA DEVE OPINAR PELA APROVAÇÃO COM RESSALVAS. O USUÁRIO FORNECEU AS SEGUINTES OBSERVAÇÕES SOBRE AS EMENDAS: "${instrucoesEmendas}". INCORPORE ESTAS SUGESTÕES NO PARECER.` : ""}
                 - Gere texto formal e técnico.
                 - NÃO inclua cabeçalho (já existe no layout).
                 - NÃO inclua lista de assinaturas ou membros ao final (já existe no layout).
@@ -543,6 +549,25 @@ export default function EditarParecer() {
                                     </Button>
                                 ))}
                             </div>
+
+                            {/* Campo de instruções para emendas - Visível apenas se "Com Emendas" */}
+                            {resultado === "Com Emendas" && (
+                                <div className="mt-3 animate-in fade-in slide-in-from-top-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Descreva as emendas sugeridas / Observações
+                                    </label>
+                                    <Textarea
+                                        value={instrucoesEmendas}
+                                        onChange={(e) => setInstrucoesEmendas(e.target.value)}
+                                        placeholder="Ex: Sugerir alteração no Art. 2º para incluir..."
+                                        className="min-h-[100px] text-sm bg-amber-50 border-amber-200 focus:border-amber-400"
+                                        disabled={statusFinalizado}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Essas instruções serão enviadas para a IA personalizar o parecer.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>

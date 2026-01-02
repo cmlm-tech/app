@@ -52,6 +52,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -69,6 +76,13 @@ export default function SessoesLeg() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [visualizacao, setVisualizacao] = useState<"calendario" | "lista">("calendario");
+
+  // Filtros
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  const [anoFiltro, setAnoFiltro] = useState<string>(currentYear.toString());
+  const [mesFiltro, setMesFiltro] = useState<string>(currentMonth.toString());
+
   const [sessoes, setSessoes] = useState<Sessao[]>([]);
   const [loading, setLoading] = useState(true);
   const [periodoAtual, setPeriodoAtual] = useState<any>(null);
@@ -94,11 +108,29 @@ export default function SessoesLeg() {
       const periodo = await getCurrentPeriodo();
       setPeriodoAtual(periodo);
 
-      if (periodo) {
-        // Get sessions for current period
-        const data = await getSessoes({ periodoId: periodo.id });
-        setSessoes(data);
+      // Calcular datas com base nos filtros
+      // Note: variables anoFiltro and mesFiltro will be defined next
+      // We perform the logic assuming they exist in scope
+      const year = parseInt(anoFiltro);
+      let dataInicio: string;
+      let dataFim: string;
+
+      if (mesFiltro === "todos") {
+        dataInicio = new Date(year, 0, 1).toISOString();
+        dataFim = new Date(year, 11, 31, 23, 59, 59).toISOString();
+      } else {
+        const monthIndex = parseInt(mesFiltro) - 1;
+        dataInicio = new Date(year, monthIndex, 1).toISOString();
+        dataFim = new Date(year, monthIndex + 1, 0, 23, 59, 59).toISOString();
       }
+
+      // Buscar sessões filtradas por data (ignorando periodoId para permitir histórico)
+      const data = await getSessoes({
+        dataInicio,
+        dataFim
+      });
+      setSessoes(data);
+
     } catch (error: any) {
       toast({
         title: "Erro ao carregar sessões",
@@ -108,7 +140,7 @@ export default function SessoesLeg() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, anoFiltro, mesFiltro]);
 
   useEffect(() => {
     fetchData();
@@ -490,20 +522,49 @@ export default function SessoesLeg() {
           </Button>
 
         </div>
-        <div className="flex gap-2 ml-auto mt-2 md:mt-0">
+        <div className="flex gap-2 ml-auto mt-2 md:mt-0 items-center overflow-x-auto pb-2 md:pb-0">
+          <Select value={anoFiltro} onValueChange={setAnoFiltro}>
+            <SelectTrigger className="w-[100px] bg-white">
+              <SelectValue placeholder="Ano" />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: new Date().getFullYear() - 2025 + 5 }, (_, i) => 2025 + i).map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={mesFiltro} onValueChange={setMesFiltro}>
+            <SelectTrigger className="w-[130px] bg-white">
+              <SelectValue placeholder="Mês" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Meses</SelectItem>
+              {["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].map((mes, i) => (
+                <SelectItem key={i} value={(i + 1).toString()}>
+                  {mes}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="w-px h-6 bg-gray-300 mx-2" />
+
           <Button
             variant={visualizacao === "calendario" ? "default" : "outline"}
             className={visualizacao === "calendario" ? "bg-gov-blue-700 text-white" : ""}
             onClick={() => setVisualizacao("calendario")}
           >
-            <CalendarIcon className="w-5 h-5 mr-1" /> Calendário
+            <CalendarIcon className="w-5 h-5 mr-1" />
           </Button>
           <Button
             variant={visualizacao === "lista" ? "default" : "outline"}
             className={visualizacao === "lista" ? "bg-gov-blue-700 text-white" : ""}
             onClick={() => setVisualizacao("lista")}
           >
-            <ListIcon className="w-5 h-5 mr-1" /> Lista
+            <ListIcon className="w-5 h-5 mr-1" />
           </Button>
         </div>
       </div>

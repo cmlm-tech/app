@@ -12,6 +12,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { pdf } from "@react-pdf/renderer";
 import ParecerPDF from "@/components/documentos/pdf/templates/ParecerPDF";
 import { adicionarParecerProximaSessao } from "@/services/parecerService";
+import { uploadMateriaPDF, atualizarUrlPDF } from "@/services/storageService";
 
 export default function EditarParecer() {
     const { id } = useParams();
@@ -166,6 +167,41 @@ export default function EditarParecer() {
         try {
             // Updated to perform multiple operations
 
+            // 0. Gerar e Salvar PDF no Storage
+            const numeroMateria = materiaOriginal.projetosdelei?.[0]?.numero_lei ||
+                materiaOriginal.oficios?.[0]?.numero_oficio ||
+                materiaOriginal.requerimentos?.[0]?.numero_requerimento ||
+                materiaOriginal.mocoes?.[0]?.numero_mocao ||
+                materiaOriginal.indicacoes?.[0]?.numero_indicacao ||
+                materiaOriginal.projetosdedecretolegislativo?.[0]?.numero_decreto ||
+                materiaOriginal.protocolos?.numero || "";
+
+            const blob = await pdf(
+                <ParecerPDF
+                    comissaoNome={comissao?.nome || "Comissão"}
+                    materiaTipo={materiaOriginal.tiposdedocumento?.nome || "Documento"}
+                    materiaNumero={numeroMateria?.toString()}
+                    materiaAno={materiaOriginal.ano}
+                    parecerNumero={`${parecer.documento?.protocolos?.numero || parecer.id}/${parecer.documento?.ano}`}
+                    texto={corpoTexto}
+                    dataProtocolo={parecer.documento?.data_protocolo}
+                    membros={comissaoMembros}
+                />
+            ).toBlob();
+
+            // Fazer upload para o bucket 'pareceres'
+            // Assinatura: pdfBlob, tipo, numero, ano, id
+            const { url: pdfUrl } = await uploadMateriaPDF(
+                blob,
+                "Parecer", // Tipo fixo para garantir bucket correto
+                parecer.documento?.protocolos?.numero, // Número do protocolo
+                parecer.documento?.ano, // Ano
+                parecer.documento_id
+            );
+
+            // Salvar URL no documento
+            await atualizarUrlPDF(parecer.documento_id, pdfUrl);
+
             // 1. Update Parecer status
             const { error: parecerError } = await supabase
                 .from("pareceres")
@@ -220,14 +256,6 @@ export default function EditarParecer() {
 
             // 5. Registrar atividade no log
             const { registrarParecer } = await import("@/services/atividadeLogService");
-            const numeroMateria = materiaOriginal?.projetosdelei?.[0]?.numero_lei ||
-                materiaOriginal?.oficios?.[0]?.numero_oficio ||
-                materiaOriginal?.requerimentos?.[0]?.numero_requerimento ||
-                materiaOriginal?.mocoes?.[0]?.numero_mocao ||
-                materiaOriginal?.indicacoes?.[0]?.numero_indicacao ||
-                materiaOriginal?.projetosdedecretolegislativo?.[0]?.numero_decreto ||
-                materiaOriginal?.protocolos?.numero ||
-                materiaOriginal?.id;
 
             await registrarParecer(
                 parecer.documento_id,

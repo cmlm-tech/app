@@ -42,6 +42,9 @@ export interface ItemPauta {
             nome: string;
             exige_parecer?: boolean;
         };
+        protocolos?: {
+            numero: number;
+        };
         pareceres?: {
             id: number;
             status: string;

@@ -611,6 +611,53 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         }).eq('documento_id', dadosRascunho.documento_id);
       }
 
+      // 4.5 Salvar Anexos
+      if (anexos.length > 0) {
+        setStatusMsg(`Enviando ${anexos.length} anexo(s)...`);
+        console.log("4.5 Enviando anexos...");
+
+        for (const arquivo of anexos) {
+          try {
+            // Sanitizar nome do arquivo
+            const nomeSanitizado = arquivo.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+            const path = `anexos/${dadosRascunho.documento_id}/${Date.now()}_${nomeSanitizado}`;
+
+            // Upload para Storage
+            const { error: uploadError } = await supabase.storage
+              .from('anexos-documentos')
+              .upload(path, arquivo, {
+                cacheControl: '3600',
+                upsert: false
+              });
+
+            if (uploadError) throw uploadError;
+
+            // Gerar URL (usando domínio personalizado)
+            const finalUrl = `https://documentos.cmlm.tech/${path}`;
+
+            // Salvar no Banco
+            await supabase.from('anexos' as any).insert({
+              documento_id: dadosRascunho.documento_id,
+              nome_arquivo: arquivo.name,
+              caminho_arquivo: path,
+              tipo_arquivo: arquivo.type,
+              tamanho: arquivo.size,
+              url_publica: finalUrl,
+              usuario_id: user.id
+            });
+
+          } catch (errAnexo) {
+            console.error(`Erro ao salvar anexo ${arquivo.name}:`, errAnexo);
+            // Não bloqueamos o processo principal, apenas notificamos
+            toast({
+              title: "Erro no anexo",
+              description: `Falha ao enviar ${arquivo.name}, mas o documento foi criado.`,
+              variant: "destructive"
+            });
+          }
+        }
+      }
+
       setStatusMsg("IA redigindo minuta...");
       console.log("5. Chamando Edge Function (IA)...");
 

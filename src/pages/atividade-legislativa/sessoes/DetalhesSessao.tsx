@@ -110,6 +110,7 @@ export default function DetalhesSessao() {
             id,
             ordem,
             tipo_item,
+            url_relatorio_votacao,
             documento:documentos(
               ano,
               protocolo:protocolos!documentos_protocolo_id_fkey(numero),
@@ -353,7 +354,20 @@ export default function DetalhesSessao() {
                                                 <p className="font-medium text-gray-800">
                                                     {item.documento?.tiposdedocumento?.nome} {item.documento?.protocolo?.numero}/{item.documento?.ano}
                                                 </p>
-                                                <p className="text-sm text-gray-600">{item.tipo_item}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm text-gray-600">{item.tipo_item}</p>
+                                                    {item.url_relatorio_votacao && (
+                                                        <a
+                                                            href={item.url_relatorio_votacao}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded"
+                                                        >
+                                                            <FileText className="w-3 h-3" />
+                                                            Relatório Votação
+                                                        </a>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     ))}

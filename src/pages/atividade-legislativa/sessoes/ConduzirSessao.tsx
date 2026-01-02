@@ -21,6 +21,7 @@ import {
     Loader2,
 } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
+import { uploadMateriaPDF } from "@/services/storageService";
 import RelatorioVotacaoPDF, { VotoVereador } from "@/components/documentos/pdf/templates/RelatorioVotacaoPDF";
 import AtaPDF from "@/components/documentos/pdf/templates/AtaPDF";
 import PainelAta from "@/components/sessoes/PainelAta";
@@ -385,12 +386,12 @@ export default function ConduzirSessao() {
                     || "Sem ementa";
             }
 
-            // Gerar PDF
+            // Gerar PDF Blob
             const blob = await pdf(
                 <RelatorioVotacaoPDF
                     materia={{
                         tipo: item.documento.tipo?.nome || "Documento",
-                        numero: String(item.documento.numero_protocolo_geral).padStart(3, '0'),
+                        numero: String(item.documento.protocolos?.numero || 0).padStart(3, '0'),
                         ano: item.documento.ano,
                         ementa: ementa,
                         autor: autorNome,
@@ -410,10 +411,36 @@ export default function ConduzirSessao() {
                 />
             ).toBlob();
 
-            // Abrir em nova aba
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
+            // Definir nome/caminho único (Tipo + DocNum + SessaoID)
+            const numeroDoc = item.documento.protocolos?.numero || "SemNumero";
+
+            // Fazer upload para bucket 'relatorios-votacao'
+            // Assinatura: pdfBlob, tipo, numero, ano, id
+            const { url: pdfUrl } = await uploadMateriaPDF(
+                blob,
+                "RelatorioVotacao",
+                `${numeroDoc}-Sessao${sessao.id}`, // Número composto para unicidade
+                sessao.data_abertura ? new Date(sessao.data_abertura).getFullYear() : new Date().getFullYear(),
+                item.documento_id
+            );
+
+            // Salvar URL na tabela sessaopauta
+            const { error: updateError } = await supabase
+                .from('sessaopauta')
+                .update({ url_relatorio_votacao: pdfUrl } as any)
+                .eq('id', item.id); // Usa o ID do ITEM DE PAUTA, não o documento
+
+            if (updateError) {
+                console.error("Erro ao salvar URL do relatório:", updateError);
+            } else {
+                toast({ title: "Relatório Salvo", description: "PDF salvo e vinculado ao item de pauta." });
+            }
+
+            // Abrir em nova aba (usando a URL pública salva)
+            window.open(pdfUrl, '_blank');
+
         } catch (error: any) {
+            console.error(error);
             toast({ title: "Erro ao gerar relatório", description: error.message, variant: "destructive" });
         }
     };

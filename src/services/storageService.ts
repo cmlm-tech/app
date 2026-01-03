@@ -42,7 +42,8 @@ function gerarCaminhoArquivo(
     tipoDocumento: string,
     numero: number | string,
     ano: number,
-    documentoId: number
+    documentoId: number,
+    autorId?: number
 ): string {
     // Normalizar tipo para uso em path (remover acentos, espaços)
     const tipoNormalizado = tipoDocumento
@@ -55,7 +56,13 @@ function gerarCaminhoArquivo(
     // Formatar número com zeros à esquerda
     const numeroFormatado = String(numero).padStart(3, '0');
 
-    // Estrutura: ano/tipo/numero-ano.pdf
+    // Ofícios têm numeração por autor - usar autorId
+    // Outros documentos têm numeração global - não precisam de ID extra
+    if (tipoNormalizado === 'oficio' && autorId) {
+        return `${ano}/${tipoNormalizado}/${numeroFormatado}-${ano}-${autorId}.pdf`;
+    }
+
+    // Documentos com numeração global (único na Câmara)
     return `${ano}/${tipoNormalizado}/${numeroFormatado}-${ano}.pdf`;
 }
 
@@ -66,6 +73,7 @@ function gerarCaminhoArquivo(
  * @param numero - Número oficial
  * @param ano - Ano
  * @param documentoId - ID do documento
+ * @param autorId - ID do autor (opcional, usado para Ofícios)
  * @returns Objeto com URL pública e hash do arquivo
  */
 export async function uploadMateriaPDF(
@@ -73,13 +81,14 @@ export async function uploadMateriaPDF(
     tipoDocumento: string,
     numero: number | string,
     ano: number,
-    documentoId: number
+    documentoId: number,
+    autorId?: number
 ): Promise<{ url: string; hash: string; path: string }> {
     // 1. Calcular hash antes do upload
     const hash = await calcularHashSHA256(pdfBlob);
 
     // 2. Gerar caminho do arquivo
-    const filePath = gerarCaminhoArquivo(tipoDocumento, numero, ano, documentoId);
+    const filePath = gerarCaminhoArquivo(tipoDocumento, numero, ano, documentoId, autorId);
 
     // 3. Definir bucket correto
     const bucketName = getBucketForDocumentType(tipoDocumento);

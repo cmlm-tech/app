@@ -26,7 +26,7 @@ interface BotaoProtocolarProps {
     ano?: number;
     onSuccess?: () => void;
     /** Callback para gerar o PDF blob. Se fornecido, o PDF será armazenado no Storage */
-    gerarPdfBlob?: () => Promise<Blob>;
+    gerarPdfBlob?: (isOficial?: boolean) => Promise<Blob>;
     /** Número oficial do documento (se já existir) */
     numeroOficial?: number | string;
 }
@@ -105,18 +105,36 @@ export function BotaoProtocolar({
             if (gerarPdfBlob) {
                 try {
                     setEtapa("Gerando PDF oficial...");
-                    const pdfBlob = await gerarPdfBlob();
+                    const pdfBlob = await gerarPdfBlob(true); // isOficial = true para remover marca d'água
 
                     setEtapa("Enviando para Storage...");
                     const anoDoc = ano || new Date().getFullYear();
-                    const numero = numeroOficial || numeroProtocolo;
+
+                    // Extrair apenas o número (001) do numeroOficial (001/2026)
+                    let numero = numeroOficial || numeroProtocolo;
+                    if (typeof numero === 'string' && numero.includes('/')) {
+                        numero = numero.split('/')[0]; // Pega apenas "001" de "001/2026"
+                    }
+
+                    // Buscar autor do documento (para Ofícios)
+                    let autorId: number | undefined;
+                    const { data: autorData } = await supabase
+                        .from('documentoautores')
+                        .select('autor_id')
+                        .eq('documento_id', documentoId)
+                        .single();
+
+                    if (autorData) {
+                        autorId = autorData.autor_id;
+                    }
 
                     const { url, hash } = await uploadMateriaPDF(
                         pdfBlob,
                         tipoDocumento || 'documento',
                         numero,
                         anoDoc,
-                        documentoId
+                        documentoId,
+                        autorId // Passa autorId para Ofícios
                     );
 
                     // Atualizar URL do PDF no documento
@@ -154,7 +172,7 @@ export function BotaoProtocolar({
             await registrarProtocolo(
                 documentoId,
                 tipoDocumento || 'Documento',
-                numeroProtocolo,
+                numeroOficial || numeroProtocolo,
                 anoAtual,
                 agenteId || undefined
             );

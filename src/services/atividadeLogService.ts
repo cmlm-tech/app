@@ -53,9 +53,28 @@ export async function registrarProtocolo(
     ano: number,
     agentePublicoId?: number
 ): Promise<void> {
+    // Buscar nome parlamentar do vereador
+    let nomeAutor = '';
+    if (agentePublicoId) {
+        const { data: vereadorData } = await supabase
+            .from('vereadores')
+            .select('nome_parlamentar')
+            .eq('agente_publico_id', agentePublicoId)
+            .single();
+
+        if (vereadorData?.nome_parlamentar) {
+            nomeAutor = vereadorData.nome_parlamentar + ' ';
+        }
+    }
+
+    // Se numeroProtocolo já vem formatado (com /), não duplicar o ano
+    const numeroFormatado = String(numeroProtocolo).includes('/')
+        ? numeroProtocolo
+        : `${numeroProtocolo}/${ano}`;
+
     await registrarAtividade({
         tipo: 'protocolo',
-        descricao: `protocolou ${tipoDocumento} nº ${numeroProtocolo}/${ano}.`,
+        descricao: `${nomeAutor}protocolou ${tipoDocumento} nº ${numeroFormatado}.`,
         entidadeTipo: 'documento',
         entidadeId: documentoId,
         agentePublicoId,
@@ -74,7 +93,7 @@ export async function registrarParecer(
 ): Promise<void> {
     await registrarAtividade({
         tipo: 'parecer',
-        descricao: `A ${nomeComissao} emitiu parecer sobre o(a) ${tipoMateria} nº ${numeroMateria}/${ano}.`,
+        descricao: `A Comissão de ${nomeComissao} emitiu parecer sobre o(a) ${tipoMateria} nº ${numeroMateria}/${ano}.`,
         entidadeTipo: 'documento',
         entidadeId: documentoId,
     });

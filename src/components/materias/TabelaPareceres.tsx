@@ -12,6 +12,7 @@ export interface Parecer {
     comissao: string;
     status: string;
     data: Date;
+    url?: string;
 }
 
 interface TabelaPareceresProps {
@@ -74,7 +75,9 @@ export function TabelaPareceres({ pareceres }: TabelaPareceresProps) {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => navigate(`/documentos/pareceres/${parecer.id}/visualizar`)}
+                                    disabled={!parecer.url}
+                                    onClick={() => parecer.url && window.open(parecer.url, "_blank")}
+                                    title={!parecer.url ? "PDF ainda não gerado" : "Visualizar PDF"}
                                 >
                                     <Eye className="h-4 w-4 mr-1" />
                                     Visualizar

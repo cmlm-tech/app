@@ -82,12 +82,13 @@ export default function EditarMateria() {
 
     /**
      * Gera o PDF como Blob - usado tanto para visualização quanto para upload
+     * @param isOficial - Se true, força PDF sem marca d'água de rascunho (usado ao protocolar)
      */
-    async function gerarPdfBlob(): Promise<Blob> {
+    async function gerarPdfBlob(isOficial: boolean = false): Promise<Blob> {
         if (!doc) throw new Error("Documento não carregado");
 
         const numeroOficial = (doc as any).numero_oficial
-            ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial.toString().padStart(3, '0')}/${doc.ano}`
+            ? `${doc.tiposdedocumento?.nome} nº ${(doc as any).numero_oficial}`
             : "Sem Numeração";
 
         // Buscar membros da comissão se for Projeto de Decreto Legislativo
@@ -142,7 +143,7 @@ export default function EditarMateria() {
                 ementa={ementa}
                 autores={autoresArray.length > 0 ? autoresArray : undefined}
                 membrosComissao={membrosComissao}
-                isRascunho={doc.status === 'Rascunho'}
+                isRascunho={isOficial ? false : doc.status === 'Rascunho'}
             />
         ).toBlob();
 
@@ -752,7 +753,7 @@ export default function EditarMateria() {
 
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
                         <Button variant="outline" size="icon" onClick={() => navigate("/documentos/materias")}>
                             <ArrowLeft className="w-4 h-4" />
                         </Button>
@@ -765,7 +766,7 @@ export default function EditarMateria() {
                             </p>
                         </div>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 flex-wrap flex-shrink-0">
                         <BotaoProtocolar
                             documentoId={doc.id}
                             statusAtual={doc.status}

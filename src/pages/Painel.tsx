@@ -54,7 +54,7 @@ export default function Painel() {
     entidade_id: number | null;
     agente_publico_id: number | null;
     created_at: string;
-    agentespublicos: { nome_completo: string } | null;
+    agentespublicos: { nome_completo: string; nome_parlamentar?: string } | null;
   }
   const [atividades, setAtividades] = useState<AtividadeLog[]>([]);
   const [atividadesLoading, setAtividadesLoading] = useState(true);
@@ -149,24 +149,120 @@ export default function Painel() {
         return;
       }
 
-      // Buscar nomes dos agentes públicos
-      const agentIds = [...new Set(atividadesData.filter((a: any) => a.agente_publico_id).map((a: any) => a.agente_publico_id))];
+      // Buscar detalhes dos documentos para corrigir o número
+      // E TAMBÉM coletar documentos que precisam de autor (caso agente_publico_id seja null)
+      // Normalizar verificação de tipo (case insensitive)
+      const atividadesDocs = atividadesData.filter((a: any) =>
+        a.entidade_tipo && a.entidade_tipo.toLowerCase() === 'documento' && a.entidade_id
+      );
 
-      let agentesMap = new Map<number, string>();
-      if (agentIds.length > 0) {
+      const documentoIds = [...new Set(atividadesDocs.map((a: any) => a.entidade_id))];
+
+      // IDs de documentos que precisam buscar o autor (log sem agente)
+      const docsSemAgenteIds = [...new Set(atividadesDocs
+        .filter((a: any) => !a.agente_publico_id)
+        .map((a: any) => a.entidade_id))];
+
+      let documentosMap = new Map<number, { numero: number, ano: number }>();
+      let autoresMap = new Map<number, number>(); // Map documento_id -> agente_id
+
+      if (documentoIds.length > 0) {
+        // Buscar dados do documento
+        const { data: documentosData } = await supabase
+          .from('documentos')
+          .select('id, numero, ano')
+          .in('id', documentoIds);
+
+        documentosMap = new Map((documentosData || []).map((d: any) => [d.id, { numero: d.numero, ano: d.ano }]));
+
+        // Se houver logs sem agente, buscar autores desses documentos
+        if (docsSemAgenteIds.length > 0) {
+          const { data: autoresData } = await supabase
+            .from('documentoautores')
+            .select('documento_id, autor_id')
+            .in('documento_id', docsSemAgenteIds);
+
+          // Mapear documento -> autor
+          (autoresData || []).forEach((d: any) => {
+            // Priorizar o primeiro encontrado se houver colisão
+            if (!autoresMap.has(d.documento_id)) {
+              autoresMap.set(d.documento_id, d.autor_id);
+            }
+          });
+        }
+      }
+
+      // IDs de agentes já existentes nos logs
+      let combinedAgentIds = new Set(atividadesData.filter((a: any) => a.agente_publico_id).map((a: any) => a.agente_publico_id));
+
+      // Adicionar IDs de autores descobertos
+      autoresMap.forEach((autorId) => combinedAgentIds.add(autorId));
+
+      const distinctAgentIds = [...combinedAgentIds];
+
+      let agentesMap = new Map<number, { nome_completo: string, nome_parlamentar: string }>();
+      if (distinctAgentIds.length > 0) {
+        // Selecionar nome_parlamentar também
         const { data: agentesData } = await supabase
           .from('agentespublicos')
-          .select('id, nome_completo')
-          .in('id', agentIds);
+          .select('id, nome_completo, nome_parlamentar')
+          .in('id', distinctAgentIds);
 
-        agentesMap = new Map((agentesData || []).map((a: any) => [a.id, a.nome_completo]));
+        agentesMap = new Map((agentesData || []).map((a: any) => [a.id, {
+          nome_completo: a.nome_completo,
+          nome_parlamentar: a.nome_parlamentar
+        }]));
       }
 
       // Combinar dados
-      const atividadesComNomes = atividadesData.map((a: any) => ({
-        ...a,
-        agentespublicos: a.agente_publico_id ? { nome_completo: agentesMap.get(a.agente_publico_id) } : null
-      }));
+      const atividadesComNomes = atividadesData.map((a: any) => {
+        let agenteId = a.agente_publico_id;
+
+        // Verificação case-insensitive seg
+        const isDocumento = a.entidade_tipo && a.entidade_tipo.toLowerCase() === 'documento';
+
+        // Se falta agente e é documento, tentar usar o autor descoberto
+        if (!agenteId && isDocumento && a.entidade_id) {
+          agenteId = autoresMap.get(a.entidade_id);
+        }
+
+        const agente = agenteId ? agentesMap.get(agenteId) : null;
+        let descricao = a.descricao;
+
+        // Tentar corrigir a descrição se for atividade de documento
+        if (isDocumento && a.entidade_id) {
+          const doc = documentosMap.get(a.entidade_id);
+          if (doc && doc.numero) {
+            // Sanitizar número de forma robusta: extrair apenas dígitos do início ou remover '/'
+            // ParseInt é mais seguro para garantir que pegamos apenas o número
+            // Ex: "2/2026" -> 2. "002" -> 2. "2a" -> 2.
+            const rawString = String(doc.numero);
+            // Dividir por delimitadores comuns para evitar leitura errada
+            const cleanString = rawString.split(/[\/\- ]/)[0];
+            const rawNumero = parseInt(cleanString, 10);
+
+            if (!isNaN(rawNumero)) {
+              const numFormatado = String(rawNumero).padStart(3, '0');
+              const anoDoc = doc.ano;
+
+              if (descricao.includes(' nº ')) {
+                const parts = descricao.split(' nº ');
+                // Garantir que não estamos duplicando: reconstruir apenas se parts[0] existir
+                if (parts.length > 0) {
+                  const prefix = parts[0];
+                  // Recriar string
+                  descricao = `${prefix} nº ${numFormatado}/${anoDoc}.`;
+                }
+              }
+            }
+          }
+        }
+        return {
+          ...a,
+          descricao,
+          agentespublicos: agente
+        };
+      });
 
       setAtividades(atividadesComNomes);
     } catch (error) {
@@ -336,8 +432,8 @@ export default function Painel() {
                   <li key={item.id} className="flex items-start gap-2">
                     <span className="inline-block w-2 h-2 rounded-full bg-gov-gold-500 mt-2 mr-2 flex-shrink-0" />
                     <span>
-                      {item.agentespublicos?.nome_completo && (
-                        <strong>{item.agentespublicos.nome_completo} </strong>
+                      {item.agentespublicos && (
+                        <strong>{item.agentespublicos.nome_parlamentar || item.agentespublicos.nome_completo} </strong>
                       )}
                       {item.descricao}
                     </span>

@@ -1,6 +1,7 @@
 
 import { AppLayout } from "@/components/AppLayout";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import FiltroMaterias from "@/components/materias/FiltroMaterias";
@@ -12,7 +13,23 @@ import { supabase } from "@/lib/supabaseClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Materias() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [modalAberto, setModalAberto] = useState(false);
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "materias");
+
+  // Sync tab state with URL
+  useEffect(() => {
+    const tabUrl = searchParams.get("tab");
+    if (tabUrl && tabUrl !== activeTab) {
+      setActiveTab(tabUrl);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (val: string) => {
+    setActiveTab(val);
+    setSearchParams({ tab: val });
+  };
+
   const [materias, setMaterias] = useState<Materia[]>([]);
   const [pareceres, setPareceres] = useState<Parecer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,7 +100,13 @@ export default function Materias() {
                 ano,
                 arquivo_pdf_url,
                 tiposdedocumento ( nome ),
-                protocolos!documentos_protocolo_id_fkey ( numero )
+                protocolos!documentos_protocolo_id_fkey ( numero ),
+                oficios ( numero_oficio ),
+                projetosdelei ( numero_lei ),
+                requerimentos ( numero_requerimento ),
+                mocoes ( numero_mocao ),
+                indicacoes ( numero_indicacao ),
+                projetosdedecretolegislativo ( numero_decreto )
             )
           )
         `)
@@ -166,14 +189,49 @@ export default function Materias() {
           .map((doc: any) => {
             const p = doc.pareceres?.[0];
             const mat = p?.materia;
-            const protocoloMateria = mat?.protocolos?.numero || 'S/N';
             const tipoMateria = mat?.tiposdedocumento?.nome || 'Matéria';
+
+            // Extrair o número oficial do tipo específico
+            let numeroOficial = 'S/N';
+            if (mat?.oficios?.[0]?.numero_oficio) {
+              const numStr = String(mat.oficios[0].numero_oficio);
+              const numOnly = numStr.split('/')[0];
+              const numPadded = numOnly.padStart(3, '0');
+              numeroOficial = `${numPadded}/${mat.ano}`;
+            } else if (mat?.projetosdelei?.[0]?.numero_lei) {
+              const numStr = String(mat.projetosdelei[0].numero_lei);
+              const numOnly = numStr.split('/')[0];
+              const numPadded = numOnly.padStart(3, '0');
+              numeroOficial = `${numPadded}/${mat.ano}`;
+            } else if (mat?.requerimentos?.[0]?.numero_requerimento) {
+              const numStr = String(mat.requerimentos[0].numero_requerimento);
+              const numOnly = numStr.split('/')[0];
+              const numPadded = numOnly.padStart(3, '0');
+              numeroOficial = `${numPadded}/${mat.ano}`;
+            } else if (mat?.mocoes?.[0]?.numero_mocao) {
+              const numStr = String(mat.mocoes[0].numero_mocao);
+              const numOnly = numStr.split('/')[0];
+              const numPadded = numOnly.padStart(3, '0');
+              numeroOficial = `${numPadded}/${mat.ano}`;
+            } else if (mat?.indicacoes?.[0]?.numero_indicacao) {
+              const numStr = String(mat.indicacoes[0].numero_indicacao);
+              const numOnly = numStr.split('/')[0];
+              const numPadded = numOnly.padStart(3, '0');
+              numeroOficial = `${numPadded}/${mat.ano}`;
+            } else if (mat?.projetosdedecretolegislativo?.[0]?.numero_decreto) {
+              const numStr = String(mat.projetosdedecretolegislativo[0].numero_decreto);
+              const numOnly = numStr.split('/')[0];
+              const numPadded = numOnly.padStart(3, '0');
+              numeroOficial = `${numPadded}/${mat.ano}`;
+            }
+
             return {
               id: doc.id.toString(),
-              materiaRelacionada: `${tipoMateria} ${protocoloMateria}/${mat?.ano || doc.ano}`,
+              materiaRelacionada: `${tipoMateria} ${numeroOficial}`,
               comissao: p?.comissao?.nome || 'Sem comissão',
               status: doc.status,
               data: new Date(doc.data_protocolo),
+              url: doc.arquivo_pdf_url,
             };
           });
         setPareceres(mappedPareceres);
@@ -252,7 +310,7 @@ export default function Materias() {
               <Loader2 className="h-8 w-8 animate-spin text-gov-blue-600" />
             </div>
           ) : (
-            <Tabs defaultValue="materias" className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList className="mb-4">
                 <TabsTrigger value="materias">Matérias ({materiasFiltradas.length})</TabsTrigger>
                 <TabsTrigger value="pareceres">Pareceres ({pareceres.length})</TabsTrigger>

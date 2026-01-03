@@ -28,6 +28,7 @@ export default function EditarParecer() {
     const [corpoTexto, setCorpoTexto] = useState("");
     const [resultado, setResultado] = useState<string>(""); // Favorável, Contrário, Com Emendas
     const [instrucoesEmendas, setInstrucoesEmendas] = useState("");
+    const [numeroOficialMateria, setNumeroOficialMateria] = useState<string>("");
     const [nomeAutorMateria, setNomeAutorMateria] = useState("Não informado");
 
     useEffect(() => {
@@ -49,6 +50,7 @@ export default function EditarParecer() {
                         ano,
                         data_protocolo,
                         status,
+                        arquivo_pdf_url,
                         protocolos!documentos_protocolo_id_fkey ( numero )
                     ),
                     comissao:comissoes ( id, nome ),
@@ -78,6 +80,44 @@ export default function EditarParecer() {
             setResultado(parecerData.resultado || "");
             setComissao(parecerData.comissao);
             setMateriaOriginal(parecerData.materia);
+
+            // Computar número oficial da matéria
+            const mat = parecerData.materia;
+            if (mat) {
+                let numOficial = '';
+                if (mat.oficios?.[0]?.numero_oficio) {
+                    const numStr = String(mat.oficios[0].numero_oficio);
+                    const numOnly = numStr.split('/')[0];
+                    const numPadded = numOnly.padStart(3, '0');
+                    numOficial = `${numPadded}/${mat.ano}`;
+                } else if (mat.projetosdelei?.[0]?.numero_lei) {
+                    const numStr = String(mat.projetosdelei[0].numero_lei);
+                    const numOnly = numStr.split('/')[0];
+                    const numPadded = numOnly.padStart(3, '0');
+                    numOficial = `${numPadded}/${mat.ano}`;
+                } else if (mat.requerimentos?.[0]?.numero_requerimento) {
+                    const numStr = String(mat.requerimentos[0].numero_requerimento);
+                    const numOnly = numStr.split('/')[0];
+                    const numPadded = numOnly.padStart(3, '0');
+                    numOficial = `${numPadded}/${mat.ano}`;
+                } else if (mat.mocoes?.[0]?.numero_mocao) {
+                    const numStr = String(mat.mocoes[0].numero_mocao);
+                    const numOnly = numStr.split('/')[0];
+                    const numPadded = numOnly.padStart(3, '0');
+                    numOficial = `${numPadded}/${mat.ano}`;
+                } else if (mat.indicacoes?.[0]?.numero_indicacao) {
+                    const numStr = String(mat.indicacoes[0].numero_indicacao);
+                    const numOnly = numStr.split('/')[0];
+                    const numPadded = numOnly.padStart(3, '0');
+                    numOficial = `${numPadded}/${mat.ano}`;
+                } else if (mat.projetosdedecretolegislativo?.[0]?.numero_decreto) {
+                    const numStr = String(mat.projetosdedecretolegislativo[0].numero_decreto);
+                    const numOnly = numStr.split('/')[0];
+                    const numPadded = numOnly.padStart(3, '0');
+                    numOficial = `${numPadded}/${mat.ano}`;
+                }
+                setNumeroOficialMateria(numOficial);
+            }
 
             // Carregar membros da comissão
             if (parecerData.comissao?.id) {
@@ -195,7 +235,7 @@ export default function EditarParecer() {
             const { url: pdfUrl } = await uploadMateriaPDF(
                 blob,
                 "Parecer", // Tipo fixo para garantir bucket correto
-                parecer.documento?.protocolos?.numero, // Número do protocolo
+                `parecer-${parecer.documento_id}`, // Parecer não possui protocolo, usar ID para nome do arquivo
                 parecer.documento?.ano, // Ano
                 parecer.documento_id
             );
@@ -272,10 +312,8 @@ export default function EditarParecer() {
                 className: "bg-green-600 text-white"
             });
 
-            // Redirecionar para a matéria original
-            if (materiaOriginal?.id) {
-                navigate(`/documentos/materias/${materiaOriginal.id}/editar`);
-            }
+            // Redirecionar para a lista de pareceres
+            navigate("/documentos/materias?tab=pareceres");
         } catch (error: any) {
             toast({ title: "Erro ao finalizar", description: error.message, variant: "destructive" });
         } finally {
@@ -391,6 +429,13 @@ export default function EditarParecer() {
         if (!parecer || !materiaOriginal) return;
 
         try {
+            // Se o parecer já tem PDF salvo, abrir diretamente
+            if (parecer.documento?.arquivo_pdf_url) {
+                window.open(parecer.documento.arquivo_pdf_url, '_blank');
+                return;
+            }
+
+            // Caso contrário, gerar PDF dinamicamente (rascunho)
             const numeroMateria = materiaOriginal.projetosdelei?.[0]?.numero_lei ||
                 materiaOriginal.oficios?.[0]?.numero_oficio ||
                 materiaOriginal.requerimentos?.[0]?.numero_requerimento ||
@@ -465,20 +510,20 @@ export default function EditarParecer() {
 
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
                             <ArrowLeft className="w-5 h-5" />
                         </Button>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-800">
+                        <div className="min-w-0">
+                            <h1 className="text-2xl font-bold text-gray-800 truncate">
                                 Parecer da {comissao?.nome}
                             </h1>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 truncate">
                                 Protocolo {parecer.documento?.numero_protocolo_geral}/{parecer.documento?.ano}
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                         <Button variant="outline" onClick={handleGerarPDF} className="gap-2">
                             <FileText className="w-4 h-4" />
                             Visualizar Oficial
@@ -501,13 +546,21 @@ export default function EditarParecer() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="font-medium text-blue-900">
-                                    {materiaOriginal?.tiposdedocumento?.nome} {materiaOriginal?.numero_protocolo_geral}/{materiaOriginal?.ano}
+                                    {materiaOriginal?.tiposdedocumento?.nome} {numeroOficialMateria || '/2026'}
                                 </p>
                             </div>
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(`/documentos/materias/${materiaOriginal?.id}/editar`)}
+                                onClick={() => {
+                                    if (materiaOriginal?.arquivo_pdf_url) {
+                                        // Se PDF está salvo, abrir em nova aba
+                                        window.open(materiaOriginal.arquivo_pdf_url, '_blank');
+                                    } else {
+                                        // Se é rascunho, navegar para edição
+                                        navigate(`/documentos/materias/${materiaOriginal?.id}/editar`);
+                                    }
+                                }}
                             >
                                 <ExternalLink className="w-3 h-3 mr-1" />
                                 Ver Matéria

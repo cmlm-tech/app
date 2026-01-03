@@ -67,10 +67,14 @@ export async function registrarProtocolo(
         }
     }
 
-    // Se numeroProtocolo já vem formatado (com /), não duplicar o ano
-    const numeroFormatado = String(numeroProtocolo).includes('/')
-        ? numeroProtocolo
-        : `${numeroProtocolo}/${ano}`;
+    // Garantir que o número tenha pelo menos 3 dígitos e o ano (003/2026)
+    let numeroFormatado = String(numeroProtocolo);
+    if (numeroFormatado.includes('/')) {
+        const [num, resto] = numeroFormatado.split('/');
+        numeroFormatado = `${num.padStart(3, '0')}/${resto}`;
+    } else {
+        numeroFormatado = `${numeroFormatado.padStart(3, '0')}/${ano}`;
+    }
 
     await registrarAtividade({
         tipo: 'protocolo',
@@ -91,9 +95,17 @@ export async function registrarParecer(
     ano: number,
     tipoMateria: string = "Matéria"
 ): Promise<void> {
+    // Evitar "Comissão de Comissão de..." se o nome já contiver "Comissão"
+    const prefixo = (nomeComissao.toLowerCase().startsWith('comissão') || nomeComissao.toLowerCase().startsWith('comissao'))
+        ? 'A'
+        : 'A Comissão de';
+
+    // Garantir padding de 3 dígitos no número da matéria (003)
+    const numeroMateriaFormatado = String(numeroMateria).padStart(3, '0');
+
     await registrarAtividade({
         tipo: 'parecer',
-        descricao: `A Comissão de ${nomeComissao} emitiu parecer sobre o(a) ${tipoMateria} nº ${numeroMateria}/${ano}.`,
+        descricao: `${prefixo} ${nomeComissao} emitiu parecer sobre o(a) ${tipoMateria} nº ${numeroMateriaFormatado}/${ano}.`,
         entidadeTipo: 'documento',
         entidadeId: documentoId,
     });

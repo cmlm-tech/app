@@ -324,6 +324,15 @@ export default function EditarParecer() {
     async function handleGerarIA() {
         if (!parecer || !materiaOriginal || !comissao) return;
 
+        if (!resultado) {
+            toast({
+                title: "Campo obrigatório",
+                description: "Por favor, selecione o Resultado do Parecer antes de gerar o texto com a IA.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         setSaving(true);
         toast({ title: "IA Trabalhando...", description: "Gerando minuta do parecer, aguarde." });
 
@@ -526,7 +535,7 @@ export default function EditarParecer() {
                     <div className="flex items-center gap-2 flex-shrink-0">
                         <Button variant="outline" onClick={handleGerarPDF} className="gap-2">
                             <FileText className="w-4 h-4" />
-                            Visualizar Oficial
+                            {statusFinalizado ? "Visualizar Oficial" : "Visualizar Rascunho"}
                         </Button>
                         <Badge className={statusFinalizado ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>
                             {parecer.status}

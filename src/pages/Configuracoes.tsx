@@ -4,6 +4,7 @@ import { AbaGeral } from "@/components/configuracoes/Gerais";
 import { AbaDadosCamara } from "@/components/configuracoes/DadosCamara";
 import { AbaTiposMateria } from "@/components/configuracoes/TiposMateria";
 import { AbaDestinatarios } from "@/components/configuracoes/Destinatarios";
+import { AbaPartidos } from "@/components/configuracoes/Partidos";
 
 const Configuracoes = () => {
   return (
@@ -31,6 +32,9 @@ const Configuracoes = () => {
             <TabsTrigger value="destinatarios" className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-gov-blue-800 data-[state=active]:shadow-sm">
               Destinatários
             </TabsTrigger>
+            <TabsTrigger value="partidos" className="w-full justify-start data-[state=active]:bg-white data-[state=active]:text-gov-blue-800 data-[state=active]:shadow-sm">
+              Partidos
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -46,6 +50,9 @@ const Configuracoes = () => {
           </TabsContent>
           <TabsContent value="destinatarios" className="mt-0">
             <AbaDestinatarios />
+          </TabsContent>
+          <TabsContent value="partidos" className="mt-0">
+            <AbaPartidos />
           </TabsContent>
         </div>
       </Tabs>

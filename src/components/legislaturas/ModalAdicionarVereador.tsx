@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { getPartidos } from '@/services/partidosService';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -78,7 +79,7 @@ const formSchema = z.object({
   condicao: z.enum(['Titular', 'Suplente'], {
     required_error: 'Selecione a condição.',
   }),
-  partido: z.enum(['MDB', 'PDT', 'PSD'], {
+  partido_id: z.number({
     required_error: 'Selecione o partido.',
   }),
   marcar_como_lider: z.boolean().default(false),
@@ -104,6 +105,7 @@ export function ModalAdicionarVereador({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [vereadoresElegiveis, setVereadoresElegiveis] = useState<AgentePublicoRow[]>([]);
+  const [partidos, setPartidos] = useState<Array<{ id: number; sigla: string; nome_completo: string }>>([]);
   const [popoverOpen, setPopoverOpen] = useState(false);
 
   const [confirmationOpen, setConfirmationOpen] = useState(false);
@@ -116,7 +118,7 @@ export function ModalAdicionarVereador({
     resolver: zodResolver(formSchema),
     defaultValues: {
       condicao: 'Titular',
-      partido: undefined,
+      partido_id: undefined,
       marcar_como_lider: false,
       tipo_lideranca: undefined,
     },
@@ -126,23 +128,25 @@ export function ModalAdicionarVereador({
 
   useEffect(() => {
     if (open) {
-      const fetchVereadores = async () => {
+      const fetchData = async () => {
         setLoading(true);
         try {
-          const { data, error } = await supabase
-            .from('agentespublicos')
-            .select('*')
-            .eq('tipo', 'Vereador');
+          // Buscar vereadores e partidos em paralelo
+          const [vereadoresResult, partidosResult] = await Promise.all([
+            supabase.from('agentespublicos').select('*').eq('tipo', 'Vereador'),
+            getPartidos(true) // apenas ativos
+          ]);
 
-          if (error) throw error;
+          if (vereadoresResult.error) throw vereadoresResult.error;
 
           const idsAtuais = new Set(vereadoresAtuais.map(v => v.agente_publico_id));
-          const elegiveis = data.filter(v => !idsAtuais.has(v.id));
+          const elegiveis = vereadoresResult.data.filter(v => !idsAtuais.has(v.id));
 
           setVereadoresElegiveis(elegiveis);
+          setPartidos(partidosResult || []);
         } catch (error: any) {
           toast({
-            title: 'Erro ao buscar vereadores',
+            title: 'Erro ao carregar dados',
             description: error.message,
             variant: 'destructive',
           });
@@ -150,11 +154,11 @@ export function ModalAdicionarVereador({
           setLoading(false);
         }
       };
-      fetchVereadores();
+      fetchData();
 
       form.reset({
         condicao: 'Titular',
-        partido: undefined,
+        partido_id: undefined,
         marcar_como_lider: false,
         tipo_lideranca: undefined,
       });
@@ -164,11 +168,15 @@ export function ModalAdicionarVereador({
   const confirmSave = async (values: z.infer<typeof formSchema>) => {
     setSaving(true);
     try {
+      // Buscar sigla do partido selecionado (para compatibilidade)
+      const partidoSelecionado = partidos.find(p => p.id === values.partido_id);
+
       const insertData: LegislaturaVereadorInsert = {
         legislatura_id: legislaturaId,
         agente_publico_id: values.agente_publico_id,
         condicao: values.condicao as CondicaoVereador,
-        partido: values.partido,
+        partido_id: values.partido_id,
+        partido: partidoSelecionado?.sigla || null, // Manter compatibilidade temporária
       };
 
       const { error: vereadorError } = await supabase
@@ -243,8 +251,6 @@ export function ModalAdicionarVereador({
     const id = form.watch('agente_publico_id');
     return vereadoresElegiveis.find(v => v.id === id);
   }, [form, vereadoresElegiveis]);
-
-  const partidos = ['MDB', 'PDT', 'PSD'] as const;
 
   return (
     <>
@@ -349,14 +355,13 @@ export function ModalAdicionarVereador({
               />
               <FormField
                 control={form.control}
-                name="partido"
+                name="partido_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Partido</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      value={field.value?.toString()}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -365,8 +370,8 @@ export function ModalAdicionarVereador({
                       </FormControl>
                       <SelectContent>
                         {partidos.map(partido => (
-                          <SelectItem key={partido} value={partido}>
-                            {partido}
+                          <SelectItem key={partido.id} value={partido.id.toString()}>
+                            {partido.sigla} - {partido.nome_completo}
                           </SelectItem>
                         ))}
                       </SelectContent>

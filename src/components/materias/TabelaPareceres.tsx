@@ -63,25 +63,24 @@ export function TabelaPareceres({ pareceres }: TabelaPareceresProps) {
 
                             <TableCell>{format(parecer.data, "dd/MM/yyyy", { locale: ptBR })}</TableCell>
 
-                            <TableCell className="text-right space-x-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => navigate(`/documentos/pareceres/${parecer.id}/editar`)}
-                                >
-                                    <Pencil className="h-4 w-4 mr-1" />
-                                    Editar
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    disabled={!parecer.url}
-                                    onClick={() => parecer.url && window.open(parecer.url, "_blank")}
-                                    title={!parecer.url ? "PDF ainda não gerado" : "Visualizar PDF"}
-                                >
-                                    <Eye className="h-4 w-4 mr-1" />
-                                    Visualizar
-                                </Button>
+                            <TableCell className="text-right">
+                                <div className="flex justify-end gap-1">
+                                    <button
+                                        onClick={() => parecer.url && window.open(parecer.url, "_blank")}
+                                        disabled={!parecer.url}
+                                        title={!parecer.url ? "PDF ainda não gerado" : "Visualizar PDF"}
+                                        className="hover:text-blue-700 text-gray-600 p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Eye size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => navigate(`/documentos/pareceres/${parecer.id}/editar`)}
+                                        title="Editar"
+                                        className="hover:text-yellow-700 text-gray-600 p-2"
+                                    >
+                                        <Pencil size={18} />
+                                    </button>
+                                </div>
                             </TableCell>
                         </TableRow>
                     ))}

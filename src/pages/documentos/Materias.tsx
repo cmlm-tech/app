@@ -68,11 +68,13 @@ export default function Materias() {
   async function fetchMaterias() {
     setIsLoading(true);
     try {
-      // 1. Buscar Agentes e Comissões
+      // 1. Buscar Agentes, Vereadores e Comissões
       const { data: agentes } = await supabase.from('agentespublicos').select('id, nome_completo');
+      const { data: vereadores } = await supabase.from('vereadores').select('agente_publico_id, nome_parlamentar');
       const { data: comissoes } = await supabase.from('comissoes').select('id, nome');
 
       const agentesMap = new Map((agentes || []).map((a: any) => [a.id, a.nome_completo]));
+      const vereadoresMap = new Map((vereadores || []).map((v: any) => [v.agente_publico_id, v.nome_parlamentar]));
       const comissoesMap = new Map((comissoes || []).map((c: any) => [c.id, c.nome]));
 
       // 2. Buscar Documentos
@@ -147,10 +149,13 @@ export default function Materias() {
             const { autor_id } = autorRel;
             autorId = autor_id;
 
-            // Tentar em comissões primeiro, depois em agentes
+            // Tentar em comissões primeiro, depois em vereadores, por último em agentes
             if (comissoesMap.has(autor_id)) {
               nomeAutor = comissoesMap.get(autor_id)!;
               autorTipo = 'Comissao';
+            } else if (vereadoresMap.has(autor_id)) {
+              nomeAutor = vereadoresMap.get(autor_id)!;
+              autorTipo = 'AgentePublico';
             } else if (agentesMap.has(autor_id)) {
               nomeAutor = agentesMap.get(autor_id)!;
               autorTipo = 'AgentePublico';

@@ -3,6 +3,7 @@ import { Document, Page, View, Text } from '@react-pdf/renderer';
 import { pdfStyles } from '../shared/PDFStyles';
 import { PDFHeader } from '../shared/PDFHeader';
 import { PDFFooter } from '../shared/PDFFooter';
+import Watermark from '../shared/Watermark';
 
 interface MembroComissao {
     nome: string;
@@ -19,6 +20,7 @@ interface ParecerPDFProps {
     texto: string;
     dataProtocolo?: string;
     membros: MembroComissao[];
+    isRascunho?: boolean;
 }
 
 export default function ParecerPDF({
@@ -30,7 +32,8 @@ export default function ParecerPDF({
     parecerAno,
     texto,
     dataProtocolo,
-    membros
+    membros,
+    isRascunho = false
 }: ParecerPDFProps) {
     const dataObj = dataProtocolo ? new Date(dataProtocolo) : new Date();
     const dia = dataObj.getDate();
@@ -48,7 +51,14 @@ export default function ParecerPDF({
     const demaisMembros = membros.filter(m => m.cargo !== 'Presidente' && m.cargo !== 'Relator');
 
     // Título Formato: PARECER DA COMISSÃO DE [NOME] SOBRE O [TIPO] Nº [NUM]/[ANO]
-    const titulo = `PARECER DA COMISSÃO DE ${comissaoNome.toUpperCase()} SOBRE O ${materiaTipo.toUpperCase()} Nº ${materiaNumero}/${materiaAno}`;
+    const comissaoPrefix = (comissaoNome.toLowerCase().startsWith('comissão') || comissaoNome.toLowerCase().startsWith('comissao'))
+        ? 'DA'
+        : 'DA COMISSÃO DE';
+
+    // Garantir padding de 3 dígitos também no componente (camada extra de proteção)
+    const numeroPadded = materiaNumero.toString().split('/')[0].padStart(3, '0');
+
+    const titulo = `PARECER ${comissaoPrefix} ${comissaoNome.toUpperCase()} SOBRE O ${materiaTipo.toUpperCase()} Nº ${numeroPadded}/${materiaAno}`;
 
     return (
         <Document>
@@ -124,6 +134,7 @@ export default function ParecerPDF({
                     </View>
                 </View>
 
+                <Watermark isRascunho={isRascunho} />
                 <PDFFooter />
             </Page>
         </Document>

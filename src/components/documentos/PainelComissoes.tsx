@@ -23,6 +23,7 @@ interface ParecerExistente {
     id: number;
     comissao_id: number;
     documento_id: number; // ID do documento "Parecer"
+    corpo_texto?: string | null; // Para verificar se já foi emitido
 }
 
 export function PainelComissoes({ docId, ano, disabled = false }: PainelComissoesProps) {
@@ -81,7 +82,7 @@ export function PainelComissoes({ docId, ano, disabled = false }: PainelComissoe
             // 2. Carregar Pareceres já vinculados a esta matéria
             const { data: pareceresData } = await supabase
                 .from("pareceres")
-                .select("id, comissao_id, documento_id")
+                .select("id, comissao_id, documento_id, corpo_texto")
                 .eq("materia_documento_id", docId);
 
             const novosParticipantes = new Set<number>();
@@ -109,7 +110,18 @@ export function PainelComissoes({ docId, ano, disabled = false }: PainelComissoe
 
     const toggleComissao = (comissaoId: number) => {
         const novoSet = new Set(participantes);
+
+        // Verificar se está tentando remover uma comissão que já emitiu parecer
         if (novoSet.has(comissaoId)) {
+            const parecer = pareceresMap.get(comissaoId);
+            if (parecer && parecer.corpo_texto && parecer.corpo_texto.trim() !== '') {
+                toast({
+                    title: "Não permitido",
+                    description: "Esta comissão já emitiu parecer e não pode ser removida.",
+                    variant: "destructive"
+                });
+                return;
+            }
             novoSet.delete(comissaoId);
         } else {
             novoSet.add(comissaoId);

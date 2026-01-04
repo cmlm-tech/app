@@ -41,6 +41,7 @@ export default function Materias() {
 
   // Paginação State
   const [pagina, setPagina] = useState(1);
+  const [paginaParecer, setPaginaParecer] = useState(1);
   const itensPorPagina = 10;
 
   useEffect(() => {
@@ -265,11 +266,17 @@ export default function Materias() {
     return buscaOk && tipoOk && statusOk && periodoOk;
   });
 
-  // Lógica de Paginação
+  // Lógica de Paginação para Matérias
   const totalPaginas = Math.ceil(materiasFiltradas.length / itensPorPagina);
   const inicio = (pagina - 1) * itensPorPagina;
   const fim = inicio + itensPorPagina;
   const materiasPaginadas = materiasFiltradas.slice(inicio, fim);
+
+  // Lógica de Paginação para Pareceres
+  const totalPaginasParecer = Math.ceil(pareceres.length / itensPorPagina);
+  const inicioParecer = (paginaParecer - 1) * itensPorPagina;
+  const fimParecer = inicioParecer + itensPorPagina;
+  const pareceresPaginados = pareceres.slice(inicioParecer, fimParecer);
 
   return (
     <AppLayout>
@@ -351,7 +358,37 @@ export default function Materias() {
               </TabsContent>
 
               <TabsContent value="pareceres">
-                <TabelaPareceres pareceres={pareceres} />
+                <TabelaPareceres pareceres={pareceresPaginados} />
+
+                {/* Controles de Paginação para Pareceres */}
+                {pareceres.length > 0 && (
+                  <div className="flex items-center justify-between border-t pt-4">
+                    <div className="text-sm text-gray-500">
+                      Mostrando {inicioParecer + 1} até {Math.min(fimParecer, pareceres.length)} de {pareceres.length} resultados
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPaginaParecer(p => Math.max(1, p - 1))}
+                        disabled={paginaParecer === 1}
+                      >
+                        Anterior
+                      </Button>
+                      <div className="flex items-center px-4 font-medium text-sm">
+                        Página {paginaParecer} de {totalPaginasParecer}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPaginaParecer(p => Math.min(totalPaginasParecer, p + 1))}
+                        disabled={paginaParecer === totalPaginasParecer}
+                      >
+                        Próximo
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           )}

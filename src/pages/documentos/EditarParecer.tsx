@@ -366,13 +366,16 @@ export default function EditarParecer() {
                 materiaOriginal.projetosdeemendaorganica?.[0]?.justificativa ||
                 "";
 
-            const numeroMateria = materiaOriginal.projetosdelei?.[0]?.numero_lei ||
+            const matNumeroRaw = materiaOriginal.projetosdelei?.[0]?.numero_lei ||
                 materiaOriginal.oficios?.[0]?.numero_oficio ||
                 materiaOriginal.requerimentos?.[0]?.numero_requerimento ||
                 materiaOriginal.mocoes?.[0]?.numero_mocao ||
                 materiaOriginal.indicacoes?.[0]?.numero_indicacao ||
                 materiaOriginal.projetosdedecretolegislativo?.[0]?.numero_decreto ||
                 materiaOriginal.protocolos?.numero || "S/N";
+
+            // Garantir padding de 3 dígitos
+            const numeroMateria = matNumeroRaw.toString().split('/')[0].padStart(3, '0');
 
             // Construir contexto rico para a IA
             const contextoParecer = `
@@ -445,7 +448,7 @@ export default function EditarParecer() {
             }
 
             // Caso contrário, gerar PDF dinamicamente (rascunho)
-            const numeroMateria = materiaOriginal.projetosdelei?.[0]?.numero_lei ||
+            const matNumeroRaw = materiaOriginal.projetosdelei?.[0]?.numero_lei ||
                 materiaOriginal.oficios?.[0]?.numero_oficio ||
                 materiaOriginal.requerimentos?.[0]?.numero_requerimento ||
                 materiaOriginal.mocoes?.[0]?.numero_mocao ||
@@ -453,16 +456,24 @@ export default function EditarParecer() {
                 materiaOriginal.projetosdedecretolegislativo?.[0]?.numero_decreto ||
                 materiaOriginal.protocolos?.numero || "";
 
+            // Garantir padding de 3 dígitos na matéria
+            const numeroMateria = matNumeroRaw.toString().split('/')[0].padStart(3, '0');
+
+            // Garantir padding de 3 dígitos no parecer
+            const parecerNumRaw = parecer.documento?.protocolos?.numero || parecer.id;
+            const parecerNumero = `${parecerNumRaw.toString().split('/')[0].padStart(3, '0')}/${parecer.documento?.ano || new Date().getFullYear()}`;
+
             const blob = await pdf(
                 <ParecerPDF
                     comissaoNome={comissao?.nome || "Comissão"}
                     materiaTipo={materiaOriginal.tiposdedocumento?.nome || "Documento"}
-                    materiaNumero={numeroMateria?.toString()}
+                    materiaNumero={numeroMateria}
                     materiaAno={materiaOriginal.ano}
-                    parecerNumero={`${parecer.documento?.protocolos?.numero || parecer.id}/${parecer.documento?.ano}`}
+                    parecerNumero={parecerNumero}
                     texto={corpoTexto}
                     dataProtocolo={parecer.documento?.data_protocolo}
                     membros={comissaoMembros}
+                    isRascunho={!statusFinalizado}
                 />
             ).toBlob();
 

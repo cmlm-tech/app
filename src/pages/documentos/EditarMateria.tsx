@@ -20,7 +20,7 @@ import { podeRetirarMateria, podePrejudicarMateria } from "@/services/materiasSe
 
 interface DocumentoDetalhes {
     id: number;
-    numero_protocolo_geral: number;
+    protocolo_id: number | null;
     ano: number;
     tiposdedocumento: { nome: string } | null;
     status: string;
@@ -948,7 +948,7 @@ export default function EditarMateria() {
                                         id="secret-vote"
                                         checked={requerSecreta}
                                         onCheckedChange={(checked) => handleToggleSecreta(checked as boolean)}
-                                        disabled={saving}
+                                        disabled={saving || !!doc.protocolo_id}
                                     />
                                     <div className="space-y-1 leading-none">
                                         <Label

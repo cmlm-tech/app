@@ -2,7 +2,7 @@ import { useToast } from "@/components/ui/use-toast";
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from "@/components/ui/table";
-import { Eye, Pencil, Download, History } from "lucide-react";
+import { Eye, Pencil, History } from "lucide-react";
 import { Materia } from "./types";
 import { cn } from "@/lib/utils";
 import { CardMateria } from "./CardMateria";
@@ -110,7 +110,6 @@ export default function TabelaMaterias({ materias }: Props) {
                   </TooltipProvider>
 
                   <a href={linkToMateria(mat.id, mat.tipo)} title="Editar" className="hover:text-yellow-700 text-gray-600 p-2"><Pencil size={18} /></a>
-                  <button title="Baixar anexo" className="hover:text-green-700 p-2"><Download size={18} /></button>
                   <a
                     href={`/documentos/materias/${mat.id}/historico`}
                     title="Histórico de Tramitação"

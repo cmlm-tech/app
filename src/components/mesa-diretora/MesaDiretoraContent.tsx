@@ -8,8 +8,7 @@ import MesaDiretoraHeader from "./MesaDiretoraHeader";
 import PresidenteCard from "./PresidenteCard";
 import VicePresidenteCard from "./VicePresidenteCard";
 import OutrosMembrosGrid from "./OutrosMembrosGrid";
-import { getMesaByPeriodo, createMesa, updateMembrosMesa, MesaDiretora, MembroMesa } from "@/services/mesaDiretoraService";
-import { getVereadores, Vereador } from "@/services/vereadoresService";
+import { getMesaByPeriodo, createMesa, updateMembrosMesa, MesaDiretora, MembroMesa, getVereadoresAptosParaMesa } from "@/services/mesaDiretoraService";
 import { ComposicaoMesa } from "./types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -72,20 +71,54 @@ export default function MesaDiretoraContent({ periodoId }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // 1. Fetch Vereadores (for looking up details and filling select options)
-  const { data: vereadores = [] } = useQuery({
-    queryKey: ["vereadores"],
-    queryFn: getVereadores,
+  // 1. Fetch Período com Legislatura
+  const { data: periodo } = useQuery({
+    queryKey: ["periodo", periodoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("periodossessao")
+        .select("*, legislatura:legislaturas(*)")
+        .eq("id", periodoId)
+        .single();
+      if (error) throw error;
+      console.log('📅 Período carregado:', data);
+      return data;
+    },
   });
 
-  // 2. Fetch Mesa for this Period
+  // 2. Fetch Vereadores APTOS (apenas titulares da legislatura, em exercício)
+  const { data: vereadores = [], isLoading: loadingVereadores, error: errorVereadores } = useQuery({
+    queryKey: ["vereadores-aptos", periodo?.legislatura_id],
+    queryFn: async () => {
+      console.log('🔍 Buscando vereadores para legislatura:', periodo?.legislatura_id);
+      const result = await getVereadoresAptosParaMesa(periodo!.legislatura_id);
+      console.log('👥 Vereadores aptos encontrados:', result);
+      return result;
+    },
+    enabled: !!periodo?.legislatura_id,
+  });
+
+  // Log de debug
+  React.useEffect(() => {
+    if (errorVereadores) {
+      console.error('❌ Erro ao buscar vereadores:', errorVereadores);
+    }
+    console.log('📊 Estado atual:', {
+      periodo,
+      legislatura_id: periodo?.legislatura_id,
+      vereadores: vereadores.length,
+      loadingVereadores
+    });
+  }, [periodo, vereadores, loadingVereadores, errorVereadores]);
+
+  // 3. Fetch Mesa for this Period
   const { data: mesa, isLoading, error } = useQuery({
     queryKey: ["mesa", periodoId],
     queryFn: () => getMesaByPeriodo(periodoId),
     retry: false
   });
 
-  // 3. Mutation to create Mesa if it doesn't exist
+  // 4. Mutation to create Mesa if it doesn't exist
   const createMesaMutation = useMutation({
     mutationFn: () => createMesa(periodoId, `Mesa Diretora`),
     onSuccess: () => {
@@ -94,7 +127,7 @@ export default function MesaDiretoraContent({ periodoId }: Props) {
     }
   });
 
-  // 4. Mutation to update Members
+  // 5. Mutation to update Members
   const updateMembersMutation = useMutation({
     mutationFn: (membros: { cargo: MembroMesa["cargo"]; agente_publico_id: number }[]) => {
       if (!mesa?.id) throw new Error("Mesa não existe");
@@ -143,13 +176,16 @@ export default function MesaDiretoraContent({ periodoId }: Props) {
     if (!v) return null;
     return {
       ...v,
-      id: String(v.id), // UI components use string IDs
-      cargoMesa: "", // Not needed for the card display itself usually, or we can look it up
-      biografia: "",
-      email: "",
-      telefone: "",
+      id: String(v.id),
+      nome: v.nome_parlamentar || v.nome_completo,
+      partido: v.partido,
+      partidoLogo: v.partido_completo?.logo_url || "",
+      foto: v.foto,
+      email: v.email_gabinete || "",
+      telefone: v.telefone_gabinete || "",
+      biografia: v.perfil || "",
+      cargoMesa: "",
       legislatura: "",
-      partidoLogo: "",
       comissoes: []
     };
   };
@@ -180,11 +216,14 @@ export default function MesaDiretoraContent({ periodoId }: Props) {
   const vereadoresForModal = vereadores.map(v => ({
     ...v,
     id: String(v.id),
-    partidoLogo: "",
+    nome: v.nome_parlamentar || v.nome_completo,
+    partido: v.partido,
+    partidoLogo: v.partido_completo?.logo_url || "",
+    foto: v.foto,
+    email: v.email_gabinete || "",
+    telefone: v.telefone_gabinete || "",
+    biografia: v.perfil || "",
     cargoMesa: "",
-    biografia: "",
-    email: "",
-    telefone: "",
     legislatura: "",
     comissoes: []
   }));

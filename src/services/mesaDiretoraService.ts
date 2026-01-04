@@ -74,3 +74,71 @@ export async function updateMembrosMesa(mesaId: number, membros: { cargo: Membro
   if (error) throw error;
   return data;
 }
+
+/**
+ * Busca vereadores APTOS para compor a Mesa Diretora
+ * 
+ * REGRAS DE NEGÓCIO:
+ * - Apenas TITULARES (não suplentes)
+ * - Da legislatura do período
+ * - Em exercício (sem data_afastamento ou afastamento futuro)
+ * - Se afastado, vaga fica vazia até retorno
+ */
+export async function getVereadoresAptosParaMesa(legislaturaId: number) {
+  // Buscar legislaturavereadores com agentes públicos
+  const { data: legislaturaVereadores, error } = await supabase
+    .from('legislaturavereadores')
+    .select(`
+      agente_publico_id,
+      partido_id,
+      partido,
+      condicao,
+      data_posse,
+      data_afastamento
+    `)
+    .eq('legislatura_id', legislaturaId)
+    .eq('condicao', 'Titular') // APENAS TITULARES
+    .is('data_afastamento', null); // EM EXERCÍCIO
+
+  if (error) throw error;
+  if (!legislaturaVereadores || legislaturaVereadores.length === 0) return [];
+
+  // Buscar dados completos dos agentes públicos
+  const agenteIds = legislaturaVereadores.map(lv => lv.agente_publico_id);
+
+  const { data: agentes, error: agentesError } = await supabase
+    .from('agentespublicos')
+    .select('id, nome_completo, foto_url')
+    .in('id', agenteIds);
+
+  if (agentesError) throw agentesError;
+
+  // Buscar dados complementares dos vereadores
+  const { data: vereadores, error: vereadoresError } = await supabase
+    .from('vereadores')
+    .select('agente_publico_id, nome_parlamentar, perfil, email_gabinete, telefone_gabinete')
+    .in('agente_publico_id', agenteIds);
+
+  if (vereadoresError) throw vereadoresError;
+
+  // Combinar dados
+  return legislaturaVereadores.map(lv => {
+    const agente = agentes?.find(a => a.id === lv.agente_publico_id);
+    const vereador = vereadores?.find(v => v.agente_publico_id === lv.agente_publico_id);
+
+    return {
+      id: lv.agente_publico_id,
+      agente_publico_id: lv.agente_publico_id,
+      nome: vereador?.nome_parlamentar || agente?.nome_completo || 'Sem nome',
+      nome_completo: agente?.nome_completo || 'Sem nome',
+      nome_parlamentar: vereador?.nome_parlamentar,
+      foto: agente?.foto_url,
+      partido: lv.partido || 'Sem Partido',
+      partido_id: lv.partido_id,
+      partido_completo: null, // Será preenchido após migração de partidos
+      email_gabinete: vereador?.email_gabinete,
+      telefone_gabinete: vereador?.telefone_gabinete,
+      perfil: vereador?.perfil,
+    };
+  });
+}

@@ -38,6 +38,50 @@ export type Database = {
         }
         Relationships: []
       }
+      anexos: {
+        Row: {
+          caminho_arquivo: string
+          created_at: string | null
+          documento_id: number
+          id: number
+          nome_arquivo: string
+          tamanho: number | null
+          tipo_arquivo: string | null
+          url_publica: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          caminho_arquivo: string
+          created_at?: string | null
+          documento_id: number
+          id?: number
+          nome_arquivo: string
+          tamanho?: number | null
+          tipo_arquivo?: string | null
+          url_publica?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          caminho_arquivo?: string
+          created_at?: string | null
+          documento_id?: number
+          id?: number
+          nome_arquivo?: string
+          tamanho?: number | null
+          tipo_arquivo?: string | null
+          url_publica?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anexos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atas: {
         Row: {
           documento_id: number
@@ -600,6 +644,7 @@ export type Database = {
           id: number
           legislatura_id: number
           partido: string | null
+          partido_id: number | null
         }
         Insert: {
           agente_publico_id: number
@@ -609,6 +654,7 @@ export type Database = {
           id?: number
           legislatura_id: number
           partido?: string | null
+          partido_id?: number | null
         }
         Update: {
           agente_publico_id?: number
@@ -618,8 +664,16 @@ export type Database = {
           id?: number
           legislatura_id?: number
           partido?: string | null
+          partido_id?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_legislaturavereadores_partido"
+            columns: ["partido_id"]
+            isOneToOne: false
+            referencedRelation: "partidos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "legislaturavereadores_agente_publico_id_fkey"
             columns: ["agente_publico_id"]
@@ -973,6 +1027,36 @@ export type Database = {
           },
         ]
       }
+      partidos: {
+        Row: {
+          ativo: boolean | null
+          cor_principal: string | null
+          criado_em: string | null
+          id: number
+          logo_url: string | null
+          nome_completo: string
+          sigla: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          cor_principal?: string | null
+          criado_em?: string | null
+          id?: number
+          logo_url?: string | null
+          nome_completo: string
+          sigla: string
+        }
+        Update: {
+          ativo?: boolean | null
+          cor_principal?: string | null
+          criado_em?: string | null
+          id?: number
+          logo_url?: string | null
+          nome_completo?: string
+          sigla?: string
+        }
+        Relationships: []
+      }
       periodossessao: {
         Row: {
           data_fim: string
@@ -1287,6 +1371,7 @@ export type Database = {
           sessao_id: number
           status_item: string | null
           tipo_item: string | null
+          url_relatorio_votacao: string | null
           votacao_secreta: boolean | null
         }
         Insert: {
@@ -1296,6 +1381,7 @@ export type Database = {
           sessao_id: number
           status_item?: string | null
           tipo_item?: string | null
+          url_relatorio_votacao?: string | null
           votacao_secreta?: boolean | null
         }
         Update: {
@@ -1305,6 +1391,7 @@ export type Database = {
           sessao_id?: number
           status_item?: string | null
           tipo_item?: string | null
+          url_relatorio_votacao?: string | null
           votacao_secreta?: boolean | null
         }
         Relationships: [
@@ -1675,18 +1762,48 @@ export type Database = {
       vereadores: {
         Row: {
           agente_publico_id: number
+          areas_atuacao: string[] | null
+          biografia_completa: string | null
+          email_gabinete: string | null
+          facebook: string | null
+          formacao_academica: string | null
+          instagram: string | null
           nome_parlamentar: string | null
           perfil: string | null
+          profissao_anterior: string | null
+          site_pessoal: string | null
+          telefone_gabinete: string | null
+          twitter: string | null
         }
         Insert: {
           agente_publico_id: number
+          areas_atuacao?: string[] | null
+          biografia_completa?: string | null
+          email_gabinete?: string | null
+          facebook?: string | null
+          formacao_academica?: string | null
+          instagram?: string | null
           nome_parlamentar?: string | null
           perfil?: string | null
+          profissao_anterior?: string | null
+          site_pessoal?: string | null
+          telefone_gabinete?: string | null
+          twitter?: string | null
         }
         Update: {
           agente_publico_id?: number
+          areas_atuacao?: string[] | null
+          biografia_completa?: string | null
+          email_gabinete?: string | null
+          facebook?: string | null
+          formacao_academica?: string | null
+          instagram?: string | null
           nome_parlamentar?: string | null
           perfil?: string | null
+          profissao_anterior?: string | null
+          site_pessoal?: string | null
+          telefone_gabinete?: string | null
+          twitter?: string | null
         }
         Relationships: [
           {

@@ -20,9 +20,12 @@ import ModalVisualizarMesa from "@/components/mesa-diretora/ModalVisualizarMesa"
 import ModalMesaDiretora from "@/components/mesa-diretora/ModalMesaDiretora";
 import ModalVisualizarComissoes from "@/components/comissoes/ModalVisualizarComissoes";
 import ModalMembrosComissao from "@/components/comissoes/ModalMembrosComissao";
+import ModalLicencaVereador from "@/components/legislaturas/ModalLicencaVereador";
+import ModalEncerrarLicenca from "@/components/legislaturas/ModalEncerrarLicenca";
 import { getMesaByPeriodo, updateMesaMembros } from "@/services/mesaDiretoraService";
 import { getVereadores } from "@/services/vereadoresService";
 import { getComissoesByPeriodo, updateMembrosComissao, Comissao } from "@/services/comissoesService";
+import { createLicenca, encerrarLicenca, getTitularesDisponiveis, getSuplentesDisponiveis } from "@/services/licencasService";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast as sonnerToast } from "sonner";
 
@@ -55,6 +58,11 @@ export default function DetalheLegislatura() {
     const [modalEditarComissaoOpen, setModalEditarComissaoOpen] = useState(false);
     const [periodoComissoesSelecionado, setPeriodoComissoesSelecionado] = useState<number | null>(null);
     const [comissaoParaEditar, setComissaoParaEditar] = useState<Comissao | null>(null);
+
+    // States para modal de Licença
+    const [modalLicencaOpen, setModalLicencaOpen] = useState(false);
+    const [modalEncerrarLicencaOpen, setModalEncerrarLicencaOpen] = useState(false);
+    const [vereadorParaEncerrarLicenca, setVereadorParaEncerrarLicenca] = useState<VereadorComCondicao | null>(null);
 
     const isAdmin = permissaoLogado?.toLowerCase() === 'admin';
 
@@ -110,6 +118,74 @@ export default function DetalheLegislatura() {
         }
     });
 
+    // Buscar titulares e suplentes para modal de licença
+    const { data: titularesDisponiveis = [] } = useQuery({
+        queryKey: ["titulares-disponiveis", legislatura?.id],
+        queryFn: () => getTitularesDisponiveis(legislatura!.id),
+        enabled: !!legislatura?.id && modalLicencaOpen
+    });
+
+    const { data: suplentesDisponiveis = [] } = useQuery({
+        queryKey: ["suplentes-disponiveis", legislatura?.id],
+        queryFn: () => getSuplentesDisponiveis(legislatura!.id),
+        enabled: !!legislatura?.id && modalLicencaOpen
+    });
+
+    // Mutation para criar licença
+    const createLicencaMutation = useMutation({
+        mutationFn: ({ titularId, suplenteId, dataInicio }: { titularId: number, suplenteId: number, dataInicio: string }) =>
+            createLicenca(legislatura!.id, titularId, suplenteId, dataInicio),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["vereadores"] });
+            sonnerToast.success("Licença registrada com sucesso!");
+            setModalLicencaOpen(false);
+            // Recarregar dados da legislatura
+            if (legislaturaNumero) {
+                fetchData(parseInt(legislaturaNumero));
+            }
+        },
+        onError: (error: any) => {
+            sonnerToast.error(error.message || "Erro ao registrar licença");
+        }
+    });
+
+    // Mutation para encerrar licença
+    const encerrarLicencaMutation = useMutation({
+        mutationFn: ({ licenciadoId, dataRetorno }: { licenciadoId: number, dataRetorno: string }) => {
+            // Precisamos encontrar o suplente que está substituindo este titular
+            const titular = vereadores.find(v => v.agente_publico_id === licenciadoId);
+            if (!titular) throw new Error("Titular não encontrado");
+
+            // Encontrar o suplente que está em exercício (tem data_posse e não tem data_afastamento)
+            const suplenteSubstituto = vereadores.find(v =>
+                v.condicao === 'Suplente' &&
+                v.data_posse &&
+                !v.data_afastamento
+            );
+
+            if (!suplenteSubstituto) throw new Error("Suplente substituto não encontrado");
+
+            return encerrarLicenca(
+                legislatura!.id,
+                licenciadoId,
+                suplenteSubstituto.agente_publico_id!,
+                dataRetorno
+            );
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["vereadores"] });
+            sonnerToast.success("Licença encerrada com sucesso!");
+            setModalEncerrarLicencaOpen(false);
+            setVereadorParaEncerrarLicenca(null);
+            if (legislaturaNumero) {
+                fetchData(parseInt(legislaturaNumero));
+            }
+        },
+        onError: (error: any) => {
+            sonnerToast.error(error.message || "Erro ao encerrar licença");
+        }
+    });
+
     const fetchData = useCallback(async (numero: number) => {
         try {
             const { data: legData, error: legError } = await supabase.from('legislaturas').select('*').eq('numero', numero).single();
@@ -119,7 +195,7 @@ export default function DetalheLegislatura() {
 
             const [periodosResult, verResult] = await Promise.all([
                 supabase.from('periodossessao').select('*').eq('legislatura_id', legislaturaId),
-                supabase.from('legislaturavereadores').select('id, condicao, partido, data_posse, data_afastamento, agentespublicos:agente_publico_id (*, vereadores:vereadores!inner(nome_parlamentar))').eq('legislatura_id', legislaturaId).order('nome_completo', { referencedTable: 'agentespublicos', ascending: true })
+                supabase.from('legislaturavereadores').select('id, condicao, partido, data_posse, data_afastamento, data_retorno, agentespublicos:agente_publico_id (*, vereadores:vereadores!inner(nome_parlamentar))').eq('legislatura_id', legislaturaId).order('nome_completo', { referencedTable: 'agentespublicos', ascending: true })
             ]);
 
             if (periodosResult.error) throw periodosResult.error;
@@ -135,6 +211,7 @@ export default function DetalheLegislatura() {
                     partido: item.partido,
                     data_posse: item.data_posse,
                     data_afastamento: item.data_afastamento,
+                    data_retorno: item.data_retorno,
                     nome_parlamentar: item.agentespublicos?.vereadores?.nome_parlamentar || null,
                     vereadores: item.agentespublicos as AgentePublicoRow
                 }));
@@ -283,6 +360,25 @@ export default function DetalheLegislatura() {
         }
     };
 
+    // Handler para Licença
+    const handleSaveLicenca = (titularId: number, suplenteId: number, dataInicio: string) => {
+        createLicencaMutation.mutate({ titularId, suplenteId, dataInicio });
+    };
+
+    // Handler para encerrar licença
+    const handleEndLicenca = (vereador: VereadorComCondicao) => {
+        setVereadorParaEncerrarLicenca(vereador);
+        setModalEncerrarLicencaOpen(true);
+    };
+
+    const handleConfirmEndLicenca = (dataRetorno: string) => {
+        if (!vereadorParaEncerrarLicenca) return;
+        encerrarLicencaMutation.mutate({
+            licenciadoId: vereadorParaEncerrarLicenca.agente_publico_id!,
+            dataRetorno
+        });
+    };
+
     if (loading) return <AppLayout><div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
     if (!legislatura) return <AppLayout><div className="text-center py-10"><h1>Legislatura não encontrada</h1></div></AppLayout>;
 
@@ -290,23 +386,27 @@ export default function DetalheLegislatura() {
     const anoFim = new Date(legislatura.data_fim).getFullYear();
 
     const now = new Date();
+    // Ajuste seguro para obter YYYY-MM-DD local
+    const todayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
     const emExercicio = vereadores.filter(v => {
-        const dataAfastamento = v.data_afastamento ? new Date(v.data_afastamento) : null;
-        const dataPosse = v.data_posse ? new Date(v.data_posse) : null;
+        const dataAfastamento = v.data_afastamento;
+        const dataPosse = v.data_posse;
 
-        if (v.condicao === 'Titular' && (!dataAfastamento || dataAfastamento > now)) {
-            return true;
+        if (v.condicao === 'Titular') {
+            // Titular está ok se não tem afastamento ou se o afastamento é futuro
+            return !dataAfastamento || dataAfastamento > todayStr;
         }
-        if (v.condicao === 'Suplente' && dataPosse && dataPosse <= now && (!dataAfastamento || dataAfastamento > now)) {
-            return true;
+        if (v.condicao === 'Suplente') {
+            // Suplente precisa ter tomado posse (<= hoje) e não estar afastado (ou afastamento futuro)
+            return dataPosse && dataPosse <= todayStr && (!dataAfastamento || dataAfastamento > todayStr);
         }
         return false;
     });
 
     const licenciados = vereadores.filter(v => {
-        const dataAfastamento = v.data_afastamento ? new Date(v.data_afastamento) : null;
-        return v.condicao === 'Titular' && dataAfastamento && dataAfastamento <= now;
+        const dataAfastamento = v.data_afastamento;
+        return v.condicao === 'Titular' && dataAfastamento && dataAfastamento <= todayStr;
     });
 
     return (
@@ -342,6 +442,8 @@ export default function DetalheLegislatura() {
                 emExercicio={emExercicio}
                 licenciados={licenciados}
                 liderancasMap={liderancasMap}
+                onLicencaClick={isAdmin ? () => setModalLicencaOpen(true) : undefined}
+                onEndLicenca={isAdmin ? handleEndLicenca : undefined}
             />
 
             <Accordion type="single" collapsible defaultValue="item-1">
@@ -448,6 +550,21 @@ export default function DetalheLegislatura() {
                 comissao={comissaoParaEditar!}
                 vereadores={vereadoresLista}
                 onSave={handleSaveComissao}
+            />
+
+            <ModalLicencaVereador
+                open={modalLicencaOpen}
+                onOpenChange={setModalLicencaOpen}
+                titulares={titularesDisponiveis as any}
+                suplentes={suplentesDisponiveis as any}
+                onSave={handleSaveLicenca}
+            />
+
+            <ModalEncerrarLicenca
+                open={modalEncerrarLicencaOpen}
+                onOpenChange={setModalEncerrarLicencaOpen}
+                vereadorNome={vereadorParaEncerrarLicenca?.nome_parlamentar || vereadorParaEncerrarLicenca?.nome_completo || ''}
+                onConfirm={handleConfirmEndLicenca}
             />
         </AppLayout>
     );

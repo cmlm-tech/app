@@ -22,6 +22,9 @@ export async function getMesaByPeriodo(periodoId: number) {
       id,
       nome,
       periodo_sessao_id,
+      periodo:periodossessao!inner (
+        legislatura_id
+      ),
       membros:mesadiretoramembros (
         id,
         mesa_diretora_id,
@@ -36,8 +39,40 @@ export async function getMesaByPeriodo(periodoId: number) {
     .eq("periodo_sessao_id", periodoId)
     .single();
 
-  if (error && error.code !== "PGRST116") { // Ignore "not found" error for now
+  if (error && error.code !== "PGRST116") {
     throw error;
+  }
+
+  if (!data) return null;
+
+  // Buscar datas do período para verificar se é vigente
+  const { data: periodoData } = await supabase
+    .from("periodossessao")
+    .select("data_inicio, data_fim")
+    .eq("id", periodoId)
+    .single();
+
+  const isPeriodoVigente = periodoData &&
+    new Date(periodoData.data_inicio) <= new Date() &&
+    new Date(periodoData.data_fim) >= new Date();
+
+  // Buscar informações de licença APENAS SE FOR PERÍODO VIGENTE
+  const agenteIds = data.membros?.map(m => m.agente_publico_id) || [];
+
+  if (isPeriodoVigente && agenteIds.length > 0) {
+    const { data: vereadoresInfo } = await supabase
+      .from("legislaturavereadores")
+      .select("agente_publico_id, data_afastamento, condicao")
+      .eq("legislatura_id", (data.periodo as any).legislatura_id)
+      .in("agente_publico_id", agenteIds);
+
+    // Adicionar informações de licença aos membros
+    if (data.membros && vereadoresInfo) {
+      data.membros = data.membros.map(membro => ({
+        ...membro,
+        licenca_info: vereadoresInfo.find(v => v.agente_publico_id === membro.agente_publico_id)
+      }));
+    }
   }
 
   return data;
@@ -47,7 +82,14 @@ export async function createMesa(periodoId: number, nome: string) {
   const { data, error } = await supabase
     .from("mesasdiretoras")
     .insert({ periodo_sessao_id: periodoId, nome })
-    .select()
+    .select(`
+      id,
+      nome,
+      periodo_sessao_id,
+      periodo:periodossessao!inner (
+        legislatura_id
+      )
+    `)
     .single();
 
   if (error) throw error;
@@ -126,6 +168,94 @@ export async function getVereadoresAptosParaMesa(legislaturaId: number) {
   if (vereadoresError) throw vereadoresError;
 
   // 4. Buscar dados dos partidos (incluindo logos)
+  const partidoIds = legislaturaVereadores
+    .map(lv => lv.partido_id)
+    .filter((id): id is number => id !== null);
+
+  let partidos: any[] = [];
+  if (partidoIds.length > 0) {
+    const { data: partidosData, error: partidosError } = await supabase
+      .from('partidos')
+      .select('id, sigla, nome_completo, logo_url, cor_principal')
+      .in('id', partidoIds);
+
+    if (partidosError) {
+      console.error('Erro ao buscar partidos:', partidosError);
+    } else {
+      partidos = partidosData || [];
+    }
+  }
+
+  // 5. Combinar todos os dados
+  return legislaturaVereadores.map(lv => {
+    const agente = agentes?.find(a => a.id === lv.agente_publico_id);
+    const vereador = vereadores?.find(v => v.agente_publico_id === lv.agente_publico_id);
+    const partido = partidos.find(p => p.id === lv.partido_id);
+
+    return {
+      id: lv.agente_publico_id,
+      agente_publico_id: lv.agente_publico_id,
+      nome: vereador?.nome_parlamentar || agente?.nome_completo || 'Sem nome',
+      nome_completo: agente?.nome_completo || 'Sem nome',
+      nome_parlamentar: vereador?.nome_parlamentar,
+      foto: agente?.foto_url,
+      partido: partido?.sigla || lv.partido || 'Sem Partido',
+      partido_id: lv.partido_id,
+      partido_completo: partido ? {
+        id: partido.id,
+        sigla: partido.sigla,
+        nome_completo: partido.nome_completo,
+        logo_url: partido.logo_url,
+        cor_principal: partido.cor_principal,
+      } : null,
+      email_gabinete: vereador?.email_gabinete,
+      telefone_gabinete: vereador?.telefone_gabinete,
+      perfil: vereador?.perfil,
+    };
+  });
+}
+
+/**
+ * Busca TODOS os vereadores da legislatura (incluindo licenciados)
+ * Para EXIBIÇÃO na mesa diretora
+ */
+export async function getAllVereadoresLegislatura(legislaturaId: number) {
+  // 1. Buscar legislaturavereadores (TODOS - incluindo licenciados)
+  const { data: legislaturaVereadores, error } = await supabase
+    .from('legislaturavereadores')
+    .select(`
+      agente_publico_id,
+      partido_id,
+      partido,
+      condicao,
+      data_posse,
+      data_afastamento
+    `)
+    .eq('legislatura_id', legislaturaId)
+    .eq('condicao', 'Titular'); // Apenas titulares, mas INCLUINDO licenciados
+
+  if (error) throw error;
+  if (!legislaturaVereadores || legislaturaVereadores.length === 0) return [];
+
+  const agenteIds = legislaturaVereadores.map(lv => lv.agente_publico_id);
+
+  // 2. Buscar dados dos agentes públicos
+  const { data: agentes, error: agentesError } = await supabase
+    .from('agentespublicos')
+    .select('id, nome_completo, foto_url')
+    .in('id', agenteIds);
+
+  if (agentesError) throw agentesError;
+
+  // 3. Buscar dados complementares dos vereadores
+  const { data: vereadores, error: vereadoresError } = await supabase
+    .from('vereadores')
+    .select('agente_publico_id, nome_parlamentar, perfil, email_gabinete, telefone_gabinete')
+    .in('agente_publico_id', agenteIds);
+
+  if (vereadoresError) throw vereadoresError;
+
+  // 4. Buscar dados dos partidos
   const partidoIds = legislaturaVereadores
     .map(lv => lv.partido_id)
     .filter((id): id is number => id !== null);

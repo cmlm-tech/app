@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import MesaDiretoraHeader from "./MesaDiretoraHeader";
 import MembroMesaCard from "./MembroMesaCard";
-import { getMesaByPeriodo, getVereadoresAptosParaMesa } from "@/services/mesaDiretoraService";
+import { getMesaByPeriodo, getVereadoresAptosParaMesa, getAllVereadoresLegislatura } from "@/services/mesaDiretoraService";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
@@ -59,10 +59,10 @@ export default function MesaDiretoraContent({ periodoId: initialPeriodoId }: Pro
     enabled: !!periodoSelecionado,
   });
 
-  // 4. Buscar vereadores aptos da legislatura
+  // 4. Buscar TODOS os vereadores da legislatura (incluindo licenciados) para EXIBIÇÃO
   const { data: vereadores = [] } = useQuery({
-    queryKey: ["vereadores-aptos", legislaturaSelecionada],
-    queryFn: () => getVereadoresAptosParaMesa(legislaturaSelecionada!),
+    queryKey: ["vereadores-todos", legislaturaSelecionada],
+    queryFn: () => getAllVereadoresLegislatura(legislaturaSelecionada!),
     enabled: !!legislaturaSelecionada,
   });
 
@@ -73,6 +73,17 @@ export default function MesaDiretoraContent({ periodoId: initialPeriodoId }: Pro
     retry: false,
     enabled: !!periodoSelecionado,
   });
+
+  // DEBUG: Verificar dados de licença
+  useEffect(() => {
+    if (mesa) {
+      console.log('[DEBUG] Mesa carregada:', mesa);
+      console.log('[DEBUG] Membros:', mesa.membros);
+      mesa.membros?.forEach(m => {
+        console.log(`[DEBUG] Membro ${m.agente_publico_id}:`, (m as any).licenca_info);
+      });
+    }
+  }, [mesa]);
 
   // Inicializar legislatura quando dados carregarem
   useEffect(() => {
@@ -188,13 +199,31 @@ export default function MesaDiretoraContent({ periodoId: initialPeriodoId }: Pro
       />
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cargosOrdenados.map(({ cargo, membro }) => (
-          <MembroMesaCard
-            key={cargo}
-            cargo={cargo}
-            vereador={getUI_Vereador(membro?.agente_publico_id)}
-          />
-        ))}
+        {cargosOrdenados.map(({ cargo, membro }) => {
+          // Criar objeto vereador a partir dos dados do membro
+          const vereadorData = membro?.agente ? {
+            id: String(membro.agente_publico_id),
+            nome: membro.agente.nome_completo,
+            partido: "Sem Partido",
+            partidoLogo: "",
+            foto: membro.agente.foto_url,
+            email: "",
+            telefone: "",
+            biografia: "",
+            legislatura: "",
+            comissoes: [],
+            cargoMesa: cargo,
+          } : null;
+
+          return (
+            <MembroMesaCard
+              key={cargo}
+              cargo={cargo}
+              vereador={vereadorData}
+              licencaInfo={(membro as any)?.licenca_info}
+            />
+          );
+        })}
       </section>
     </div>
   );

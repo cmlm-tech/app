@@ -116,6 +116,11 @@ export default function ModalVisualizarComissoes({
                                                             <p className="text-sm font-medium text-gray-800 truncate">
                                                                 {presidente.agente?.nome_completo || "Não definido"}
                                                             </p>
+                                                            {(presidente as any).substituindo && (
+                                                                <p className="text-[10px] text-blue-600 mt-0.5">
+                                                                    Substituindo: {(presidente as any).substituindo.nome}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -139,6 +144,11 @@ export default function ModalVisualizarComissoes({
                                                             <p className="text-sm font-medium text-gray-800 truncate">
                                                                 {relator.agente?.nome_completo || "Não definido"}
                                                             </p>
+                                                            {(relator as any).substituindo && (
+                                                                <p className="text-[10px] text-blue-600 mt-0.5">
+                                                                    Substituindo: {(relator as any).substituindo.nome}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -152,26 +162,36 @@ export default function ModalVisualizarComissoes({
                                                             </Badge>
                                                         </div>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {membros.map((membro) => (
-                                                                <div
-                                                                    key={membro.agente_publico_id}
-                                                                    className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded"
-                                                                    title={membro.agente?.nome_completo}
-                                                                >
-                                                                    <Avatar className="h-6 w-6">
-                                                                        <AvatarImage
-                                                                            src={membro.agente?.foto_url || undefined}
-                                                                            alt={membro.agente?.nome_completo}
-                                                                        />
-                                                                        <AvatarFallback className="bg-gray-300 text-gray-700 text-xs">
-                                                                            {membro.agente?.nome_completo?.charAt(0) || "?"}
-                                                                        </AvatarFallback>
-                                                                    </Avatar>
-                                                                    <span className="text-xs text-gray-700 max-w-[120px] truncate">
-                                                                        {membro.agente?.nome_completo?.split(' ')[0]}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
+                                                            {membros.map((membro) => {
+                                                                const substituindo = (membro as any).substituindo;
+                                                                return (
+                                                                    <div
+                                                                        key={membro.agente_publico_id}
+                                                                        className="flex flex-col items-center gap-0.5 bg-gray-50 px-2 py-1 rounded"
+                                                                        title={substituindo ? `Substituindo: ${substituindo.nome}` : membro.agente?.nome_completo}
+                                                                    >
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <Avatar className="h-6 w-6">
+                                                                                <AvatarImage
+                                                                                    src={membro.agente?.foto_url || undefined}
+                                                                                    alt={membro.agente?.nome_completo}
+                                                                                />
+                                                                                <AvatarFallback className="bg-gray-300 text-gray-700 text-xs">
+                                                                                    {membro.agente?.nome_completo?.charAt(0) || "?"}
+                                                                                </AvatarFallback>
+                                                                            </Avatar>
+                                                                            <span className="text-xs text-gray-700 max-w-[100px] truncate">
+                                                                                {membro.agente?.nome_completo?.split(' ')[0]}
+                                                                            </span>
+                                                                        </div>
+                                                                        {substituindo && (
+                                                                            <span className="text-[9px] text-blue-600">
+                                                                                Substituto
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                 )}

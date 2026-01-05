@@ -9,6 +9,7 @@ interface CardVereadorCompactoProps {
   lideranca?: 'governo' | 'oposicao' | null;
   isAdmin?: boolean;
   onRemove?: () => void;
+  onEndLicenca?: () => void; // Para encerrar licença
 }
 
 const getInitials = (name: string) => {
@@ -22,7 +23,7 @@ const getInitials = (name: string) => {
   return (names[0] || '').substring(0, 2).toUpperCase();
 };
 
-export function CardVereadorCompacto({ vereador, lideranca, isAdmin, onRemove }: CardVereadorCompactoProps) {
+export function CardVereadorCompacto({ vereador, lideranca, isAdmin, onRemove, onEndLicenca }: CardVereadorCompactoProps) {
   const nomeDisplay = vereador.nome_parlamentar || vereador.nome_completo;
 
   const liderancaConfig = lideranca === 'governo'
@@ -53,6 +54,17 @@ export function CardVereadorCompacto({ vereador, lideranca, isAdmin, onRemove }:
                 </Badge>
               )}
             </div>
+            {onEndLicenca && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEndLicenca();
+                }}
+                className="mt-2 w-full text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded transition-colors"
+              >
+                Encerrar Licença
+              </button>
+            )}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

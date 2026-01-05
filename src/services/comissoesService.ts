@@ -28,6 +28,9 @@ export async function getComissoesByPeriodo(periodoId: number) {
       nome,
       descricao,
       periodo_sessao_id,
+      periodo:periodossessao!inner (
+        legislatura_id
+      ),
       membros:comissaomembros (
         id,
         comissao_id,
@@ -42,7 +45,89 @@ export async function getComissoesByPeriodo(periodoId: number) {
         .eq("periodo_sessao_id", periodoId);
 
     if (error) throw error;
-    return data;
+    if (!data) return [];
+
+    // Buscar datas do período para verificar se é vigente
+    const { data: periodoData } = await supabase
+        .from("periodossessao")
+        .select("data_inicio, data_fim")
+        .eq("id", periodoId)
+        .single();
+
+    const isPeriodoVigente = periodoData &&
+        new Date(periodoData.data_inicio) <= new Date() &&
+        new Date(periodoData.data_fim) >= new Date();
+
+    // APENAS aplicar substituição se for período vigente
+    if (!isPeriodoVigente) {
+        return data; // Retornar dados originais para períodos históricos
+    }
+
+    // Para cada comissão, verificar se algum membro está de licença e encontrar substituto
+    const comissoesComSubstituicoes = await Promise.all(
+        data.map(async (comissao) => {
+            const agenteIds = comissao.membros?.map(m => m.agente_publico_id) || [];
+
+            if (agenteIds.length === 0) return comissao;
+
+            // Buscar informações de licença dos membros
+            const { data: vereadoresInfo } = await supabase
+                .from("legislaturavereadores")
+                .select("agente_publico_id, data_afastamento, condicao, data_posse")
+                .eq("legislatura_id", (comissao.periodo as any).legislatura_id);
+
+            if (!vereadoresInfo) return comissao;
+
+            // Processar cada membro
+            const membrosProcessados = await Promise.all(
+                (comissao.membros || []).map(async (membro) => {
+                    const membroInfo = vereadoresInfo.find(v => v.agente_publico_id === membro.agente_publico_id);
+                    const estaEmLicenca = membroInfo?.condicao === 'Titular' &&
+                        membroInfo?.data_afastamento &&
+                        new Date(membroInfo.data_afastamento) <= new Date();
+
+                    if (estaEmLicenca) {
+                        // Encontrar suplente em exercício (substituindo)
+                        const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                        const suplenteSubstituto = vereadoresInfo.find(v =>
+                            v.condicao === 'Suplente' &&
+                            v.data_posse &&
+                            v.data_posse <= todayStr &&
+                            (!v.data_afastamento || v.data_afastamento > todayStr)
+                        );
+
+                        if (suplenteSubstituto) {
+                            // Buscar dados do suplente
+                            const { data: suplenteAgente } = await supabase
+                                .from("agentespublicos")
+                                .select("nome_completo, foto_url")
+                                .eq("id", suplenteSubstituto.agente_publico_id)
+                                .single();
+
+                            return {
+                                ...membro,
+                                agente_publico_id: suplenteSubstituto.agente_publico_id,
+                                agente: suplenteAgente || membro.agente,
+                                substituindo: {
+                                    agente_publico_id: membro.agente_publico_id,
+                                    nome: membro.agente?.nome_completo
+                                }
+                            };
+                        }
+                    }
+
+                    return membro;
+                })
+            );
+
+            return {
+                ...comissao,
+                membros: membrosProcessados
+            };
+        })
+    );
+
+    return comissoesComSubstituicoes;
 }
 
 export async function createComissao(periodoId: number, nome: string, descricao: string) {

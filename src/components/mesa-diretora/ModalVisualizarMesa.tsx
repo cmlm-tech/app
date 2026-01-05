@@ -63,13 +63,15 @@ export default function ModalVisualizarMesa({
                         {isAdmin && (
                             <Button
                                 size="sm"
+                                variant="ghost"
                                 onClick={() => {
                                     onEditClick();
                                     onOpenChange(false);
                                 }}
+                                className="h-8 w-8 p-0"
+                                title="Editar Membros"
                             >
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar Membros
+                                <Pencil className="h-4 w-4" />
                             </Button>
                         )}
                     </div>
@@ -88,33 +90,53 @@ export default function ModalVisualizarMesa({
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            {membrosOrdenados.map((membro) => (
-                                <div
-                                    key={membro.agente_publico_id}
-                                    className="flex flex-col items-center p-4 border rounded-lg hover:shadow-md transition-shadow bg-white"
-                                >
-                                    <Badge
-                                        variant={getBadgeVariant(membro.cargo)}
-                                        className="mb-3 text-xs"
+                            {membrosOrdenados.map((membro) => {
+                                // Verificar se o vereador está de licença
+                                const licencaInfo = (membro as any).licenca_info;
+                                const estaEmLicenca = licencaInfo?.data_afastamento &&
+                                    new Date(licencaInfo.data_afastamento) <= new Date();
+
+                                return (
+                                    <div
+                                        key={membro.agente_publico_id}
+                                        className={`flex flex-col items-center p-4 border rounded-lg transition-shadow bg-white ${estaEmLicenca ? 'relative' : 'hover:shadow-md'}`}
+                                        title={estaEmLicenca ? `Em licença desde ${new Date(licencaInfo.data_afastamento).toLocaleDateString('pt-BR')}` : ''}
                                     >
-                                        {membro.cargo}
-                                    </Badge>
+                                        <Badge
+                                            variant={getBadgeVariant(membro.cargo)}
+                                            className="mb-3 text-xs"
+                                        >
+                                            {membro.cargo}
+                                        </Badge>
 
-                                    <Avatar className="h-20 w-20 mb-3">
-                                        <AvatarImage
-                                            src={membro.agente?.foto_url || undefined}
-                                            alt={membro.agente?.nome_completo || "Membro"}
-                                        />
-                                        <AvatarFallback className="bg-gov-blue-100 text-gov-blue-800 text-lg">
-                                            {membro.agente?.nome_completo?.charAt(0) || "?"}
-                                        </AvatarFallback>
-                                    </Avatar>
+                                        <div className="relative">
+                                            <Avatar className={`h-20 w-20 mb-3 ${estaEmLicenca ? 'opacity-40' : ''}`}>
+                                                <AvatarImage
+                                                    src={membro.agente?.foto_url || undefined}
+                                                    alt={membro.agente?.nome_completo || "Membro"}
+                                                />
+                                                <AvatarFallback className="bg-gov-blue-100 text-gov-blue-800 text-lg">
+                                                    {membro.agente?.nome_completo?.charAt(0) || "?"}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            {estaEmLicenca && (
+                                                <div className="absolute bottom-2 right-0 bg-orange-500 text-white rounded-full px-2 py-0.5 text-[10px] font-medium">
+                                                    Licença
+                                                </div>
+                                            )}
+                                        </div>
 
-                                    <p className="text-sm font-medium text-center text-gray-800">
-                                        {membro.agente?.nome_completo || "Não definido"}
-                                    </p>
-                                </div>
-                            ))}
+                                        <p className={`text-sm font-medium text-center ${estaEmLicenca ? 'text-gray-400' : 'text-gray-800'}`}>
+                                            {membro.agente?.nome_completo || "Não definido"}
+                                        </p>
+                                        {estaEmLicenca && (
+                                            <p className="text-xs text-orange-600 text-center mt-1">
+                                                (Cargo Vago)
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })}
 
                             {/* Mostrar cargos vazios */}
                             {ORDEM_CARGOS.map((cargo) => {
@@ -124,20 +146,26 @@ export default function ModalVisualizarMesa({
                                 return (
                                     <div
                                         key={cargo}
-                                        className="flex flex-col items-center p-4 border rounded-lg bg-gray-50"
+                                        className="flex flex-col items-center p-4 border rounded-lg bg-white"
+                                        title="Cargo não definido"
                                     >
-                                        <Badge variant="outline" className="mb-3 text-xs">
+                                        <Badge variant={getBadgeVariant(cargo)} className="mb-3 text-xs">
                                             {cargo}
                                         </Badge>
 
-                                        <Avatar className="h-20 w-20 mb-3">
-                                            <AvatarFallback className="bg-gray-200 text-gray-400">
-                                                ?
-                                            </AvatarFallback>
-                                        </Avatar>
+                                        <div className="relative">
+                                            <Avatar className="h-20 w-20 mb-3 opacity-30">
+                                                <AvatarFallback className="bg-gray-200 text-gray-400 text-2xl">
+                                                    ?
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </div>
 
                                         <p className="text-sm text-gray-400 text-center">
                                             Não definido
+                                        </p>
+                                        <p className="text-xs text-gray-400 text-center mt-1">
+                                            (Cargo Vago)
                                         </p>
                                     </div>
                                 );

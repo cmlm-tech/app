@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { useParams } from 'react-router-dom';
 import { AppLayout } from "@/components/AppLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getComissoesByPeriodo, createComissao, updateComissao, deleteComissao, updateMembrosComissao, Comissao } from "@/services/comissoesService";
@@ -118,20 +117,6 @@ export default function ComissoesLegislatura() {
 
   return (
     <AppLayout>
-      <Breadcrumb className="mb-4">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to={`/atividade-legislativa/legislaturas/${legislaturaNumero}`}>Legislatura {legislaturaNumero}</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Comissões</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800">
           Comissões Permanentes

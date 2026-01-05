@@ -16,11 +16,21 @@ import { ModalEditarLideranca } from "@/components/legislaturas/ModalEditarLider
 import { ModalConfirmarRemocaoVereador } from '@/components/legislaturas/ModalConfirmarRemocaoVereador';
 import { ComposicaoAtual } from "@/components/legislaturas/ComposicaoAtual";
 import { VereadorComCondicao, LegislaturaComPeriodos, PeriodoRow, AgentePublicoRow } from "@/components/legislaturas/types";
+import ModalVisualizarMesa from "@/components/mesa-diretora/ModalVisualizarMesa";
+import ModalMesaDiretora from "@/components/mesa-diretora/ModalMesaDiretora";
+import ModalVisualizarComissoes from "@/components/comissoes/ModalVisualizarComissoes";
+import ModalMembrosComissao from "@/components/comissoes/ModalMembrosComissao";
+import { getMesaByPeriodo, updateMesaMembros } from "@/services/mesaDiretoraService";
+import { getVereadores } from "@/services/vereadoresService";
+import { getComissoesByPeriodo, updateMembrosComissao, Comissao } from "@/services/comissoesService";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast as sonnerToast } from "sonner";
 
 export default function DetalheLegislatura() {
     const { legislaturaNumero } = useParams<{ legislaturaNumero: string }>();
     const { toast } = useToast();
     const { user } = useAuth();
+    const queryClient = useQueryClient();
 
     const [legislatura, setLegislatura] = useState<LegislaturaComPeriodos | null>(null);
     const [vereadores, setVereadores] = useState<VereadorComCondicao[]>([]);
@@ -35,7 +45,70 @@ export default function DetalheLegislatura() {
     const [vereadorParaLideranca, setVereadorParaLideranca] = useState<VereadorComCondicao | null>(null);
     const [permissaoLogado, setPermissaoLogado] = useState<string | null>(null);
 
+    // Novos states para modals de Mesa e Comissões
+    const [modalVisualizarMesaOpen, setModalVisualizarMesaOpen] = useState(false);
+    const [modalEditarMesaOpen, setModalEditarMesaOpen] = useState(false);
+    const [periodoMesaSelecionado, setPeriodoMesaSelecionado] = useState<number | null>(null);
+
+    // States para modals de Comissões
+    const [modalVisualizarComissoesOpen, setModalVisualizarComissoesOpen] = useState(false);
+    const [modalEditarComissaoOpen, setModalEditarComissaoOpen] = useState(false);
+    const [periodoComissoesSelecionado, setPeriodoComissoesSelecionado] = useState<number | null>(null);
+    const [comissaoParaEditar, setComissaoParaEditar] = useState<Comissao | null>(null);
+
     const isAdmin = permissaoLogado?.toLowerCase() === 'admin';
+
+    // Buscar mesa do período selecionado
+    const { data: mesaSelecionada, isLoading: loadingMesa } = useQuery({
+        queryKey: ["mesa", periodoMesaSelecionado],
+        queryFn: () => getMesaByPeriodo(periodoMesaSelecionado!),
+        enabled: !!periodoMesaSelecionado && modalVisualizarMesaOpen,
+        retry: false
+    });
+
+    // Buscar vereadores para o modal de edição
+    const { data: vereadoresLista = [] } = useQuery({
+        queryKey: ["vereadores"],
+        queryFn: getVereadores,
+        enabled: modalEditarMesaOpen
+    });
+
+    // Mutation para atualizar mesa
+    const updateMesaMutation = useMutation({
+        mutationFn: ({ periodoId, membros }: { periodoId: number, membros: { cargo: string; agente_publico_id: number }[] }) =>
+            updateMesaMembros(periodoId, membros),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["mesa"] });
+            sonnerToast.success("Mesa Diretora atualizada!");
+            setModalEditarMesaOpen(false);
+        },
+        onError: (error: any) => {
+            sonnerToast.error(error.message || "Erro ao atualizar Mesa Diretora");
+        }
+    });
+
+    // Buscar comissões do período selecionado
+    const { data: comissoesSelecionadas = [], isLoading: loadingComissoes } = useQuery({
+        queryKey: ["comissoes", periodoComissoesSelecionado],
+        queryFn: () => getComissoesByPeriodo(periodoComissoesSelecionado!),
+        enabled: !!periodoComissoesSelecionado && modalVisualizarComissoesOpen,
+        retry: false
+    });
+
+    // Mutation para atualizar membros de comissão
+    const updateComissaoMutation = useMutation({
+        mutationFn: ({ comissaoId, membros }: { comissaoId: number, membros: { cargo: any, agente_publico_id: number }[] }) =>
+            updateMembrosComissao(comissaoId, membros),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["comissoes"] });
+            sonnerToast.success("Membros da comissão atualizados!");
+            setModalEditarComissaoOpen(false);
+            setComissaoParaEditar(null);
+        },
+        onError: (error: any) => {
+            sonnerToast.error(error.message || "Erro ao atualizar comissão");
+        }
+    });
 
     const fetchData = useCallback(async (numero: number) => {
         try {
@@ -173,6 +246,43 @@ export default function DetalheLegislatura() {
         setModalLiderancaOpen(true);
     };
 
+    // Handlers para Mesa Diretora
+    const handleMesaDiretoraClick = (periodoId: number) => {
+        setPeriodoMesaSelecionado(periodoId);
+        setModalVisualizarMesaOpen(true);
+    };
+
+    const handleEditarMesaClick = () => {
+        setModalVisualizarMesaOpen(false);
+        setModalEditarMesaOpen(true);
+    };
+
+    const handleSaveMesa = (membros: { cargo: string; agente_publico_id: number }[]) => {
+        if (periodoMesaSelecionado) {
+            updateMesaMutation.mutate({ periodoId: periodoMesaSelecionado, membros });
+        }
+    };
+
+    // Handlers para Comissões
+    const handleComissoesClick = (periodoId: number) => {
+        setPeriodoComissoesSelecionado(periodoId);
+        setModalVisualizarComissoesOpen(true);
+    };
+
+    const handleEditarComissaoClick = (comissao: Comissao) => {
+        setComissaoParaEditar(comissao);
+        setModalEditarComissaoOpen(true);
+    };
+
+    const handleSaveComissao = (membros: { cargo: string, agente_publico_id: number }[]) => {
+        if (comissaoParaEditar) {
+            updateComissaoMutation.mutate({
+                comissaoId: comissaoParaEditar.id,
+                membros: membros as any
+            });
+        }
+    };
+
     if (loading) return <AppLayout><div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div></AppLayout>;
     if (!legislatura) return <AppLayout><div className="text-center py-10"><h1>Legislatura não encontrada</h1></div></AppLayout>;
 
@@ -248,6 +358,8 @@ export default function DetalheLegislatura() {
                                         presidente={presidente}
                                         onGerenciar={isAdmin ? () => handleGerenciarClick(periodo) : undefined}
                                         legislaturaNumero={legislatura.numero}
+                                        onMesaDiretoraClick={() => handleMesaDiretoraClick(periodo.id)}
+                                        onComissoesClick={() => handleComissoesClick(periodo.id)}
                                     />
                                 );
                             })}
@@ -297,6 +409,46 @@ export default function DetalheLegislatura() {
                     )}
                 </>
             )}
+
+            {/* Modals de Mesa Diretora */}
+            <ModalVisualizarMesa
+                open={modalVisualizarMesaOpen}
+                onOpenChange={setModalVisualizarMesaOpen}
+                membros={mesaSelecionada?.membros || []}
+                isLoading={loadingMesa}
+                onEditClick={handleEditarMesaClick}
+                isAdmin={isAdmin}
+            />
+
+            <ModalMesaDiretora
+                open={modalEditarMesaOpen}
+                onOpenChange={setModalEditarMesaOpen}
+                membrosAtuais={mesaSelecionada?.membros || []}
+                vereadores={vereadoresLista.map(v => ({
+                    id: v.id,
+                    nome: v.nome_parlamentar || v.nome_completo,
+                    foto: v.foto_url
+                }))}
+                onSave={handleSaveMesa}
+            />
+
+            {/* Modals de Comissões */}
+            <ModalVisualizarComissoes
+                open={modalVisualizarComissoesOpen}
+                onOpenChange={setModalVisualizarComissoesOpen}
+                comissoes={comissoesSelecionadas}
+                isLoading={loadingComissoes}
+                onEditClick={handleEditarComissaoClick}
+                isAdmin={isAdmin}
+            />
+
+            <ModalMembrosComissao
+                open={modalEditarComissaoOpen}
+                onOpenChange={setModalEditarComissaoOpen}
+                comissao={comissaoParaEditar!}
+                vereadores={vereadoresLista}
+                onSave={handleSaveComissao}
+            />
         </AppLayout>
     );
 }

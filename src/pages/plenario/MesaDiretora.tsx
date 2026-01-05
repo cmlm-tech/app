@@ -16,11 +16,6 @@ export default function MesaDiretoraPlenario() {
     <AppLayout>
       <div className="mb-8">
         <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800">Mesa Diretora</h1>
-        {periodoAtual && periodoAtual.legislatura && (
-          <p className="text-gray-600">
-            {periodoAtual.legislatura.numero}ª Legislatura - {periodoAtual.descricao || `Período ${periodoAtual.numero}`}
-          </p>
-        )}
       </div>
 
       {isLoading ? (

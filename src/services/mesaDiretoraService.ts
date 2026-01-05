@@ -26,7 +26,11 @@ export async function getMesaByPeriodo(periodoId: number) {
         id,
         mesa_diretora_id,
         cargo,
-        agente_publico_id
+        agente_publico_id,
+        agente:agentespublicos (
+          nome_completo,
+          foto_url
+        )
       )
     `)
     .eq("periodo_sessao_id", periodoId)
@@ -47,7 +51,7 @@ export async function createMesa(periodoId: number, nome: string) {
     .single();
 
   if (error) throw error;
-  return data;
+  return { ...data, membros: [] };
 }
 
 export async function updateMembrosMesa(mesaId: number, membros: { cargo: MembroMesa['cargo']; agente_publico_id: number }[]) {
@@ -167,4 +171,23 @@ export async function getVereadoresAptosParaMesa(legislaturaId: number) {
       perfil: vereador?.perfil,
     };
   });
+}
+
+/**
+ * Atualizar membros da mesa por período (cria mesa se não existir)
+ */
+export async function updateMesaMembros(
+  periodoId: number,
+  membros: { cargo: string; agente_publico_id: number }[]
+) {
+  // 1. Verificar se mesa existe para o período
+  let mesa = await getMesaByPeriodo(periodoId);
+
+  // 2. Se não existe, criar
+  if (!mesa) {
+    mesa = await createMesa(periodoId, "Mesa Diretora");
+  }
+
+  // 3. Atualizar membros
+  return updateMembrosMesa(mesa.id, membros as any);
 }

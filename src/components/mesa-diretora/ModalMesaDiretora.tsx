@@ -1,105 +1,123 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Comissao, MembroComissao } from "@/services/comissoesService";
-import { VereadorAcervo } from "@/services/vereadoresService";
-import { Trash2, Plus } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+
+type Membro = {
+    cargo: string;
+    agente_publico_id: number;
+};
+
+type Vereador = {
+    id: number;
+    nome: string;
+    foto?: string;
+};
 
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    comissao: Comissao;
-    vereadores: VereadorAcervo[];
-    onSave: (membros: { cargo: string; agente_publico_id: number }[]) => void;
-    vereadoresExcluidos?: number[];
+    membrosAtuais?: Membro[];
+    vereadores: Vereador[];
+    onSave: (membros: Membro[]) => void;
 };
 
-const CARGOS = ["Presidente", "Relator", "Membro"];
+const CARGOS_FIXOS = [
+    "Presidente",
+    "Vice-Presidente",
+    "1º Secretário",
+    "2º Secretário",
+    "1º Tesoureiro",
+    "2º Tesoureiro"
+];
 
-export default function ModalMembrosComissao({ open, onOpenChange, comissao, vereadores, onSave, vereadoresExcluidos = [] }: Props) {
-    const [membros, setMembros] = useState<{ cargo: string; agente_publico_id: number }[]>([]);
+export default function ModalMesaDiretora({
+    open,
+    onOpenChange,
+    membrosAtuais = [],
+    vereadores,
+    onSave
+}: Props) {
+    const [membros, setMembros] = useState<Membro[]>([]);
 
     React.useEffect(() => {
-        if (!open || !comissao) return;
+        if (!open) return;
 
-        console.log("Comissao no modal:", comissao);
-        console.log("Membros:", comissao.membros);
-
-        const currentMembros = comissao?.membros || [];
-        const presidente = currentMembros.find(m => m.cargo === 'Presidente');
-        const relator = currentMembros.find(m => m.cargo === 'Relator');
-        const membrosComuns = currentMembros.filter(m => m.cargo === 'Membro');
-
-        // Strictly 3 slots
-        const fixedMembros = [
-            { cargo: "Presidente", agente_publico_id: presidente?.agente_publico_id || 0 },
-            { cargo: "Relator", agente_publico_id: relator?.agente_publico_id || 0 },
-            { cargo: "Membro", agente_publico_id: membrosComuns[0]?.agente_publico_id || 0 }
-        ];
+        // Inicializar com os cargos fixos
+        const fixedMembros = CARGOS_FIXOS.map(cargo => {
+            const membroExistente = membrosAtuais.find(m => m.cargo === cargo);
+            return {
+                cargo,
+                agente_publico_id: membroExistente?.agente_publico_id || 0
+            };
+        });
 
         setMembros(fixedMembros);
-    }, [comissao, open]);
+    }, [membrosAtuais, open]);
 
     const handleRemoveMembro = (index: number) => {
         const newMembros = [...membros];
-        // Always just clear the selection, never remove the row
         newMembros[index] = { ...newMembros[index], agente_publico_id: 0 };
         setMembros(newMembros);
     };
 
-    const updateMembro = (index: number, field: "cargo" | "agente_publico_id", value: any) => {
+    const updateMembro = (index: number, agente_publico_id: number) => {
         const newMembros = [...membros];
-        newMembros[index] = { ...newMembros[index], [field]: value };
+        newMembros[index] = { ...newMembros[index], agente_publico_id };
         setMembros(newMembros);
     };
 
     const handleSave = () => {
-        // Filter out invalid entries
+        // Filtrar apenas membros preenchidos
         const validMembros = membros.filter(m => m.agente_publico_id > 0);
         onSave(validMembros);
         onOpenChange(false);
     };
 
-    const vereadoresDisponiveis = vereadores.filter(v => !vereadoresExcluidos.includes(v.id));
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Membros da {comissao?.nome}</DialogTitle>
+                    <DialogTitle>Gerenciar Mesa Diretora</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
                     {membros.map((membro, index) => {
-                        // Calculate IDs selected in OTHER rows
+                        // IDs já selecionados em outros cargos
                         const otherSelectedIds = membros
                             .filter((_, i) => i !== index)
                             .map(m => m.agente_publico_id)
                             .filter(id => id > 0);
 
-                        // Filter available vereadores:
-                        // 1. Not in global exclusion list (vereadoresExcluidos)
-                        // 2. Not selected in other rows
+                        // Vereadores disponíveis (não selecionados em outros cargos)
                         const availableOptions = vereadores.filter(v =>
-                            !vereadoresExcluidos.includes(v.id) &&
                             !otherSelectedIds.includes(v.id)
                         );
 
+                        // Cores das badges por tipo de cargo
+                        const getBadgeVariant = (cargo: string) => {
+                            if (cargo === "Presidente") return "default";
+                            if (cargo === "Vice-Presidente") return "secondary";
+                            if (cargo.includes("Secretário")) return "outline";
+                            return "outline";
+                        };
+
                         return (
                             <div key={index} className="flex gap-2 items-center">
-                                <div className="w-[120px]">
-                                    <Badge variant="secondary" className="w-full justify-center py-1">
+                                <div className="w-[150px]">
+                                    <Badge
+                                        variant={getBadgeVariant(membro.cargo)}
+                                        className="w-full justify-center py-1 text-xs"
+                                    >
                                         {membro.cargo}
                                     </Badge>
                                 </div>
 
                                 <Select
                                     value={membro.agente_publico_id ? String(membro.agente_publico_id) : ""}
-                                    onValueChange={(val) => updateMembro(index, "agente_publico_id", Number(val))}
+                                    onValueChange={(val) => updateMembro(index, Number(val))}
                                 >
                                     <SelectTrigger className="flex-1">
                                         <SelectValue placeholder="Selecione o Vereador" />
@@ -107,27 +125,29 @@ export default function ModalMembrosComissao({ open, onOpenChange, comissao, ver
                                     <SelectContent>
                                         {availableOptions.map(v => (
                                             <SelectItem key={v.id} value={String(v.id)}>
-                                                <div className="flex items-center gap-2">
-                                                    {v.nome_parlamentar || v.nome_completo}
-                                                </div>
+                                                {v.nome}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
 
-                                <Button size="icon" variant="ghost" className="text-red-500" onClick={() => handleRemoveMembro(index)}>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-red-500"
+                                    onClick={() => handleRemoveMembro(index)}
+                                    title="Limpar seleção"
+                                >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
                         );
                     })}
-
-
                 </div>
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                    <Button onClick={handleSave}>Salvar Membros</Button>
+                    <Button onClick={handleSave}>Salvar Mesa Diretora</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

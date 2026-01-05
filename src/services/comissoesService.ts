@@ -32,7 +32,11 @@ export async function getComissoesByPeriodo(periodoId: number) {
         id,
         comissao_id,
         cargo,
-        agente_publico_id
+        agente_publico_id,
+        agente:agentespublicos (
+          nome_completo,
+          foto_url
+        )
       )
     `)
         .eq("periodo_sessao_id", periodoId);

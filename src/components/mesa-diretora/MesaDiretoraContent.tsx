@@ -1,178 +1,120 @@
 
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-import ModalEditarMesa from "./ModalEditarMesa";
 import MesaDiretoraHeader from "./MesaDiretoraHeader";
-import PresidenteCard from "./PresidenteCard";
-import VicePresidenteCard from "./VicePresidenteCard";
-import OutrosMembrosGrid from "./OutrosMembrosGrid";
-import { getMesaByPeriodo, createMesa, updateMembrosMesa, MesaDiretora, MembroMesa, getVereadoresAptosParaMesa } from "@/services/mesaDiretoraService";
-import { ComposicaoMesa } from "./types";
+import MembroMesaCard from "./MembroMesaCard";
+import { getMesaByPeriodo, getVereadoresAptosParaMesa } from "@/services/mesaDiretoraService";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-
-// Helper to map DB members to UI Composition object
-const mapMembrosToComposicao = (membros: MembroMesa[]): ComposicaoMesa => {
-  const comp: any = {
-    presidente: "",
-    vicePresidente: "",
-    primeiroSecretario: "",
-    segundoSecretario: "",
-    primeiroTesoureiro: "",
-    segundoTesoureiro: "",
-  };
-
-  membros.forEach((m) => {
-    switch (m.cargo) {
-      case "Presidente": comp.presidente = String(m.agente_publico_id); break;
-      case "Vice-Presidente": comp.vicePresidente = String(m.agente_publico_id); break;
-      case "1º Secretário": comp.primeiroSecretario = String(m.agente_publico_id); break;
-      case "2º Secretário": comp.segundoSecretario = String(m.agente_publico_id); break;
-      case "1º Tesoureiro": comp.primeiroTesoureiro = String(m.agente_publico_id); break;
-      case "2º Tesoureiro": comp.segundoTesoureiro = String(m.agente_publico_id); break;
-    }
-  });
-
-  return comp as ComposicaoMesa;
-};
-
-// Helper to map UI Composition object back to DB members array
-const mapComposicaoToMembros = (comp: ComposicaoMesa, mesaId: number): { cargo: MembroMesa["cargo"], agente_publico_id: number }[] => {
-  const mapKeyToCargo: Record<string, string> = {
-    presidente: "Presidente",
-    vicePresidente: "Vice-Presidente",
-    primeiroSecretario: "1º Secretário",
-    segundoSecretario: "2º Secretário",
-    primeiroTesoureiro: "1º Tesoureiro",
-    segundoTesoureiro: "2º Tesoureiro",
-  };
-
-  const membros = [];
-  for (const [key, idStr] of Object.entries(comp)) {
-    if (idStr && idStr !== "0" && idStr !== "") {
-      membros.push({
-        agente_publico_id: Number(idStr),
-        cargo: mapKeyToCargo[key] as MembroMesa["cargo"],
-        mesa_diretora_id: mesaId // redundant but good for clarity
-      });
-    }
-  }
-  return membros;
-};
 
 interface Props {
   periodoId: number;
 }
 
-export default function MesaDiretoraContent({ periodoId }: Props) {
-  const [modalOpen, setModalOpen] = useState(false);
-  const queryClient = useQueryClient();
+export default function MesaDiretoraContent({ periodoId: initialPeriodoId }: Props) {
+  const [legislaturaSelecionada, setLegislaturaSelecionada] = useState<number | undefined>();
+  const [periodoSelecionado, setPeriodoSelecionado] = useState<number>(initialPeriodoId);
 
-  // 1. Fetch Período com Legislatura
-  const { data: periodo } = useQuery({
-    queryKey: ["periodo", periodoId],
+  // 1. Buscar todas as legislaturas
+  const { data: legislaturas = [] } = useQuery({
+    queryKey: ["legislaturas"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("periodossessao")
-        .select("*, legislatura:legislaturas(*)")
-        .eq("id", periodoId)
-        .single();
+        .from("legislaturas")
+        .select("*")
+        .order("numero", { ascending: false });
       if (error) throw error;
-      console.log('📅 Período carregado:', data);
       return data;
     },
   });
 
-  // 2. Fetch Vereadores APTOS (apenas titulares da legislatura, em exercício)
-  const { data: vereadores = [], isLoading: loadingVereadores, error: errorVereadores } = useQuery({
-    queryKey: ["vereadores-aptos", periodo?.legislatura_id],
+  // 2. Buscar períodos da legislatura selecionada
+  const { data: periodos = [] } = useQuery({
+    queryKey: ["periodos", legislaturaSelecionada],
     queryFn: async () => {
-      console.log('🔍 Buscando vereadores para legislatura:', periodo?.legislatura_id);
-      const result = await getVereadoresAptosParaMesa(periodo!.legislatura_id);
-      console.log('👥 Vereadores aptos encontrados:', result);
-      return result;
+      if (!legislaturaSelecionada) return [];
+      const { data, error } = await supabase
+        .from("periodossessao")
+        .select("*")
+        .eq("legislatura_id", legislaturaSelecionada)
+        .order("numero", { ascending: true });
+      if (error) throw error;
+      return data;
     },
-    enabled: !!periodo?.legislatura_id,
+    enabled: !!legislaturaSelecionada,
   });
 
-  // Log de debug
-  React.useEffect(() => {
-    if (errorVereadores) {
-      console.error('❌ Erro ao buscar vereadores:', errorVereadores);
-    }
-    console.log('📊 Estado atual:', {
-      periodo,
-      legislatura_id: periodo?.legislatura_id,
-      vereadores: vereadores.length,
-      loadingVereadores
-    });
-  }, [periodo, vereadores, loadingVereadores, errorVereadores]);
-
-  // 3. Fetch Mesa for this Period
-  const { data: mesa, isLoading, error } = useQuery({
-    queryKey: ["mesa", periodoId],
-    queryFn: () => getMesaByPeriodo(periodoId),
-    retry: false
-  });
-
-  // 4. Mutation to create Mesa if it doesn't exist
-  const createMesaMutation = useMutation({
-    mutationFn: () => createMesa(periodoId, `Mesa Diretora`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mesa", periodoId] });
-      toast.success("Mesa diretora inicializada com sucesso!");
-    }
-  });
-
-  // 5. Mutation to update Members
-  const updateMembersMutation = useMutation({
-    mutationFn: (membros: { cargo: MembroMesa["cargo"]; agente_publico_id: number }[]) => {
-      if (!mesa?.id) throw new Error("Mesa não existe");
-      return updateMembrosMesa(mesa.id, membros);
+  // 3. Buscar dados do período selecionado
+  const { data: periodo } = useQuery({
+    queryKey: ["periodo", periodoSelecionado],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("periodossessao")
+        .select("*, legislatura:legislaturas(*)")
+        .eq("id", periodoSelecionado)
+        .single();
+      if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["mesa", periodoId] });
-      setModalOpen(false);
-      toast.success("Composição atualizada com sucesso!");
-    },
-    onError: (err) => {
-      console.error(err);
-      toast.error("Erro ao salvar composição.");
-    }
+    enabled: !!periodoSelecionado,
   });
 
-  // Determine current composition for Modal and UI
-  const composicaoAtual = React.useMemo(() => {
-    if (!mesa?.membros) return {
-      presidente: "", vicePresidente: "", primeiroSecretario: "",
-      segundoSecretario: "", primeiroTesoureiro: "", segundoTesoureiro: ""
-    };
-    return mapMembrosToComposicao(mesa.membros);
-  }, [mesa]);
+  // 4. Buscar vereadores aptos da legislatura
+  const { data: vereadores = [] } = useQuery({
+    queryKey: ["vereadores-aptos", legislaturaSelecionada],
+    queryFn: () => getVereadoresAptosParaMesa(legislaturaSelecionada!),
+    enabled: !!legislaturaSelecionada,
+  });
 
-  const handleSaveComposition = (novaComposicao: ComposicaoMesa) => {
-    if (!mesa?.id) return;
-    const membrosParaSalvar = mapComposicaoToMembros(novaComposicao, mesa.id);
-    updateMembersMutation.mutate(membrosParaSalvar);
+  // 5. Buscar mesa do período selecionado
+  const { data: mesa, isLoading } = useQuery({
+    queryKey: ["mesa", periodoSelecionado],
+    queryFn: () => getMesaByPeriodo(periodoSelecionado),
+    retry: false,
+    enabled: !!periodoSelecionado,
+  });
+
+  // Inicializar legislatura quando dados carregarem
+  useEffect(() => {
+    if (periodo?.legislatura_id && !legislaturaSelecionada) {
+      setLegislaturaSelecionada(periodo.legislatura_id);
+    }
+  }, [periodo, legislaturaSelecionada]);
+
+  // Quando mudar legislatura, selecionar primeiro período
+  useEffect(() => {
+    if (periodos.length > 0 && legislaturaSelecionada) {
+      // Se o período atual não pertence à legislatura selecionada, mudar para o primeiro
+      const periodoAtualNaLegislatura = periodos.find(p => p.id === periodoSelecionado);
+      if (!periodoAtualNaLegislatura) {
+        setPeriodoSelecionado(periodos[0].id);
+      }
+    }
+  }, [periodos, legislaturaSelecionada, periodoSelecionado]);
+
+  // Handlers
+  const handleLegislaturaChange = (legislaturaId: number) => {
+    setLegislaturaSelecionada(legislaturaId);
   };
 
-  // Helper to find full Vereador object by string ID (from Composition)
-  const getVereadorHelper = (idStr: string) => {
-    return vereadores.find(v => String(v.id) === idStr) || null;
+  const handlePeriodoChange = (periodoId: number) => {
+    setPeriodoSelecionado(periodoId);
   };
 
-  // Transform 'Vereador' service type to 'Vereador' UI type expected by cards
-  // The service returns minimal data, UI might expect more.
-  // We need to match types. 
-  // Let's adapt on the fly or ensure service returns compatible data.
-  // The existing cards expect: { id, nome, partido, foto, cargoMesa, ... }
-  // Our service returns: { id, nome, foto, partido } (roughly)
+  // Helper: Access members directly from mesa.membros
+  const getMembro = (cargo: string) => {
+    return mesa?.membros?.find(m => m.cargo === cargo) || null;
+  };
 
-  const getUI_Vereador = (idStr: string) => {
-    const v = getVereadorHelper(idStr);
+  // Helper: Find full Vereador object by agente_publico_id
+  const getVereadorByAgenteId = (agenteId: number | undefined) => {
+    if (!agenteId) return null;
+    return vereadores.find(v => v.id === agenteId) || null;
+  };
+
+  // Transform vereador data for UI
+  const getUI_Vereador = (agenteId: number | undefined) => {
+    const v = getVereadorByAgenteId(agenteId);
     if (!v) return null;
     return {
       ...v,
@@ -184,88 +126,76 @@ export default function MesaDiretoraContent({ periodoId }: Props) {
       email: v.email_gabinete || "",
       telefone: v.telefone_gabinete || "",
       biografia: v.perfil || "",
-      cargoMesa: "",
       legislatura: "",
-      comissoes: []
+      comissoes: [],
+      cargoMesa: "",
     };
   };
 
-  const membrosUI = {
-    presidente: getUI_Vereador(composicaoAtual.presidente),
-    vicePresidente: getUI_Vereador(composicaoAtual.vicePresidente),
-    primeiroSecretario: getUI_Vereador(composicaoAtual.primeiroSecretario),
-    segundoSecretario: getUI_Vereador(composicaoAtual.segundoSecretario),
-    primeiroTesoureiro: getUI_Vereador(composicaoAtual.primeiroTesoureiro),
-    segundoTesoureiro: getUI_Vereador(composicaoAtual.segundoTesoureiro),
-  };
-
-  const CARGOS_OUTROS_MEMBROS = [
-    { key: "primeiroSecretario", label: "1º Secretário" },
-    { key: "segundoSecretario", label: "2º Secretário" },
-    { key: "primeiroTesoureiro", label: "1º Tesoureiro" },
-    { key: "segundoTesoureiro", label: "2º Tesoureiro" },
+  // Definir ordem dos cargos
+  const cargosOrdenados = [
+    { cargo: "Presidente" as const, membro: getMembro("Presidente") },
+    { cargo: "Vice-Presidente" as const, membro: getMembro("Vice-Presidente") },
+    { cargo: "1º Secretário" as const, membro: getMembro("1º Secretário") },
+    { cargo: "2º Secretário" as const, membro: getMembro("2º Secretário") },
+    { cargo: "1º Tesoureiro" as const, membro: getMembro("1º Tesoureiro") },
+    { cargo: "2º Tesoureiro" as const, membro: getMembro("2º Tesoureiro") },
   ];
 
-  const outrosMembrosUI = CARGOS_OUTROS_MEMBROS.map((cargo) => ({
-    vereador: membrosUI[cargo.key as keyof typeof membrosUI],
-    cargoLabel: cargo.label,
-    cargoKey: cargo.key,
-  }));
-
-  // Adapt vereadores list for Modal
-  const vereadoresForModal = vereadores.map(v => ({
-    ...v,
-    id: String(v.id),
-    nome: v.nome_parlamentar || v.nome_completo,
-    partido: v.partido,
-    partidoLogo: v.partido_completo?.logo_url || "",
-    foto: v.foto,
-    email: v.email_gabinete || "",
-    telefone: v.telefone_gabinete || "",
-    biografia: v.perfil || "",
-    cargoMesa: "",
-    legislatura: "",
-    comissoes: []
-  }));
-
-  if (isLoading) {
-    return <div className="space-y-4"><Skeleton className="h-40 w-full" /><Skeleton className="h-40 w-full" /></div>;
+  if (isLoading || !legislaturaSelecionada) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-20 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-80 w-full" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!mesa && !isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center p-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-        <h3 className="text-lg font-medium text-gray-900">Nenhuma Mesa Diretora Encontrada</h3>
-        <p className="text-gray-500 mb-4">Não há mesa diretora cadastrada para este período.</p>
-        <Button onClick={() => createMesaMutation.mutate()} disabled={createMesaMutation.isPending}>
-          {createMesaMutation.isPending ? "Criando..." : "Criar Mesa Diretora"}
-        </Button>
+      <div className="max-w-7xl mx-auto">
+        <MesaDiretoraHeader
+          legislaturas={legislaturas}
+          periodos={periodos}
+          legislaturaSelecionada={legislaturaSelecionada}
+          periodoSelecionado={periodoSelecionado}
+          onLegislaturaChange={handleLegislaturaChange}
+          onPeriodoChange={handlePeriodoChange}
+        />
+
+        <div className="flex flex-col items-center justify-center p-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <h3 className="text-lg font-medium text-gray-900">Nenhuma Mesa Diretora Encontrada</h3>
+          <p className="text-gray-500 mb-2">Não há mesa diretora cadastrada para este período.</p>
+          <p className="text-sm text-gray-400">Para criar uma mesa, acesse Legislaturas → Períodos → "Mesa Diretora".</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-7xl mx-auto">
       <MesaDiretoraHeader
-        selectedYear={String(periodoId)} // TODO: Use real year/label
-        onYearChange={() => { }} // Disabled for now as we use URL routing
-        anosDisponiveis={[String(periodoId)]}
-        isAdmin={true}
-        onEditClick={() => setModalOpen(true)}
+        legislaturas={legislaturas}
+        periodos={periodos}
+        legislaturaSelecionada={legislaturaSelecionada}
+        periodoSelecionado={periodoSelecionado}
+        onLegislaturaChange={handleLegislaturaChange}
+        onPeriodoChange={handlePeriodoChange}
       />
 
-      <PresidenteCard vereador={membrosUI.presidente} ano={"Atual"} />
-      <VicePresidenteCard vereador={membrosUI.vicePresidente} ano={"Atual"} />
-      <OutrosMembrosGrid membros={outrosMembrosUI} />
-
-      <ModalEditarMesa
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        vereadores={vereadoresForModal}
-        composicaoMesa={composicaoAtual}
-        onSave={handleSaveComposition}
-        ano={"do Período"}
-      />
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {cargosOrdenados.map(({ cargo, membro }) => (
+          <MembroMesaCard
+            key={cargo}
+            cargo={cargo}
+            vereador={getUI_Vereador(membro?.agente_publico_id)}
+          />
+        ))}
+      </section>
     </div>
   );
 }

@@ -35,11 +35,7 @@ import MeuPerfil from "./pages/MeuPerfil";
 import MesaDiretoraPlenario from "./pages/plenario/MesaDiretora"; // ANTIGA
 import ComissoesPlenario from "./pages/plenario/Comissoes";     // ANTIGA
 
-// ===================================================================
-// PASSO 1: Importe os novos componentes de página que você irá criar
-// ===================================================================
-import MesaDiretoraLegislatura from "./pages/atividade-legislativa/MesaDiretoraLegislatura";
-import ComissoesLegislatura from "./pages/atividade-legislativa/ComissoesLegislatura";
+
 
 
 const queryClient = new QueryClient();
@@ -88,18 +84,7 @@ const App = () => (
             <Route path="/atividade-legislativa/legislaturas" element={<RotaProtegida><Legislaturas /></RotaProtegida>} />
             <Route path="/atividade-legislativa/legislaturas/:legislaturaNumero" element={<RotaProtegida><DetalheLegislatura /></RotaProtegida>} />
 
-            {/* ==============================================================================================
-              PASSO 2: Adicione as novas rotas aninhadas para a Mesa Diretora e Comissões
-              Elas pertencem ao contexto de uma legislatura e período específicos.
-             ============================================================================================== */}
-            <Route
-              path="/atividade-legislativa/legislaturas/:legislaturaNumero/periodos/:periodoId/mesa-diretora"
-              element={<RotaProtegida><MesaDiretoraLegislatura /></RotaProtegida>}
-            />
-            <Route
-              path="/atividade-legislativa/legislaturas/:legislaturaNumero/periodos/:periodoId/comissoes"
-              element={<RotaProtegida><ComissoesLegislatura /></RotaProtegida>}
-            />
+
 
             <Route path="/configuracoes" element={<RotaProtegida><Configuracoes /></RotaProtegida>} />
             <Route path="/perfil" element={<RotaProtegida><MeuPerfil /></RotaProtegida>} />

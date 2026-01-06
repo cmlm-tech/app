@@ -114,6 +114,14 @@ export const pdfStyles = StyleSheet.create({
         textIndent: 40,
         textAlign: 'justify',
     },
+    ementaBlock: {
+        marginLeft: '40%',
+        marginBottom: 20,
+        textAlign: 'justify',
+        fontSize: 11,
+        fontStyle: 'italic',
+        lineHeight: 1.3,
+    },
 
     // --- ASSINATURA ---
     signatureContainer: {

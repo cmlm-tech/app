@@ -68,14 +68,16 @@ export default function Materias() {
   async function fetchMaterias() {
     setIsLoading(true);
     try {
-      // 1. Buscar Agentes, Vereadores e Comissões
+      // 1. Buscar Agentes, Vereadores, Comissões e Mesas Diretoras
       const { data: agentes } = await supabase.from('agentespublicos').select('id, nome_completo');
       const { data: vereadores } = await supabase.from('vereadores').select('agente_publico_id, nome_parlamentar');
       const { data: comissoes } = await supabase.from('comissoes').select('id, nome');
+      const { data: mesas } = await (supabase as any).from('mesasdiretoras').select('id, nome');
 
       const agentesMap = new Map((agentes || []).map((a: any) => [a.id, a.nome_completo]));
       const vereadoresMap = new Map((vereadores || []).map((v: any) => [v.agente_publico_id, v.nome_parlamentar]));
       const comissoesMap = new Map((comissoes || []).map((c: any) => [c.id, c.nome]));
+      const mesasMap = new Map((mesas || []).map((m: any) => [m.id, m.nome]));
 
       // 2. Buscar Documentos
       const { data, error } = await supabase
@@ -89,7 +91,7 @@ export default function Materias() {
           arquivo_pdf_url,
           tiposdedocumento ( nome ),
           protocolos!documentos_protocolo_id_fkey ( numero ),
-          documentoautores ( autor_id, papel ),
+          documentoautores ( autor_id, autor_type, papel ),
           oficios ( assunto ),
           projetosdelei ( ementa ),
           requerimentos ( justificativa ),
@@ -146,26 +148,61 @@ export default function Materias() {
             nomeAutor = doc.pareceres[0].comissao.nome;
             autorTipo = 'Comissao';
           } else if (autorRel) {
-            const { autor_id } = autorRel;
+            const { autor_id, autor_type } = autorRel;
             autorId = autor_id;
 
-            // Tentar em comissões primeiro, depois em vereadores, por último em agentes
-            if (comissoesMap.has(autor_id)) {
-              nomeAutor = comissoesMap.get(autor_id)!;
+            // Usar autor_type para determinar a fonte correta do nome
+            if (autor_type === 'MesaDiretora') {
+              nomeAutor = (mesasMap.get(autor_id) as string) || "Mesa Diretora";
+              autorTipo = 'MesaDiretora';
+            } else if (autor_type === 'Comissao') {
+              nomeAutor = comissoesMap.get(autor_id) || "Comissão";
               autorTipo = 'Comissao';
-            } else if (vereadoresMap.has(autor_id)) {
-              nomeAutor = vereadoresMap.get(autor_id)!;
-              autorTipo = 'AgentePublico';
-            } else if (agentesMap.has(autor_id)) {
-              nomeAutor = agentesMap.get(autor_id)!;
+            } else if (autor_type === 'AgentePublico') {
+              // Para agentes, tentar vereador primeiro, depois agente
+              if (vereadoresMap.has(autor_id)) {
+                nomeAutor = vereadoresMap.get(autor_id)!;
+              } else if (agentesMap.has(autor_id)) {
+                nomeAutor = agentesMap.get(autor_id)!;
+              } else {
+                nomeAutor = "Desconhecido";
+              }
               autorTipo = 'AgentePublico';
             } else {
-              nomeAutor = "Desconhecido";
+              // Fallback para autor_type desconhecido ou NULL - tentar todos os maps
+              if (mesasMap.has(autor_id)) {
+                nomeAutor = (mesasMap.get(autor_id) as string) || "Mesa Diretora";
+                autorTipo = 'MesaDiretora';
+              } else if (comissoesMap.has(autor_id)) {
+                nomeAutor = comissoesMap.get(autor_id)!;
+                autorTipo = 'Comissao';
+              } else if (vereadoresMap.has(autor_id)) {
+                nomeAutor = vereadoresMap.get(autor_id)!;
+                autorTipo = 'AgentePublico';
+              } else if (agentesMap.has(autor_id)) {
+                nomeAutor = agentesMap.get(autor_id)!;
+                autorTipo = 'AgentePublico';
+              } else {
+                nomeAutor = "Desconhecido";
+              }
             }
           }
 
           // Nome do Tipo (com fallback)
           const nomeTipo = doc.tiposdedocumento?.nome || "Documento";
+
+          // Para Projeto de Resolução: verificar se há múltiplos vereadores (autoria coletiva 1/3)
+          if (nomeTipo === 'Projeto de Resolução' && doc.documentoautores) {
+            const autoresVereadores = doc.documentoautores.filter(
+              (da: any) => da.autor_type === 'AgentePublico'
+            );
+
+            if (autoresVereadores.length > 1) {
+              // É autoria coletiva (1/3 dos vereadores)
+              nomeAutor = `1/3 dos Vereadores (${autoresVereadores.length})`;
+              autorTipo = 'AgentePublico';
+            }
+          }
 
           // Formatar Protocolo usando protocolos.numero ou mostrar Rascunho
           const protocoloStr = doc.protocolos?.numero || `${doc.ano}.Rascunho`;
@@ -189,9 +226,9 @@ export default function Materias() {
         const comPDF = mappedMaterias.filter(m => m.arquivo_url).length;
         console.log(`[Materias] ${comPDF} de ${mappedMaterias.length} matérias têm PDF no Storage`);
 
-        // Mapear pareceres separadamente
+        // Mapear pareceres separadamente (documentos que possuem pareceres associados)
         const mappedPareceres: Parecer[] = data
-          .filter((doc: any) => doc.tiposdedocumento?.nome === 'Parecer')
+          .filter((doc: any) => doc.pareceres && doc.pareceres.length > 0)
           .map((doc: any) => {
             const p = doc.pareceres?.[0];
             const mat = p?.materia;
@@ -254,8 +291,10 @@ export default function Materias() {
     // Atas são listadas em sua própria página/componente
     const tipoStr = m.tipo as string;
     if (tipoStr === "Ata" || tipoStr.includes("Ata")) return false;
-    // Pareceres são listados em aba separada
-    if (tipoStr === "Parecer") return false;
+    // Documentos com pareceres são listados em aba separada
+    // Verificamos se há algum parecer associado a este documento
+    const temParecer = pareceres.some(p => p.id === m.id);
+    if (temParecer) return false;
 
     const buscaOk =
       busca === "" ||

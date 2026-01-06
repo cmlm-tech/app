@@ -43,6 +43,8 @@ export default function EditarMateria() {
     const [autoresArray, setAutoresArray] = useState<string[]>([]); // Array de nomes para Moção
 
     const [autorId, setAutorId] = useState<number | null>(null);
+    const [autorType, setAutorType] = useState<string>("");
+    const [membrosMesa, setMembrosMesa] = useState<{ nome: string; cargo: string }[]>([]);
 
     // Metadata fields that might be editable
     const [ementa, setEmenta] = useState("");
@@ -93,6 +95,30 @@ export default function EditarMateria() {
 
         // Buscar membros da comissão se for Projeto de Decreto Legislativo
         let membrosComissao: { nome: string; cargo: string }[] = [];
+        let rMembrosMesa: { nome: string; cargo: string }[] = [];
+
+        if (doc.tiposdedocumento?.nome === 'Projeto de Resolução' && autorType === 'MesaDiretora') {
+            const { data: membrosRef } = await supabase
+                .from('mesadiretoramembros')
+                .select('cargo, agente_publico_id')
+                .eq('mesa_diretora_id', autorId!);
+
+            if (membrosRef && membrosRef.length > 0) {
+                const agenteIds = membrosRef.map(m => m.agente_publico_id);
+                const { data: agentes } = await supabase
+                    .from('agentespublicos')
+                    .select('id, nome_completo')
+                    .in('id', agenteIds);
+
+                if (agentes) {
+                    const agentesMap = new Map(agentes.map(a => [a.id, a.nome_completo]));
+                    rMembrosMesa = membrosRef.map(m => ({
+                        nome: agentesMap.get(m.agente_publico_id) || "Nome não encontrado",
+                        cargo: m.cargo || "Membro"
+                    }));
+                }
+            }
+        }
 
         if (doc.tiposdedocumento?.nome === 'Projeto de Decreto Legislativo') {
             const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -143,6 +169,7 @@ export default function EditarMateria() {
                 ementa={ementa}
                 autores={autoresArray.length > 0 ? autoresArray : undefined}
                 membrosComissao={membrosComissao}
+                membrosMesa={rMembrosMesa}
                 isRascunho={isOficial ? false : doc.status === 'Rascunho'}
             />
         ).toBlob();
@@ -211,14 +238,20 @@ export default function EditarMateria() {
                 tabelaFilha = "indicacoes";
                 colunaTexto = "justificativa";
                 colunaEmenta = "ementa";
-            } // Add others as needed
+            } else if (tipoNome === "Projeto de Resolução") {
+                tabelaFilha = "projetosderesolucao";
+                colunaTexto = "corpo_texto";
+                colunaEmenta = "ementa";
+            }
 
             if (tabelaFilha) {
                 const { data: childData, error: childError } = await supabase
                     .from(tabelaFilha as any)
                     .select("*")
                     .eq("documento_id", Number(docId))
-                    .single();
+                    .order('id', { ascending: false }) // Pega o mais recente se houver duplicatas
+                    .limit(1)
+                    .maybeSingle();
 
                 if (childError && childError.code !== 'PGRST116') { // Ignore not found (maybe not created yet)
                     console.error("Erro child table:", childError);
@@ -267,13 +300,20 @@ export default function EditarMateria() {
                         const numPadded = numOnly.padStart(3, '0');
                         (docData as any).numero_oficial = `${numPadded}/${docData.ano}`;
                     }
+                    // numero_resolucao: mesma lógica
+                    if (childData['numero_resolucao']) {
+                        const numStr = String(childData['numero_resolucao']);
+                        const numOnly = numStr.split('/')[0];
+                        const numPadded = numOnly.padStart(3, '0');
+                        (docData as any).numero_oficial = `${numPadded}/${docData.ano}`;
+                    }
                 }
             }
 
             // 3. Fetch Author(s) - For Moção, fetch ALL authors; for others, fetch single author
             const docTipo = docData.tiposdedocumento?.nome;
 
-            if (docTipo === "Moção") {
+            if (docTipo === "Moção" || (docTipo as string) === "Projeto de Resolução") {
                 // Fetch ALL authors for Moção
                 const { data: authorsData } = await supabase
                     .from("documentoautores")
@@ -296,25 +336,57 @@ export default function EditarMateria() {
                         // Store array for PDF and join for display
                         const authorNamesArray = agentesData.map(a => a.nome_completo);
                         setAutoresArray(authorNamesArray);
-                        setAutorNome(authorNamesArray.join(", "));
+
+                        if (docTipo === 'Projeto de Resolução' && authorNamesArray.length > 1) {
+                            setAutorNome(`1/3 dos Vereadores (${authorNamesArray.length})`);
+                        } else {
+                            setAutorNome(authorNamesArray.join(", "));
+                        }
                     }
                 }
-            } else {
-                // Single author for other document types
+            }
+
+            // Re-check for Mesa Diretora if single author was fetched or if it's a special type
+            if (!autorNome || docTipo === 'Projeto de Resolução') {
                 const { data: authData } = await supabase
                     .from("documentoautores")
-                    .select("autor_id")
+                    .select("autor_id, autor_type")
                     .eq("documento_id", Number(docId))
                     .single();
 
                 if (authData?.autor_id) {
                     setAutorId(authData.autor_id);
-                    const { data: agenteData } = await supabase
-                        .from("agentespublicos")
-                        .select("nome_completo")
-                        .eq("id", authData.autor_id)
-                        .single();
-                    if (agenteData) setAutorNome(agenteData.nome_completo);
+                    setAutorType(authData.autor_type || "");
+
+                    // Verificar tipo de autor
+                    if (authData.autor_type === 'MesaDiretora' && docTipo === 'Projeto de Resolução') {
+                        // Buscar na tabela de Mesas Diretoras
+                        const { data: mesaData } = await (supabase as any)
+                            .from('mesasdiretoras')
+                            .select('nome')
+                            .eq('id', authData.autor_id)
+                            .single();
+                        if (mesaData) setAutorNome(mesaData.nome);
+                        else setAutorNome("Mesa Diretora");
+
+                    } else if (authData.autor_type === 'Comissao') {
+                        // Buscar em Comissões (genérico)
+                        const { data: comissaoData } = await supabase
+                            .from('comissoes')
+                            .select('nome')
+                            .eq('id', authData.autor_id)
+                            .single();
+                        if (comissaoData) setAutorNome(comissaoData.nome);
+
+                    } else {
+                        // Padrão: Agente Público
+                        const { data: agenteData } = await supabase
+                            .from("agentespublicos")
+                            .select("nome_completo")
+                            .eq("id", authData.autor_id)
+                            .single();
+                        if (agenteData) setAutorNome(agenteData.nome_completo);
+                    }
                 }
             }
 
@@ -354,6 +426,7 @@ export default function EditarMateria() {
             else if (tipoNome === "Moção") { tabelaFilha = "mocoes"; colunaTexto = "corpo_texto"; }
             else if (tipoNome === "Projeto de Decreto Legislativo") { tabelaFilha = "projetosdedecretolegislativo"; colunaTexto = "justificativa"; }
             else if (tipoNome === "Indicação") { tabelaFilha = "indicacoes"; colunaTexto = "justificativa"; }
+            else if (tipoNome === "Projeto de Resolução") { tabelaFilha = "projetosderesolucao"; colunaTexto = "corpo_texto"; }
 
             if (!tabelaFilha) throw new Error("Tipo de documento não suporta edição de texto ainda.");
 
@@ -643,9 +716,41 @@ export default function EditarMateria() {
                     throw upErr;
                 }
 
+            } else if (tipoNome === "Projeto de Resolução") {
+                // Global por ano (mesma lógica de Projeto de Lei)
+                const { data: docsAno, error: errDocs } = await supabase
+                    .from('documentos')
+                    .select('id')
+                    .eq('ano', doc.ano);
+
+                if (errDocs) throw errDocs;
+
+                const docIds = docsAno.map(d => d.id).filter(id => id !== doc.id);
+
+                if (docIds.length > 0) {
+                    const { data: resolucoesList } = await supabase
+                        .from('projetosderesolucao')
+                        .select('numero_resolucao')
+                        .in('documento_id', docIds)
+                        .not('numero_resolucao', 'is', null)
+                        .order('numero_resolucao', { ascending: false });
+
+                    if (resolucoesList && resolucoesList.length > 0) {
+                        const numStr = String(resolucoesList[0].numero_resolucao);
+                        novoNumero = parseInt(numStr.split('/')[0], 10) || 0;
+                    }
+                }
+                novoNumero += 1;
+
+                const { error: upErr } = await supabase.from('projetosderesolucao').update({ numero_resolucao: novoNumero }).eq('documento_id', doc.id);
+                if (upErr) {
+                    console.error("Erro ao salvar número:", upErr);
+                    throw upErr;
+                }
+
             } else {
                 console.error("❌ Tipo não reconhecido:", tipoNome);
-                throw new Error(`Geração automática não suportada para o tipo "${tipoNome}". Tipos válidos: Ofício, Projeto de Lei, Requerimento, Moção, Projeto de Decreto Legislativo, Indicação.`);
+                throw new Error(`Geração automática não suportada para o tipo "${tipoNome}". Tipos válidos: Ofício, Projeto de Lei, Requerimento, Moção, Projeto de Decreto Legislativo, Indicação, Projeto de Resolução.`);
             }
 
             // Formatar número para exibição (sempre com 3 dígitos)
@@ -681,6 +786,7 @@ export default function EditarMateria() {
             else if (tipoNome === "Moção") { tabelaFilha = "mocoes"; colunaEmenta = "ementa"; }
             else if (tipoNome === "Projeto de Decreto Legislativo") { tabelaFilha = "projetosdedecretolegislativo"; colunaEmenta = "ementa"; }
             else if (tipoNome === "Indicação") { tabelaFilha = "indicacoes"; colunaEmenta = "ementa"; }
+            else if (tipoNome === "Projeto de Resolução") { tabelaFilha = "projetosderesolucao"; colunaEmenta = "ementa"; }
 
             if (!tabelaFilha) throw new Error("Tipo de documento não suporta edição de resumo ainda.");
 

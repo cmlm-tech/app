@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { TipoMateria, RetornoProtocolo } from "./types";
 import { buscarDestinatarios, criarDestinatario, Destinatario } from "@/services/destinatariosService";
 
-const tiposCriacao: TipoMateria[] = ["Projeto de Lei", "Ofício", "Requerimento", "Moção", "Projeto de Decreto Legislativo", "Indicação"];
+const tiposCriacao: TipoMateria[] = ["Projeto de Lei", "Ofício", "Requerimento", "Moção", "Projeto de Decreto Legislativo", "Indicação", "Projeto de Resolução"];
 
 // Tipos de Moção conforme ENUM do banco
 const tiposMocao = ["Aplausos", "Pesar", "Repúdio", "Solidariedade", "Protesto"] as const;
@@ -144,11 +144,18 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
   const [nomeGestor, setNomeGestor] = useState("");
   const [honrariasCount, setHonrariasCount] = useState<number | null>(null);  // Contador de honrarias do autor
 
+  // Estados específicos para Projeto de Resolução
+  const [tipoAutorResolucao, setTipoAutorResolucao] = useState<"mesa_diretora" | "um_terco">("mesa_diretora");
+  const [mesaDiretoraId, setMesaDiretoraId] = useState<number | null>(null);
+  const [totalVereadores, setTotalVereadores] = useState(0);
+  const [minVereadoresResolucao, setMinVereadoresResolucao] = useState(0);
+
   const dataProtocolo = new Date();
   const precisaDestinatario = tipo === "Ofício" || tipo === "Requerimento" || tipo === "Indicação";
   const isIndicacao = tipo === "Indicação";
   const isMocao = tipo === "Moção";
   const isDecretoLegislativo = tipo === "Projeto de Decreto Legislativo";
+  const isProjetoResolucao = tipo === "Projeto de Resolução";
 
   // Buscar autores ao abrir o modal
   useEffect(() => {
@@ -195,9 +202,79 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       const listaCompleta = [...listaVereadores, ...listaComissoes].sort((a, b) => a.nome.localeCompare(b.nome));
 
       setAutores(listaCompleta);
+
+      // Para Projeto de Resolução: calcular total de vereadores ativos
+      if (isProjetoResolucao) {
+        await calcularVereadoresAtivos();
+      }
     } catch (err) {
       console.error("Erro ao buscar autores:", err);
     }
+  }
+
+  // Função para calcular total de vereadores ativos e 1/3
+  async function calcularVereadoresAtivos() {
+    try {
+      // Buscar legislatura atual
+      const { data: legislaturaAtual } = await supabase
+        .from('legislaturas')
+        .select('id, numero_vagas_vereadores')
+        .lte('data_inicio', new Date().toISOString().split('T')[0]) // data_inicio <= hoje
+        .gte('data_fim', new Date().toISOString().split('T')[0])    // data_fim >= hoje
+        .limit(1)
+        .single();
+
+      if (!legislaturaAtual) {
+        console.warn('Nenhuma legislatura ativa encontrada.');
+        setTotalVereadores(0);
+        setMinVereadoresResolucao(0);
+        return;
+      }
+
+      // Usar numero_vagas_vereadores como fallback
+      const vagasDaLegislatura = legislaturaAtual.numero_vagas_vereadores || 0;
+
+      // Contar vereadores ativos na legislatura atual (sem data_afastamento)
+      const { count } = await (supabase as any)
+        .from('legislaturavereadores')
+        .select('*', { count: 'exact', head: true })
+        .eq('legislatura_id', legislaturaAtual.id)
+        .is('data_afastamento', null);
+
+      // Usar count se disponível, senão fallback para vagas da legislatura
+      const total = count || vagasDaLegislatura;
+      const minimo = Math.ceil(total / 3);
+
+      console.log(`[Projeto de Resolução] Legislatura ID: ${legislaturaAtual.id}, Vagas: ${vagasDaLegislatura}, Count: ${count}, Total usado: ${total}, Mínimo 1/3: ${minimo}`);
+      setTotalVereadores(total);
+      setMinVereadoresResolucao(minimo);
+    } catch (err) {
+      console.error("Erro ao calcular vereadores ativos:", err);
+      setTotalVereadores(0);
+      setMinVereadoresResolucao(0);
+    }
+  }
+
+  // Função para buscar Mesa Diretora
+  async function buscarMesaDiretora() {
+    try {
+      // Buscar Mesa Diretora mais recente
+      // Ordenando por ID decrescente para pegar a última criada
+      const { data: mesa } = await (supabase as any)
+        .from('mesasdiretoras')
+        .select('id, nome')
+        .order('id', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (mesa?.id) {
+        setMesaDiretoraId(mesa.id);
+        return mesa.id;
+      }
+    } catch (err) {
+      console.error("Erro ao buscar Mesa Diretora:", err);
+    }
+    return null;
   }
 
   // Filtragem dinâmica de autores baseada no tipo de decreto
@@ -324,6 +401,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       case "Moção": return 4;
       case "Indicação": return 5;
       case "Projeto de Decreto Legislativo": return 6;
+      case "Projeto de Resolução": return 7;
       default: return 1;
     }
   };
@@ -334,6 +412,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       case "Ofício": return "Ex: Solicita visita técnica para avaliar a reforma...";
       case "Moção": return "Ex: Pelo nascimento de seu filho, ocorrido em 01/12/2025...";
       case "Projeto de Decreto Legislativo": return "Preencha os campos acima (texto será gerado automaticamente)";
+      case "Projeto de Resolução": return "Ex: Dispõe sobre o horário de funcionamento da Câmara Municipal...";
       default: return "Descreva o objetivo da matéria...";
     }
   }
@@ -399,6 +478,32 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       // Se mudar de volta para honraria, limpar se for comissão (opcional, ou deixar o usuário mudar)
     }
   }, [tipoDecreto, autores]);
+
+  // Effect para buscar Mesa Diretora quando Projeto de Resolução é selecionado
+  useEffect(() => {
+    if (isProjetoResolucao && tipoAutorResolucao === 'mesa_diretora' && aberto) {
+      buscarMesaDiretora();
+    }
+  }, [isProjetoResolucao, tipoAutorResolucao, aberto]);
+
+  // Effect para recalcular vereadores quando tipo muda para Projeto de Resolução
+  useEffect(() => {
+    if (isProjetoResolucao && aberto) {
+      calcularVereadoresAtivos();
+    }
+  }, [isProjetoResolucao, aberto]);
+
+  // Verificar se o botão de submit deve estar desabilitado
+  const isBotaoDesabilitado = useMemo(() => {
+    if (isLoading) return true;
+
+    // Validação específica para Projeto de Resolução com 1/3 dos vereadores
+    if (isProjetoResolucao && tipoAutorResolucao === 'um_terco') {
+      return autoresSelecionados.length < minVereadoresResolucao;
+    }
+
+    return false;
+  }, [isLoading, isProjetoResolucao, tipoAutorResolucao, autoresSelecionados.length, minVereadoresResolucao]);
 
   // Gerar texto automático para Decreto Legislativo (templates fixos)
   function gerarTextoDecretoLegislativo(): { ementa: string; artigos: string } {
@@ -474,6 +579,20 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
           if (!anoContas.trim()) throw new Error("Informe o ano do exercício.");
           if (!nomeGestor.trim()) throw new Error("Informe o nome do gestor.");
         }
+      } else if (isProjetoResolucao) {
+        // Validações específicas para Projeto de Resolução
+        if (tipoAutorResolucao === 'mesa_diretora') {
+          if (!mesaDiretoraId) {
+            throw new Error("Mesa Diretora não encontrada. Verifique se existe uma Mesa Diretora cadastrada.");
+          }
+        } else if (tipoAutorResolucao === 'um_terco') {
+          if (autoresSelecionados.length === 0) {
+            throw new Error("Selecione pelo menos um vereador.");
+          }
+          if (autoresSelecionados.length < minVereadoresResolucao) {
+            throw new Error(`Projeto de Resolução requer no mínimo ${minVereadoresResolucao} vereador(es) (1/3 de ${totalVereadores}).`);
+          }
+        }
       } else {
         if (!autorId) throw new Error("Selecione o Autor.");
       }
@@ -495,9 +614,17 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       // Definir autor principal e objeto completo
       let autorPrincipal: Autor | undefined;
 
-      // Prioridade para autoresSelecionados (usado em Moção e Julgamento de Contas via auto-select)
+      // Prioridade para autoresSelecionados (usado em Moção, Julgamento de Contas e Resolução 1/3)
       if (autoresSelecionados.length > 0) {
         autorPrincipal = autoresSelecionados[0];
+      } else if (isProjetoResolucao && tipoAutorResolucao === 'mesa_diretora') {
+        // Para Projeto de Resolução com Mesa Diretora
+        autorPrincipal = {
+          id: mesaDiretoraId!,
+          nome: "Mesa Diretora",
+          cargo: "Mesa Diretora",
+          tipoObjeto: 'MesaDiretora' as any // Tipo específico para Mesa Diretora
+        };
       } else if (autorId) {
         // Usado nos selects simples - autorId tem formato "tipoObjeto:id"
         const [tipoObj, idStr] = autorId.split(':');
@@ -509,7 +636,9 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
       const autorPrincipalId = autorPrincipal.id;
       const nomeAutor = isMocao
         ? autoresSelecionados.map(a => a.nome).join(", ")
-        : autorPrincipal.nome;
+        : isProjetoResolucao && tipoAutorResolucao === 'um_terco'
+          ? `1/3 dos Vereadores (${autoresSelecionados.length})`
+          : autorPrincipal.nome;
 
       // Regra de negócio: máximo 3 honrarias por vereador por ano
       if (isDecretoLegislativo && tipoDecreto === 'Honraria') {
@@ -577,13 +706,27 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         }
       }
 
-      // Para Moção: atualizar campos específicos na tabela mocoes
+      // Para Mo\u00e7\u00e3o: atualizar campos espec\u00edficos na tabela mocoes
       if (isMocao) {
-        console.log("4.2 Atualizando campos da moção...");
+        console.log("4.2 Atualizando campos da mo\u00e7\u00e3o...");
         await supabase.from('mocoes').update({
           tipo_mocao: tipoMocao,
           homenageado_texto: homenageado
         }).eq('documento_id', dadosRascunho.documento_id);
+      }
+
+      // Para Projeto de Resolu\u00e7\u00e3o com 1/3: inserir coautores
+      if (isProjetoResolucao && tipoAutorResolucao === 'um_terco' && autoresSelecionados.length > 1) {
+        console.log("4.2b Inserindo coautores de Projeto de Resolu\u00e7\u00e3o...");
+        const coautores = autoresSelecionados.slice(1);
+        for (const coautor of coautores) {
+          await supabase.from('documentoautores').insert({
+            documento_id: dadosRascunho.documento_id,
+            autor_id: coautor.id,
+            autor_type: 'AgentePublico',
+            papel: 'Subscritor'
+          });
+        }
       }
 
       // Se for Decreto Legislativo, inserir dados específicos E gerar texto automaticamente
@@ -609,6 +752,21 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         await supabase.from('indicacoes').update({
           destinatario_texto: destinatario || "Sr. Prefeito Municipal"
         }).eq('documento_id', dadosRascunho.documento_id);
+      }
+
+      // Se for Projeto de Resolução, inserir registro inicial
+      if (isProjetoResolucao) {
+        console.log("4.4 Salvando dados iniciais de Projeto de Resolução...");
+        const { error: errResolucao } = await supabase.from('projetosderesolucao').insert({
+          documento_id: dadosRascunho.documento_id,
+          ementa: instrucaoIA,
+          corpo_texto: "" // Será preenchido pela IA
+        });
+        if (errResolucao) {
+          console.error("Erro ao inserir projetosderesolucao:", errResolucao);
+        } else {
+          console.log("4.4 Registro de projetosderesolucao criado com sucesso!");
+        }
       }
 
       // 4.5 Salvar Anexos
@@ -678,7 +836,21 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
         });
 
         if (erroEdge) console.warn("IA Falhou:", erroEdge);
-        else console.log("6. Sucesso IA:", dataIA);
+        else {
+          console.log("6. Sucesso IA:", dataIA);
+
+          // Salvar retorno da IA na tabela específica
+          if (isProjetoResolucao && dataIA && dataIA.texto) {
+            console.log("7. Salvando texto da IA na tabela projetosderesolucao...");
+            const { error: errUp } = await supabase.from('projetosderesolucao').update({
+              corpo_texto: dataIA.texto,
+              ementa: dataIA.ementa || instrucaoIA // Tenta pegar da IA, senão usa o input
+            }).eq('documento_id', dadosRascunho.documento_id);
+
+            if (errUp) console.error("Erro ao salvar texto:", errUp);
+            else console.log("7. Texto salvo com sucesso!");
+          }
+        }
       } else {
         console.log("5. Decreto Legislativo: Pulando IA (texto já gerado automaticamente)");
       }
@@ -763,7 +935,7 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
             </div>
 
             {/* AUTOR: Single Select para outros tipos */}
-            {!isMocao && (
+            {!isMocao && !isProjetoResolucao && (
               <div className="col-span-5">
                 <label className="block text-xs font-semibold text-gray-700 mb-0.5">Autor</label>
                 <Select value={autorId} onValueChange={setAutorId}>
@@ -859,6 +1031,110 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
                   className="bg-white h-8 text-xs"
                 />
               </div>
+            </div>
+          )}
+
+          {/* PROJETO DE RESOLUÇÃO: Seleção de Autoria */}
+          {isProjetoResolucao && (
+            <div className="bg-purple-50 p-3 rounded-lg border border-purple-200 space-y-3">
+              <label className="block text-xs font-semibold text-purple-800 mb-1">Tipo de Autoria</label>
+
+              {/* Radio buttons: Mesa Diretora ou 1/3 Vereadores */}
+              <div className="flex gap-4 mb-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="tipoAutorResolucao"
+                    value="mesa_diretora"
+                    checked={tipoAutorResolucao === 'mesa_diretora'}
+                    onChange={() => setTipoAutorResolucao('mesa_diretora')}
+                    className="w-4 h-4 text-purple-600"
+                  />
+                  <span className="text-xs text-purple-900">Mesa Diretora</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="tipoAutorResolucao"
+                    value="um_terco"
+                    checked={tipoAutorResolucao === 'um_terco'}
+                    onChange={() => setTipoAutorResolucao('um_terco')}
+                    className="w-4 h-4 text-purple-600"
+                  />
+                  <span className="text-xs text-purple-900">1/3 dos Vereadores</span>
+                </label>
+              </div>
+
+              {/* Se Mesa Diretora: Mensagem informativa */}
+              {tipoAutorResolucao === 'mesa_diretora' && (
+                mesaDiretoraId ? (
+                  <div className="bg-purple-100 p-2 rounded text-xs text-purple-800 flex items-center gap-2">
+                    <span className="text-green-600">✓</span>
+                    Mesa Diretora selecionada (ID: {mesaDiretoraId})
+                  </div>
+                ) : (
+                  <div className="bg-red-50 p-2 rounded text-xs text-red-600 border border-red-200">
+                    ⚠ Mesa Diretora não encontrada. Verifique se existe uma Mesa Diretora cadastrada no sistema.
+                  </div>
+                )
+              )}
+
+              {/* Se 1/3: Multi-select de vereadores */}
+              {tipoAutorResolucao === 'um_terco' && (
+                <div className="bg-white p-2 rounded border border-purple-200">
+                  <p className="text-xs text-purple-700 mb-2">
+                    Mínimo necessário: {minVereadoresResolucao} vereador(es) (1/3 de {totalVereadores})
+                  </p>
+
+                  {/* Chips dos vereadores selecionados */}
+                  <div className="flex flex-wrap gap-1 min-h-[28px] mb-2">
+                    {autoresSelecionados.map(autor => (
+                      <span
+                        key={autor.id}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-600 text-white rounded-full text-xs"
+                      >
+                        {autor.nome.split(' ')[0]}
+                        <button type="button" onClick={() => removerAutor(autor.id)} className="hover:bg-purple-700 rounded-full p-0.5">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                    {autoresSelecionados.length === 0 && (
+                      <span className="text-xs text-purple-400 italic">Nenhum vereador selecionado</span>
+                    )}
+                  </div>
+
+                  {/* Dropdown para adicionar vereadores */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setDropdownAberto(!dropdownAberto)}
+                      className="w-full flex items-center justify-between h-8 px-3 text-xs bg-white border border-purple-200 rounded-md hover:bg-purple-50"
+                    >
+                      <span className="text-gray-500">+ Adicionar vereador...</span>
+                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                    </button>
+
+                    {dropdownAberto && autoresDisponiveis.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
+                        {autoresDisponiveis
+                          .filter(a => a.tipoObjeto === 'AgentePublico')
+                          .map(autor => (
+                            <button
+                              key={autor.id}
+                              type="button"
+                              onClick={() => adicionarAutor(autor)}
+                              className="w-full text-left px-3 py-1.5 text-xs hover:bg-purple-50"
+                            >
+                              {autor.nome}
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1080,8 +1356,11 @@ export default function ModalNovaMateria({ aberto, onClose, onSucesso }: Props) 
               type="button"
               onClick={handleSubmit}
               size="sm"
-              disabled={isLoading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs min-w-[150px]"
+              disabled={isBotaoDesabilitado}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs min-w-[150px] disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isBotaoDesabilitado && isProjetoResolucao && tipoAutorResolucao === 'um_terco'
+                ? `Selecione no mínimo ${minVereadoresResolucao} vereador(es) para criar Projeto de Resolução`
+                : ""}
             >
               {isLoading ? <><Loader2 className="mr-2 h-3 w-3 animate-spin" />{statusMsg}</> : <><Wand2 className="mr-2 h-3 w-3" />Criar e Gerar Minuta</>}
             </Button>

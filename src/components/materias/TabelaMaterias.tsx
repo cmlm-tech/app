@@ -80,7 +80,22 @@ export default function TabelaMaterias({ materias }: Props) {
                 </TableCell>
                 <TableCell>{mat.tipo}</TableCell>
                 <TableCell>{mat.ementa || '—'}</TableCell>
-                <TableCell>{mat.autor}</TableCell>
+                <TableCell>
+                  {mat.autor.includes('1/3 dos Vereadores') || mat.autor.includes('Vereador') && mat.autor.includes(',') ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help underline decoration-dotted">{mat.autor.split('(')[0].trim()}</span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">Autoria coletiva de 1/3 dos vereadores</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <span>{mat.autor}</span>
+                  )}
+                </TableCell>
                 <TableCell>{mat.dataProtocolo.toLocaleDateString()}</TableCell>
                 <TableCell>
                   <span className={cn("px-3 py-1 rounded-full text-xs font-semibold", statusColors[mat.status] || "bg-gray-200 text-gray-600")}>

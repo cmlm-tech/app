@@ -5,6 +5,7 @@ import ProjetoLeiPDF from './pdf/templates/ProjetoLeiPDF';
 import RequerimentoPDF from './pdf/templates/RequerimentoPDF';
 import DecretoLegislativoPDF from './pdf/templates/DecretoLegislativoPDF';
 import IndicacaoPDF from './pdf/templates/IndicacaoPDF';
+import ProjetoResolucaoPDF from './pdf/templates/ProjetoResolucaoPDF';
 
 interface DocumentoPDFProps {
     tipo: string;
@@ -20,6 +21,7 @@ interface DocumentoPDFProps {
     ementa?: string;
     autores?: string[] | any[];
     membrosComissao?: { nome: string; cargo: string }[];
+    membrosMesa?: { nome: string; cargo: string }[];
     isRascunho?: boolean;
 }
 
@@ -117,6 +119,21 @@ export function DocumentoPDF(props: DocumentoPDFProps) {
                     autorCargo={autorCargo}
                     destinatario={props.destinatarioNome}
                     indicacao={props.ementa}
+                    isRascunho={isRascunho}
+                />
+            );
+
+        case 'Projeto de Resolução':
+            return (
+                <ProjetoResolucaoPDF
+                    numero={props.numero}
+                    dataProtocolo={props.dataProtocolo}
+                    texto={props.texto}
+                    autor={props.autor}
+                    autorCargo={autorCargo}
+                    ementa={props.ementa}
+                    membrosMesa={props.membrosMesa}
+                    autores={props.autores}
                     isRascunho={isRascunho}
                 />
             );

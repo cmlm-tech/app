@@ -16,6 +16,7 @@ export type TipoMateria =
   | "Moção"
   | "Projeto de Decreto Legislativo"
   | "Indicação"
+  | "Projeto de Resolução"
   | "Parecer"
   | "Todos";
 

@@ -30,6 +30,8 @@ import DetalheLegislatura from "./pages/atividade-legislativa/DetalheLegislatura
 import DetalheComissao from "./pages/plenario/comissoes/[id]";
 import Painel from "./pages/Painel";
 import MeuPerfil from "./pages/MeuPerfil";
+import Regimentus from "./pages/Regimentus.tsx";
+import UploadRegimento from "./pages/UploadRegimento";
 
 // --- PÁGINAS ANTIGAS (serão removidas ou reaproveitadas) ---
 import MesaDiretoraPlenario from "./pages/plenario/MesaDiretora"; // ANTIGA
@@ -88,6 +90,8 @@ const App = () => (
 
             <Route path="/configuracoes" element={<RotaProtegida><Configuracoes /></RotaProtegida>} />
             <Route path="/perfil" element={<RotaProtegida><MeuPerfil /></RotaProtegida>} />
+            <Route path="/regimentus" element={<RotaProtegida><Regimentus /></RotaProtegida>} />
+            <Route path="/regimentus/upload" element={<RotaProtegida><UploadRegimento /></RotaProtegida>} />
 
             {/* --- 404 --- */}
             <Route path="*" element={<NotFound />} />

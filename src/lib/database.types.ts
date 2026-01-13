@@ -641,6 +641,7 @@ export type Database = {
           condicao: Database["public"]["Enums"]["condicao_vereador"] | null
           data_afastamento: string | null
           data_posse: string | null
+          data_retorno: string | null
           id: number
           legislatura_id: number
           partido: string | null
@@ -651,6 +652,7 @@ export type Database = {
           condicao?: Database["public"]["Enums"]["condicao_vereador"] | null
           data_afastamento?: string | null
           data_posse?: string | null
+          data_retorno?: string | null
           id?: number
           legislatura_id: number
           partido?: string | null
@@ -661,6 +663,7 @@ export type Database = {
           condicao?: Database["public"]["Enums"]["condicao_vereador"] | null
           data_afastamento?: string | null
           data_posse?: string | null
+          data_retorno?: string | null
           id?: number
           legislatura_id?: number
           partido?: string | null
@@ -1324,6 +1327,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      regimento_chunks: {
+        Row: {
+          artigo: string | null
+          conteudo: string
+          created_at: string | null
+          id: number
+          metadata: Json | null
+          secao: string | null
+          titulo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          artigo?: string | null
+          conteudo: string
+          created_at?: string | null
+          id?: number
+          metadata?: Json | null
+          secao?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          artigo?: string | null
+          conteudo?: string
+          created_at?: string | null
+          id?: number
+          metadata?: Json | null
+          secao?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      regimentus_chat: {
+        Row: {
+          chunks_usados: number[] | null
+          created_at: string | null
+          id: number
+          pergunta: string
+          resposta: string
+        }
+        Insert: {
+          chunks_usados?: number[] | null
+          created_at?: string | null
+          id?: number
+          pergunta: string
+          resposta: string
+        }
+        Update: {
+          chunks_usados?: number[] | null
+          created_at?: string | null
+          id?: number
+          pergunta?: string
+          resposta?: string
+        }
+        Relationships: []
+      }
+      regimentus_resumo_historico: {
+        Row: {
+          created_at: string | null
+          id: number
+          num_conversas_comprimidas: number
+          periodo_fim: string
+          periodo_inicio: string
+          resumo: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          num_conversas_comprimidas?: number
+          periodo_fim: string
+          periodo_inicio: string
+          resumo: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          num_conversas_comprimidas?: number
+          periodo_fim?: string
+          periodo_inicio?: string
+          resumo?: string
+        }
+        Relationships: []
       }
       requerimentos: {
         Row: {

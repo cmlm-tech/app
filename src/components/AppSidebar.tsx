@@ -171,6 +171,47 @@ export const AppSidebar = ({ isCollapsed, setIsCollapsed, isMobileMenuOpen, setI
           </ul>
         </div>
         <div className="border-t border-gov-blue-700 p-4 space-y-3">
+          {/* Regimentus - Pergunte ao Regimentus */}
+          {isCollapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <NavLink
+                  to="/regimentus"
+                  className={({ isActive }) => cn(
+                    "relative flex items-center justify-center w-full px-3 py-3 rounded-md transition-all duration-200 hover:bg-gov-blue-700/70 group",
+                    isActive && "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
+                  )}
+                >
+                  <img
+                    src="/regimentus.png"
+                    alt="Regimentus"
+                    className="w-12 h-12 aspect-square object-contain transition-transform group-hover:scale-110"
+                  />
+                </NavLink>
+              </TooltipTrigger>
+              <TooltipContent side="right"><p>Pergunte ao Regimentus</p></TooltipContent>
+            </Tooltip>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <NavLink
+                  to="/regimentus"
+                  className={({ isActive }) => cn(
+                    "relative flex items-center justify-center w-full px-3 py-3 rounded-md transition-all duration-200 hover:bg-gov-blue-700/70 group",
+                    isActive && "bg-gov-blue-700 shadow before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-gov-gold-500 before:rounded-r-full"
+                  )}
+                >
+                  <img
+                    src="/regimentus.png"
+                    alt="Regimentus"
+                    className="w-12 h-12 aspect-square object-contain transition-transform group-hover:scale-110"
+                  />
+                </NavLink>
+              </TooltipTrigger>
+              <TooltipContent side="right"><p>Pergunte ao Regimentus</p></TooltipContent>
+            </Tooltip>
+          )}
+
           <button onClick={() => setIsCollapsed(!isCollapsed)} className="hidden md:flex items-center justify-center w-full p-2 rounded-md transition-colors hover:bg-gov-blue-700/70" title={isCollapsed ? "Expandir menu" : "Recolher menu"}>
             {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <><ChevronLeft className="w-5 h-5" /> <span className="ml-2">Recolher</span></>}
           </button>

@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Loader2 } from 'lucide-react';
@@ -23,6 +23,10 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>(currentImageUrl || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setPreviewUrl(currentImageUrl || '');
+  }, [currentImageUrl]);
 
   // Prefer preview, then current image, then a default placeholder
   const displayUrl = previewUrl || currentImageUrl || DEFAULT_AGENT_IMAGE;
@@ -111,7 +115,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               alt="Preview"
               className="w-full h-full object-cover"
             />
-            {displayUrl !== DEFAULT_AGENT_IMAGE && !isUploading && (
+            {!isUploading && (
               <button
                 type="button"
                 onClick={handleRemoveImage}
@@ -158,7 +162,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             ) : (
               <>
                 <Upload className="w-4 h-4" />
-                {displayUrl !== DEFAULT_AGENT_IMAGE ? 'Alterar Imagem' : 'Selecionar Imagem'}
+                {previewUrl || currentImageUrl ? 'Alterar Imagem' : 'Selecionar Imagem'}
               </>
             )}
           </Button>

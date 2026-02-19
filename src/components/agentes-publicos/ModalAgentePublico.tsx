@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AgentePublico, TipoAgente, TIPOS_AGENTE, TIPOS_VINCULO } from "./types";
 import { useCpfValidation } from "@/hooks/useCpfValidation";
 import { ImageUpload } from "@/components/ImageUpload";
@@ -69,24 +69,6 @@ export const ModalAgentePublico = ({
 
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    // Apenas reseta o estado interno se não estiver usando estado externo
-    if (!onFormDataChange && !agente && !isEditing) {
-      updateFormData({
-        nomeCompleto: '',
-        cpf: '',
-        foto: '',
-        tipo: undefined,
-        nomeParlamantar: '',
-        perfil: '',
-        cargo: '',
-        tipoVinculo: undefined,
-        dataAdmissao: '',
-        dataExoneracao: ''
-      });
-    }
-  }, [agente, isEditing, onFormDataChange]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -130,13 +112,12 @@ export const ModalAgentePublico = ({
     setIsSaving(true);
 
     try {
-      // Build a robust default image URL: prefer absolute URL based on origin when available
+      // Use the provided photo or fall back to the default agent image
       let fotoUrl = '';
-      if (formData.foto && String(formData.foto).trim()) {
+      if (formData.foto && formData.foto.trim()) {
         fotoUrl = formData.foto;
       } else {
-        const origin = (typeof window !== 'undefined' && window.location?.origin) ? window.location.origin : '';
-        fotoUrl = origin ? `${origin}/assets/default-agent.svg` : '/assets/default-agent.svg';
+        fotoUrl = '/assets/default-agent.svg';
       }
       const { data, error } = await supabase.rpc('upsert_agente_publico', {
         p_id: isEditing && agente ? Number(agente.id) : null,

@@ -55,7 +55,7 @@ export function PeriodoCard({
                 <div className="font-semibold">Presidente:</div>
                 {presidente ? (
                     <div className="flex items-center gap-3">
-                        <img src={presidente.foto_url || '/placeholder.svg'} alt={presidente.nome_completo} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow" />
+                        <img src={presidente.foto_url || '/assets/default-agent.svg'} alt={presidente.nome_completo} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow" />
                         <span className="text-gray-800">{presidente.nome_completo}</span>
                     </div>
                 ) : (

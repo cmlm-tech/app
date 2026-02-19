@@ -47,7 +47,7 @@ export const CardAgentePublico = ({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{agente.nome_completo}</CardTitle>
         <img
-          src={agente.foto_url || "/placeholder.svg"}
+          src={agente.foto_url || "/assets/default-agent.svg"}
           alt={agente.nome_completo}
           className="w-10 h-10 rounded-full object-cover"
         />

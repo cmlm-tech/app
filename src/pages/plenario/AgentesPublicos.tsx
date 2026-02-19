@@ -58,6 +58,33 @@ export default function AgentesPublicos() {
     dataExoneracao: ''
   });
 
+  const createEmptyFormData = (): Partial<AgentePublico> => ({
+    nomeCompleto: '',
+    cpf: '',
+    foto: '',
+    tipo: undefined,
+    nomeParlamantar: '',
+    perfil: '',
+    cargo: '',
+    tipoVinculo: undefined,
+    dataAdmissao: '',
+    dataExoneracao: ''
+  });
+
+  const createFormDataFromAgente = (agente: AgenteComStatus): Partial<AgentePublico> => ({
+    id: agente.id.toString(),
+    nomeCompleto: agente.nome_completo || '',
+    cpf: agente.cpf || '',
+    foto: agente.foto_url || '',
+    tipo: agente.tipo,
+    nomeParlamantar: agente.nome_parlamentar || '',
+    perfil: agente.perfil || '',
+    cargo: agente.cargo || '',
+    tipoVinculo: agente.tipo_vinculo || undefined,
+    dataAdmissao: agente.data_admissao || '',
+    dataExoneracao: agente.data_exoneracao || ''
+  });
+
   const isAdmin = permissaoLogado === 'Admin';
 
   const carregarAgentes = useCallback(async () => {
@@ -112,37 +139,14 @@ export default function AgentesPublicos() {
   const handleNovoAgente = () => {
     setAgenteEditando(null);
     setIsEditing(false);
-    setFormDataAgente({
-      nomeCompleto: '',
-      cpf: '',
-      foto: '',
-      tipo: undefined,
-      nomeParlamantar: '',
-      perfil: '',
-      cargo: '',
-      tipoVinculo: undefined,
-      dataAdmissao: '',
-      dataExoneracao: ''
-    });
+    setFormDataAgente(createEmptyFormData());
     setModalAberto(true);
   };
 
   const handleEditarAgente = (agente: AgenteComStatus) => {
     setAgenteEditando(agente);
     setIsEditing(true);
-    setFormDataAgente({
-      id: agente.id.toString(),
-      nomeCompleto: agente.nome_completo || '',
-      cpf: agente.cpf || '',
-      foto: agente.foto_url || '',
-      tipo: agente.tipo,
-      nomeParlamantar: agente.nome_parlamentar || '',
-      perfil: agente.perfil || '',
-      cargo: agente.cargo || '',
-      tipoVinculo: agente.tipo_vinculo || undefined,
-      dataAdmissao: agente.data_admissao || '',
-      dataExoneracao: agente.data_exoneracao || ''
-    });
+    setFormDataAgente(createFormDataFromAgente(agente));
     setModalAberto(true);
   };
 

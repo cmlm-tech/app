@@ -61,7 +61,7 @@ export const TabelaAgentesPublicos = ({
               <TableRow key={agente.id}>
                 <TableCell>
                   <img
-                    src={agente.foto_url || "/placeholder.svg"}
+                    src={agente.foto_url || "/assets/default-agent.svg"}
                     alt={agente.nome_completo}
                     className="w-10 h-10 rounded-full object-cover"
                   />

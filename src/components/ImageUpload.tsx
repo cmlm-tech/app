@@ -12,6 +12,9 @@ type ImageUploadProps = {
   disabled?: boolean;
 };
 
+// Default fallback image for agents without a provided photo
+const DEFAULT_AGENT_IMAGE = '/assets/default-agent.svg';
+
 export const ImageUpload: React.FC<ImageUploadProps> = ({
   onImageUploaded,
   currentImageUrl,
@@ -20,6 +23,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>(currentImageUrl || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Prefer preview, then current image, then a default placeholder
+  const displayUrl = previewUrl || currentImageUrl || DEFAULT_AGENT_IMAGE;
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -97,15 +103,15 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       <Label>Foto do Agente</Label>
       
       <div className="flex flex-col gap-4">
-        {/* Área de preview */}
-        {previewUrl && (
+        {/* Área de preview (inclui fallback para imagem padrão) */}
+        {displayUrl && (
           <div className="relative w-32 h-32 border-2 border-gray-200 rounded-lg overflow-hidden">
             <img
-              src={previewUrl}
+              src={displayUrl}
               alt="Preview"
               className="w-full h-full object-cover"
             />
-            {!isUploading && (
+            {displayUrl !== DEFAULT_AGENT_IMAGE && !isUploading && (
               <button
                 type="button"
                 onClick={handleRemoveImage}
@@ -152,7 +158,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             ) : (
               <>
                 <Upload className="w-4 h-4" />
-                {previewUrl ? 'Alterar Imagem' : 'Selecionar Imagem'}
+                {displayUrl !== DEFAULT_AGENT_IMAGE ? 'Alterar Imagem' : 'Selecionar Imagem'}
               </>
             )}
           </Button>

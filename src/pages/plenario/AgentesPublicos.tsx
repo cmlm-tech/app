@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Database, Enums } from "@/lib/database.types";
+import { AgentePublico } from "@/components/agentes-publicos/types";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -44,6 +45,18 @@ export default function AgentesPublicos() {
   const [agenteComConvitePendente, setAgenteComConvitePendente] = useState<AgenteComStatus | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [agenteParaReativar, setAgenteParaReativar] = useState<AgenteComStatus | null>(null);
+  const [formDataAgente, setFormDataAgente] = useState<Partial<AgentePublico>>({
+    nomeCompleto: '',
+    cpf: '',
+    foto: '',
+    tipo: undefined,
+    nomeParlamantar: '',
+    perfil: '',
+    cargo: '',
+    tipoVinculo: undefined,
+    dataAdmissao: '',
+    dataExoneracao: ''
+  });
 
   const isAdmin = permissaoLogado === 'Admin';
 
@@ -99,12 +112,37 @@ export default function AgentesPublicos() {
   const handleNovoAgente = () => {
     setAgenteEditando(null);
     setIsEditing(false);
+    setFormDataAgente({
+      nomeCompleto: '',
+      cpf: '',
+      foto: '',
+      tipo: undefined,
+      nomeParlamantar: '',
+      perfil: '',
+      cargo: '',
+      tipoVinculo: undefined,
+      dataAdmissao: '',
+      dataExoneracao: ''
+    });
     setModalAberto(true);
   };
 
   const handleEditarAgente = (agente: AgenteComStatus) => {
     setAgenteEditando(agente);
     setIsEditing(true);
+    setFormDataAgente({
+      id: agente.id.toString(),
+      nomeCompleto: agente.nome_completo || '',
+      cpf: agente.cpf || '',
+      foto: agente.foto_url || '',
+      tipo: agente.tipo,
+      nomeParlamantar: agente.nome_parlamentar || '',
+      perfil: agente.perfil || '',
+      cargo: agente.cargo || '',
+      tipoVinculo: agente.tipo_vinculo || undefined,
+      dataAdmissao: agente.data_admissao || '',
+      dataExoneracao: agente.data_exoneracao || ''
+    });
     setModalAberto(true);
   };
 
@@ -249,7 +287,15 @@ export default function AgentesPublicos() {
         />
         {isAdmin && (
             <>
-                <ModalAgentePublico isOpen={modalAberto} onClose={() => setModalAberto(false)} onSave={handleAcaoConcluida} agente={agenteEditando} isEditing={isEditing} />
+                <ModalAgentePublico 
+                  isOpen={modalAberto} 
+                  onClose={() => setModalAberto(false)} 
+                  onSave={handleAcaoConcluida} 
+                  agente={agenteEditando} 
+                  isEditing={isEditing}
+                  formData={formDataAgente}
+                  onFormDataChange={setFormDataAgente}
+                />
                 <ModalConviteUsuario isOpen={modalConviteAberto} onClose={() => setModalConviteAberto(false)} onConviteEnviado={handleAcaoConcluida} agente={agenteConvidando} />
                 <ModalConfirmacaoInativar isOpen={!!agenteParaInativar} onClose={() => setAgenteParaInativar(null)} onConfirm={handleConfirmarInativacao} agente={agenteParaInativar} />
                 <ModalReativarUsuario isOpen={!!agenteParaReativar} onClose={() => setAgenteParaReativar(null)} agente={agenteParaReativar} onConfirm={handleConfirmarReativacao} />

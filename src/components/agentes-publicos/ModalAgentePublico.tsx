@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AgentePublico, TipoAgente, TIPOS_AGENTE, TIPOS_VINCULO } from "./types";
 import { useCpfValidation } from "@/hooks/useCpfValidation";
 import { ImageUpload } from "@/components/ImageUpload";
@@ -19,6 +19,8 @@ type ModalAgentePublicoProps = {
   onSave: (agente: Partial<AgentePublico>) => void;
   agente?: AgenteComStatus | null; // Usar AgenteComStatus aqui
   isEditing: boolean;
+  formData?: Partial<AgentePublico>;
+  onFormDataChange?: (data: Partial<AgentePublico>) => void;
 };
 
 export const ModalAgentePublico = ({
@@ -26,12 +28,14 @@ export const ModalAgentePublico = ({
   onClose,
   onSave,
   agente,
-  isEditing
+  isEditing,
+  formData: externalFormData,
+  onFormDataChange
 }: ModalAgentePublicoProps) => {
   const { toast } = useToast();
   const { cpfError, isValidCpf, handleCpfBlur, formatCpf } = useCpfValidation();
   
-  const [formData, setFormData] = useState<Partial<AgentePublico>>({
+  const [internalFormData, setInternalFormData] = useState<Partial<AgentePublico>>({
     nomeCompleto: '',
     cpf: '',
     foto: '',
@@ -45,40 +49,25 @@ export const ModalAgentePublico = ({
     dataExoneracao: ''
   });
 
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (agente && isEditing) {
-      setFormData({
-        id: agente.id.toString(),
-        nomeCompleto: agente.nome_completo || '',
-        cpf: agente.cpf || '',
-        foto: agente.foto_url || '',
-        tipo: agente.tipo,
-        // statusUsuario: agente.status_usuario, // Removido
-        nomeParlamantar: agente.nome_parlamentar || '',
-        perfil: agente.perfil || '',
-        cargo: agente.cargo || '',
-        tipoVinculo: agente.tipo_vinculo || undefined,
-        dataAdmissao: agente.data_admissao || '',
-        dataExoneracao: agente.data_exoneracao || ''
-      });
+  const formData = externalFormData || internalFormData;
+  
+  const updateFormData = (updater: Partial<AgentePublico> | ((prev: Partial<AgentePublico>) => Partial<AgentePublico>)) => {
+    if (typeof updater === 'function') {
+      if (onFormDataChange) {
+        onFormDataChange(updater(formData));
+      } else {
+        setInternalFormData(updater);
+      }
     } else {
-      setFormData({
-        nomeCompleto: '',
-        cpf: '',
-        foto: '',
-        tipo: undefined,
-        // statusUsuario: 'Sem Acesso', // Removido
-        nomeParlamantar: '',
-        perfil: '',
-        cargo: '',
-        tipoVinculo: undefined,
-        dataAdmissao: '',
-        dataExoneracao: ''
-      });
+      if (onFormDataChange) {
+        onFormDataChange(updater);
+      } else {
+        setInternalFormData(updater);
+      }
     }
-  }, [agente, isEditing, isOpen]);
+  };
+
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,11 +112,18 @@ export const ModalAgentePublico = ({
     setIsSaving(true);
 
     try {
+      // Use the provided photo or fall back to the default agent image
+      let fotoUrl = '';
+      if (formData.foto && formData.foto.trim()) {
+        fotoUrl = formData.foto;
+      } else {
+        fotoUrl = '/assets/default-agent.svg';
+      }
       const { data, error } = await supabase.rpc('upsert_agente_publico', {
         p_id: isEditing && agente ? Number(agente.id) : null,
         p_nome_completo: formData.nomeCompleto,
         p_cpf: formData.cpf?.replace(/\D/g, ''),
-        p_foto_url: formData.foto,
+        p_foto_url: fotoUrl,
         p_tipo: formData.tipo,
         p_nome_parlamentar: formData.nomeParlamantar || null,
         p_perfil: formData.perfil || null,
@@ -159,7 +155,7 @@ export const ModalAgentePublico = ({
   };
 
   const handleInputChange = (field: keyof AgentePublico, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    updateFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleCpfChange = (value: string) => {

@@ -39,18 +39,22 @@ export const ModalConviteUsuario = ({ isOpen, onClose, agente, onConviteEnviado 
     setIsSending(true);
 
     try {
-      const { error } = await supabase.functions.invoke('convidar-usuario', {
+      const { data, error } = await supabase.functions.invoke('convidar-usuario', {
         body: {
           agente_publico_id: agente.id,
-          nome: agente.nome_completo,
           email: email,
           permissao: permissao,
         },
       });
 
       if (error) {
-        // A Edge Function agora retorna um objeto de erro com uma propriedade 'error'
-        throw new Error(error.message);
+        // Erro de rede ou outro erro inesperado do SDK
+        throw new Error(error.message || 'Ocorreu um erro inesperado.');
+      }
+
+      if (!data?.success) {
+        // A edge function retornou success: false com uma mensagem em PT-BR
+        throw new Error(data?.error || 'Ocorreu um erro inesperado.');
       }
 
       toast({

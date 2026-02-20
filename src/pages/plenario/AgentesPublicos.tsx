@@ -33,7 +33,7 @@ export default function AgentesPublicos() {
 
   // Estado para armazenar a permissão real do usuário, vinda do banco.
   const [permissaoLogado, setPermissaoLogado] = useState<Enums<"permissao_usuario"> | null>(null);
-  
+
   const [busca, setBusca] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('Todos');
   const [statusFiltro, setStatusFiltro] = useState('Todos');
@@ -111,14 +111,14 @@ export default function AgentesPublicos() {
 
         if (perfilData) {
           setIdAgenteLogado(perfilData.agente_publico_id);
-          setPermissaoLogado(perfilData.permissao); 
+          setPermissaoLogado(perfilData.permissao);
         } else {
           console.error("Erro ao buscar perfil do usuário logado:", perfilError);
           setPermissaoLogado(null); // Se não encontrar o perfil, garantir que a permissão seja nula
           toast({ title: "Erro", description: "Não foi possível carregar o perfil do usuário.", variant: "destructive" });
         }
       } else {
-        setPermissaoLogado(null); 
+        setPermissaoLogado(null);
       }
       await carregarAgentes();
       setLoading(false);
@@ -129,10 +129,10 @@ export default function AgentesPublicos() {
 
   const agentesFiltrados = agentes.filter(agente => {
     const buscaMatch = agente.nome_completo.toLowerCase().includes(busca.toLowerCase()) ||
-                      (agente.cpf || '').includes(busca.replace(/\D/g, ''));
+      (agente.cpf || '').includes(busca.replace(/\D/g, ''));
     const tipoMatch = tipoFiltro === 'Todos' || agente.tipo === tipoFiltro;
     const statusMatch = statusFiltro === 'Todos' || agente.status_usuario === statusFiltro;
-    
+
     return buscaMatch && tipoMatch && statusMatch;
   });
 
@@ -154,7 +154,7 @@ export default function AgentesPublicos() {
     setAgenteConvidando(agente);
     setModalConviteAberto(true);
   };
-  
+
   const handleDesativarAgente = (agente: AgenteComStatus) => {
     if (!isAdmin) return; // Segurança adicional
     setAgenteParaInativar(agente);
@@ -202,10 +202,12 @@ export default function AgentesPublicos() {
   const handleConfirmarInativacao = async () => {
     if (!agenteParaInativar || !isAdmin) return;
     try {
-      const { data: usuarioData, error: fetchUserError } = await supabase.from('usuarios').select('id').eq('agente_publico_id', agenteParaInativar.id).single();
-      if (fetchUserError || !usuarioData) throw new Error("Usuário não encontrado para inativação.");
-      const { error: updatePermissionError } = await supabase.from('usuarios').update({ permissao: 'Inativo' }).eq('id', usuarioData.id);
-      if (updatePermissionError) throw updatePermissionError;
+      const { data, error } = await supabase.functions.invoke('gerenciar-usuario', {
+        body: { agente_publico_id: agenteParaInativar.id, acao: 'inativar' },
+      });
+      if (error || !data?.success) {
+        throw new Error(data?.error || error?.message || 'Falha ao inativar o agente.');
+      }
       toast({ title: "Sucesso", description: `O agente ${agenteParaInativar.nome_completo} foi inativado.` });
       setAgenteParaInativar(null);
       await carregarAgentes();
@@ -219,10 +221,12 @@ export default function AgentesPublicos() {
   const handleConfirmarReativacao = async (novaPermissao: Enums<"permissao_usuario">) => {
     if (!agenteParaReativar || !isAdmin) return;
     try {
-      const { data: usuarioData, error: fetchUserError } = await supabase.from('usuarios').select('id').eq('agente_publico_id', agenteParaReativar.id).single();
-      if (fetchUserError || !usuarioData) throw new Error("Usuário não encontrado para reativação.");
-      const { error: updatePermissionError } = await supabase.from('usuarios').update({ permissao: novaPermissao }).eq('id', usuarioData.id);
-      if (updatePermissionError) throw updatePermissionError;
+      const { data, error } = await supabase.functions.invoke('gerenciar-usuario', {
+        body: { agente_publico_id: agenteParaReativar.id, acao: 'reativar', nova_permissao: novaPermissao },
+      });
+      if (error || !data?.success) {
+        throw new Error(data?.error || error?.message || 'Falha ao reativar o agente.');
+      }
       toast({ title: "Sucesso", description: `O agente ${agenteParaReativar.nome_completo} foi reativado com sucesso.` });
       setAgenteParaReativar(null);
       await carregarAgentes();
@@ -232,11 +236,11 @@ export default function AgentesPublicos() {
       toast({ title: "Erro", description: errorMessage, variant: "destructive" });
     }
   };
-  
+
   const handleAcaoConcluida = useCallback(async () => {
-      await carregarAgentes();
+    await carregarAgentes();
   }, [carregarAgentes]);
-  
+
   if (loading) {
     return (
       <AppLayout>
@@ -246,10 +250,10 @@ export default function AgentesPublicos() {
       </AppLayout>
     );
   }
-  
+
   return (
     <AppLayout>
-       <div className="space-y-6">
+      <div className="space-y-6">
         <div className="space-y-2">
           <h1 className="text-3xl font-montserrat font-bold text-gov-blue-800">
             {isAdmin ? "Gerenciamento de Agentes Públicos" : "Consulta de Agentes Públicos"}
@@ -260,7 +264,7 @@ export default function AgentesPublicos() {
               : "Visualize as informações e o status dos vereadores e funcionários da Câmara."}
           </p>
         </div>
-         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           {isAdmin && (
             <Button onClick={handleNovoAgente} className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
@@ -271,7 +275,7 @@ export default function AgentesPublicos() {
             {agentesFiltrados.length} de {agentes.length} agentes
           </div>
         </div>
-         <FiltroAgentesPublicos
+        <FiltroAgentesPublicos
           busca={busca}
           setBusca={setBusca}
           tipoFiltro={tipoFiltro}
@@ -279,7 +283,7 @@ export default function AgentesPublicos() {
           statusFiltro={statusFiltro}
           setStatusFiltro={setStatusFiltro}
         />
-         <TabelaAgentesPublicos
+        <TabelaAgentesPublicos
           agentes={agentesFiltrados}
           onEditar={isAdmin ? handleEditarAgente : undefined}
           onDesativar={isAdmin ? handleDesativarAgente : undefined}
@@ -290,34 +294,34 @@ export default function AgentesPublicos() {
           permissaoUsuarioLogado={permissaoLogado}
         />
         {isAdmin && (
-            <>
-                <ModalAgentePublico 
-                  isOpen={modalAberto} 
-                  onClose={() => setModalAberto(false)} 
-                  onSave={handleAcaoConcluida} 
-                  agente={agenteEditando} 
-                  isEditing={isEditing}
-                  formData={formDataAgente}
-                  onFormDataChange={setFormDataAgente}
-                />
-                <ModalConviteUsuario isOpen={modalConviteAberto} onClose={() => setModalConviteAberto(false)} onConviteEnviado={handleAcaoConcluida} agente={agenteConvidando} />
-                <ModalConfirmacaoInativar isOpen={!!agenteParaInativar} onClose={() => setAgenteParaInativar(null)} onConfirm={handleConfirmarInativacao} agente={agenteParaInativar} />
-                <ModalReativarUsuario isOpen={!!agenteParaReativar} onClose={() => setAgenteParaReativar(null)} agente={agenteParaReativar} onConfirm={handleConfirmarReativacao} />
-                <AlertDialog open={!!agenteComConvitePendente} onOpenChange={(open) => !open && setAgenteComConvitePendente(null)}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Gerenciar Convite Pendente</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        O convite para {agenteComConvitePendente?.nome_completo} está pendente. O que deseja fazer?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="gap-2 sm:gap-0">
-                        <Button variant="destructive" onClick={handleConfirmarCancelamento}>Cancelar Convite</Button>
-                        <Button onClick={handleConfirmarReenvio}>Reenviar Convite</Button>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-            </>
+          <>
+            <ModalAgentePublico
+              isOpen={modalAberto}
+              onClose={() => setModalAberto(false)}
+              onSave={handleAcaoConcluida}
+              agente={agenteEditando}
+              isEditing={isEditing}
+              formData={formDataAgente}
+              onFormDataChange={setFormDataAgente}
+            />
+            <ModalConviteUsuario isOpen={modalConviteAberto} onClose={() => setModalConviteAberto(false)} onConviteEnviado={handleAcaoConcluida} agente={agenteConvidando} />
+            <ModalConfirmacaoInativar isOpen={!!agenteParaInativar} onClose={() => setAgenteParaInativar(null)} onConfirm={handleConfirmarInativacao} agente={agenteParaInativar} />
+            <ModalReativarUsuario isOpen={!!agenteParaReativar} onClose={() => setAgenteParaReativar(null)} agente={agenteParaReativar} onConfirm={handleConfirmarReativacao} />
+            <AlertDialog open={!!agenteComConvitePendente} onOpenChange={(open) => !open && setAgenteComConvitePendente(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Gerenciar Convite Pendente</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    O convite para {agenteComConvitePendente?.nome_completo} está pendente. O que deseja fazer?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="gap-2 sm:gap-0">
+                  <Button variant="destructive" onClick={handleConfirmarCancelamento}>Cancelar Convite</Button>
+                  <Button onClick={handleConfirmarReenvio}>Reenviar Convite</Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
         )}
       </div>
     </AppLayout>

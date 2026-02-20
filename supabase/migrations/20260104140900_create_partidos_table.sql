@@ -58,28 +58,30 @@ ALTER TABLE public.legislaturavereadores
   ADD COLUMN IF NOT EXISTS partido_id INTEGER;
 
 -- ============================================
--- 4. POPULAR PARTIDOS QUE JÁ EXISTEM NOS DADOS
+-- 4. POPULAR PARTIDOS QUE JÁ EXISTEM NOS DADOS (Desativado para deploy limpo)
 -- ============================================
--- Inserir partidos que estão nos dados mas não no seed
-INSERT INTO public.partidos (sigla, nome_completo)
-SELECT DISTINCT 
-  partido as sigla, 
-  partido as nome_completo
-FROM public.legislaturavereadores
-WHERE partido IS NOT NULL 
-  AND partido <> ''
-  AND partido NOT IN (SELECT sigla FROM public.partidos)
-ON CONFLICT (sigla) DO NOTHING;
+-- Na Produção inicial, as tabelas estão vazias, então este SELECT
+-- causaria erro ao tentar inserir string vazias no Enum.
+--
+-- INSERT INTO public.partidos (sigla, nome_completo)
+-- SELECT DISTINCT 
+--   partido as sigla, 
+--   partido as nome_completo
+-- FROM public.legislaturavereadores
+-- WHERE partido IS NOT NULL 
+--   AND partido <> ''
+--   AND partido NOT IN (SELECT sigla FROM public.partidos)
+-- ON CONFLICT (sigla) DO NOTHING;
 
 -- ============================================
--- 5. MIGRAR DADOS EXISTENTES PARA partido_id
+-- 5. MIGRAR DADOS EXISTENTES PARA partido_id (Desativado para deploy limpo)
 -- ============================================
 -- Atualizar registros existentes com o partido_id correto
-UPDATE public.legislaturavereadores lv
-SET partido_id = p.id
-FROM public.partidos p
-WHERE lv.partido = p.sigla
-  AND lv.partido_id IS NULL;
+-- UPDATE public.legislaturavereadores lv
+-- SET partido_id = p.id
+-- FROM public.partidos p
+-- WHERE lv.partido = p.sigla
+--   AND lv.partido_id IS NULL;
 
 -- ============================================
 -- 6. ADICIONAR FOREIGN KEY (sem NOT NULL ainda)

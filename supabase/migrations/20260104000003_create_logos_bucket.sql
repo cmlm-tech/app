@@ -7,6 +7,12 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('logos', 'logos', true)
 ON CONFLICT (id) DO NOTHING;
 
+-- Dropar as políticas se elas já existirem, para podermos recriar de forma idempotente
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can upload logos" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can update logos" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can delete logos" ON storage.objects;
+
 -- Definir política de leitura pública (qualquer um pode ver)
 CREATE POLICY "Public Access"
 ON storage.objects FOR SELECT
